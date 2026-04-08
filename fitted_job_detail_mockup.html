@@ -1,0 +1,231 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+  .page { display: grid; grid-template-rows: 54px 1fr; height: 600px; background: #f4f2ed; border-radius: 12px; overflow: hidden; border: 0.5px solid var(--color-border-tertiary); }
+  .topbar { background: #fff; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; padding: 0 18px; gap: 12px; }
+  .back { font-size: 12px; color: #7a7a85; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+  .logo { font-family: Georgia, serif; font-size: 20px; color: #1a1a1f; }
+  .logo span { color: #2d5be3; }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .save-btn { padding: 5px 12px; border: 0.5px solid rgba(0,0,0,.12); border-radius: 6px; background: none; font-size: 11px; color: #7a7a85; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .apply-btn { padding: 5px 14px; background: #2d5be3; color: #fff; border: none; border-radius: 6px; font-size: 11px; font-weight: 500; cursor: pointer; }
+  .body { display: grid; grid-template-columns: 1fr 280px; overflow: hidden; }
+  .main { display: flex; flex-direction: column; overflow: hidden; border-right: 0.5px solid var(--color-border-tertiary); }
+  .job-header { padding: 18px 22px 0; background: #fff; flex-shrink: 0; }
+  .co-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .co-logo { width: 46px; height: 46px; border-radius: 10px; background: #f0e8e8; color: #801a1a; display: flex; align-items: center; justify-content: center; font-family: Georgia, serif; font-size: 16px; border: 0.5px solid rgba(0,0,0,.07); flex-shrink: 0; }
+  .job-title { font-family: Georgia, serif; font-size: 20px; color: #1a1a1f; margin-bottom: 3px; }
+  .job-co { font-size: 12.5px; color: #7a7a85; }
+  .job-co strong { color: #3d3d45; font-weight: 500; }
+  .pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .pill { padding: 3px 10px; border-radius: 20px; font-size: 11px; }
+  .pill.hybrid { background: #fdf3e3; color: #b8750a; }
+  .pill.pay { background: #f4f2ed; color: #3d3d45; }
+  .pill.match { background: #eaeffe; color: #2d5be3; font-weight: 500; }
+  .pill.best { background: #e6f5ed; color: #1a7a4a; font-weight: 500; }
+  .tabs { display: flex; border-bottom: 0.5px solid var(--color-border-tertiary); padding: 0 22px; overflow-x: auto; background: #fff; flex-shrink: 0; }
+  .tab { padding: 9px 14px; font-size: 12px; color: #7a7a85; cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+  .tab.active { color: #2d5be3; border-bottom-color: #2d5be3; font-weight: 500; }
+  .tab-content { flex: 1; overflow-y: auto; padding: 18px 22px; background: #f4f2ed; }
+  .score-hero { display: flex; align-items: center; gap: 16px; padding: 16px 18px; background: #fff; border: 0.5px solid rgba(0,0,0,.07); border-radius: 10px; margin-bottom: 14px; }
+  .big-ring { position: relative; width: 68px; height: 68px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .big-ring svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
+  .big-pct { font-family: monospace; font-size: 18px; font-weight: 600; color: #2d5be3; position: relative; z-index: 1; }
+  .score-info h3 { font-family: Georgia, serif; font-size: 15px; color: #1a1a1f; margin-bottom: 3px; }
+  .score-info p { font-size: 11.5px; color: #7a7a85; line-height: 1.5; }
+  .bars { display: flex; flex-direction: column; gap: 9px; margin-bottom: 14px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .bar-label { font-size: 11.5px; color: #3d3d45; width: 110px; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 5px; background: #e8e4db; border-radius: 20px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 20px; }
+  .bar-pct { font-family: monospace; font-size: 10.5px; color: #7a7a85; width: 32px; text-align: right; flex-shrink: 0; }
+  .kw-section { background: #fff; border: 0.5px solid rgba(0,0,0,.07); border-radius: 10px; padding: 14px 16px; }
+  .kw-title { font-size: 11px; font-weight: 500; color: #3d3d45; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 8px; }
+  .kw-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
+  .kw { padding: 3px 9px; border-radius: 20px; font-size: 11px; }
+  .kw.hit { background: #e6f5ed; color: #1a7a4a; }
+  .kw.miss { background: #f4f2ed; color: #7a7a85; text-decoration: line-through; }
+  .sidebar { display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+  .quick-info { padding: 14px 16px; border-bottom: 0.5px solid var(--color-border-tertiary); flex-shrink: 0; }
+  .si-title { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #b0b0b8; margin-bottom: 8px; }
+  .si-item { margin-bottom: 7px; }
+  .si-label { font-size: 10.5px; color: #7a7a85; }
+  .si-val { font-size: 12px; color: #3d3d45; }
+  .si-val.good { color: #1a7a4a; }
+  .similar { padding: 12px 16px; border-bottom: 0.5px solid var(--color-border-tertiary); flex-shrink: 0; }
+  .sj { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 0.5px solid rgba(0,0,0,.07); cursor: pointer; }
+  .sj:last-child { border-bottom: none; }
+  .sj-logo { width: 26px; height: 26px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-family: Georgia, serif; font-size: 10px; border: 0.5px solid rgba(0,0,0,.07); flex-shrink: 0; }
+  .sj-title { font-size: 11px; font-weight: 500; color: #1a1a1f; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sj-co { font-size: 10px; color: #7a7a85; }
+  .sj-match { font-family: monospace; font-size: 11px; flex-shrink: 0; }
+  .chat-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .chat-label { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #b0b0b8; padding: 10px 16px 6px; border-top: 0.5px solid var(--color-border-tertiary); }
+  .chat-msgs { flex: 1; overflow-y: auto; padding: 8px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .msg { display: flex; flex-direction: column; }
+  .msg.bot { align-items: flex-start; }
+  .msg.user { align-items: flex-end; }
+  .bubble { padding: 7px 10px; border-radius: 10px; font-size: 11.5px; line-height: 1.5; max-width: 90%; }
+  .msg.bot .bubble { background: #f4f2ed; color: #3d3d45; border-bottom-left-radius: 3px; }
+  .msg.user .bubble { background: #2d5be3; color: #fff; border-bottom-right-radius: 3px; }
+  .chips-row { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 14px 6px; }
+  .chip-btn { padding: 4px 9px; border: 0.5px solid rgba(0,0,0,.12); border-radius: 20px; font-size: 10.5px; color: #7a7a85; background: #fff; cursor: pointer; text-align: left; }
+  .chat-input-row { display: flex; gap: 6px; padding: 8px 14px; border-top: 0.5px solid var(--color-border-tertiary); flex-shrink: 0; }
+  .chat-input { flex: 1; padding: 6px 9px; border: 0.5px solid rgba(0,0,0,.13); border-radius: 6px; font-size: 11.5px; background: #f4f2ed; outline: none; color: #1a1a1f; }
+  .chat-send { width: 28px; height: 28px; background: #2d5be3; color: #fff; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+</style>
+
+<div class="page">
+  <div class="topbar">
+    <div class="back">← Back to jobs</div>
+    <div style="width:1px;height:18px;background:rgba(0,0,0,.1);"></div>
+    <div class="logo">fitted<span>.</span></div>
+    <div class="topbar-right">
+      <button class="save-btn">☆ Save to tracker</button>
+      <button class="apply-btn">Apply now →</button>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="main">
+      <div class="job-header">
+        <div class="co-row">
+          <div class="co-logo">HC</div>
+          <div>
+            <div class="job-title">Campaign Coordinator</div>
+            <div class="job-co"><strong>Hearst Corporation</strong> · San Francisco, CA</div>
+          </div>
+        </div>
+        <div class="pills">
+          <div class="pill hybrid">Hybrid</div>
+          <div class="pill pay">$50–52k/yr</div>
+          <div class="pill match">71% match</div>
+          <div class="pill best">Best: Brand &amp; Marketing Resume</div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active">Match Details</button>
+        <button class="tab">Tailor My Resume</button>
+        <button class="tab">Help Me Stand Out</button>
+        <button class="tab">Interview Prep</button>
+        <button class="tab">Email Drafts</button>
+        <button class="tab">Career Path ✦</button>
+        <button class="tab">Notes</button>
+      </div>
+
+      <div class="tab-content">
+        <div class="score-hero">
+          <div class="big-ring">
+            <svg width="68" height="68"><circle cx="34" cy="34" r="28" fill="none" stroke="#e8e4db" stroke-width="5"/><circle cx="34" cy="34" r="28" fill="none" stroke="#2d5be3" stroke-width="5" stroke-dasharray="124 176" stroke-linecap="round"/></svg>
+            <span class="big-pct">71%</span>
+          </div>
+          <div class="score-info">
+            <h3>Strong match — worth applying</h3>
+            <p>Your brand and campaign experience aligns well. A few keyword gaps are holding you back from a higher score.</p>
+          </div>
+        </div>
+
+        <div class="bars">
+          <div class="bar-row">
+            <div class="bar-label">Experience match</div>
+            <div class="bar-track"><div class="bar-fill" style="width:78%;background:#2d5be3;"></div></div>
+            <div class="bar-pct">78%</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Skills match</div>
+            <div class="bar-track"><div class="bar-fill" style="width:65%;background:#2d5be3;"></div></div>
+            <div class="bar-pct">65%</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Personal fit</div>
+            <div class="bar-track"><div class="bar-fill" style="width:74%;background:#1a7a4a;"></div></div>
+            <div class="bar-pct">74%</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Culture signals</div>
+            <div class="bar-track"><div class="bar-fill" style="width:68%;background:#1a7a4a;"></div></div>
+            <div class="bar-pct">68%</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Title alignment</div>
+            <div class="bar-track"><div class="bar-fill" style="width:82%;background:#2d5be3;"></div></div>
+            <div class="bar-pct">82%</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Likeliness to hear back</div>
+            <div class="bar-track"><div class="bar-fill" style="width:60%;background:#b8750a;"></div></div>
+            <div class="bar-pct">60%</div>
+          </div>
+        </div>
+
+        <div class="kw-section">
+          <div class="kw-title">Keywords</div>
+          <div class="kw-wrap">
+            <div class="kw hit">campaign management</div>
+            <div class="kw hit">cross-channel marketing</div>
+            <div class="kw hit">brand strategy</div>
+            <div class="kw hit">content calendar</div>
+            <div class="kw miss">Salesforce</div>
+            <div class="kw miss">media planning</div>
+            <div class="kw miss">budget tracking</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="quick-info">
+        <div class="si-title">Quick info</div>
+        <div class="si-item"><div class="si-label">Posted</div><div class="si-val">Feb 2, 2026</div></div>
+        <div class="si-item"><div class="si-label">Type</div><div class="si-val">Full-time · Hybrid</div></div>
+        <div class="si-item"><div class="si-label">Pay</div><div class="si-val good">$50–52k/yr ✓ above target</div></div>
+        <div class="si-item"><div class="si-label">Company size</div><div class="si-val">10,000+ employees</div></div>
+      </div>
+
+      <div class="similar">
+        <div class="si-title">Similar roles</div>
+        <div class="sj">
+          <div class="sj-logo" style="background:#e8f0e8;color:#1a501a;">RF</div>
+          <div style="flex:1;min-width:0;">
+            <div class="sj-title">Social Media Coordinator</div>
+            <div class="sj-co">Reformation</div>
+          </div>
+          <div class="sj-match" style="color:#1a7a4a;">78%</div>
+        </div>
+        <div class="sj">
+          <div class="sj-logo" style="background:#f5ede6;color:#7a3d20;">KB</div>
+          <div style="flex:1;min-width:0;">
+            <div class="sj-title">Brand Coordinator</div>
+            <div class="sj-co">Kendo Brands</div>
+          </div>
+          <div class="sj-match" style="color:#b8750a;">54%</div>
+        </div>
+      </div>
+
+      <div class="chat-section">
+        <div class="chat-label">Ask fitted.</div>
+        <div class="chat-msgs">
+          <div class="msg bot">
+            <div class="bubble">I've analyzed this role. You're a strong fit for the campaign side — want me to break down what's holding back your score?</div>
+          </div>
+          <div class="msg user">
+            <div class="bubble">Why am I only 71%?</div>
+          </div>
+          <div class="msg bot">
+            <div class="bubble">The gap is mostly keywords — Salesforce, media planning, and budget tracking aren't in your resume. Add them if you have the experience, even briefly.</div>
+          </div>
+        </div>
+        <div class="chips-row">
+          <button class="chip-btn">Should I apply?</button>
+          <button class="chip-btn">How do I stand out?</button>
+          <button class="chip-btn">Salary negotiation tips</button>
+        </div>
+        <div class="chat-input-row">
+          <input class="chat-input" placeholder="Ask anything about this role…" />
+          <button class="chat-send">↑</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

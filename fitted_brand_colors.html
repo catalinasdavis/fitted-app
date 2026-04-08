@@ -1,0 +1,100 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+  .palette { display: flex; flex-direction: column; gap: 12px; padding: 4px 0; }
+  .row { display: flex; gap: 10px; align-items: stretch; }
+  .swatch { border-radius: 10px; padding: 14px 16px; flex: 1; min-height: 72px; display: flex; flex-direction: column; justify-content: flex-end; border: 0.5px solid rgba(0,0,0,.08); }
+  .swatch-name { font-size: 11px; font-weight: 500; margin-bottom: 3px; }
+  .swatch-hex { font-family: monospace; font-size: 11px; opacity: .75; }
+  .swatch-role { font-size: 10px; margin-top: 4px; opacity: .65; }
+  .section-title { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #b0b0b8; margin-bottom: 4px; margin-top: 8px; }
+</style>
+
+<div class="palette">
+  <div class="section-title">Core palette</div>
+  <div class="row">
+    <div class="swatch" style="background:#1a1a1f;">
+      <div class="swatch-name" style="color:#f4f2ed;">Dark ink</div>
+      <div class="swatch-hex" style="color:#f4f2ed;">#1a1a1f</div>
+      <div class="swatch-role" style="color:#f4f2ed;">Primary text</div>
+    </div>
+    <div class="swatch" style="background:#f4f2ed;">
+      <div class="swatch-name" style="color:#1a1a1f;">Warm sand</div>
+      <div class="swatch-hex" style="color:#1a1a1f;">#f4f2ed</div>
+      <div class="swatch-role" style="color:#1a1a1f;">Page background</div>
+    </div>
+    <div class="swatch" style="background:#2f3e5c;">
+      <div class="swatch-name" style="color:#f4f2ed;">Navy</div>
+      <div class="swatch-hex" style="color:#f4f2ed;">#2f3e5c</div>
+      <div class="swatch-role" style="color:#f4f2ed;">Dark surfaces</div>
+    </div>
+    <div class="swatch" style="background:#b8a99a;">
+      <div class="swatch-name" style="color:#fff;">Taupe</div>
+      <div class="swatch-hex" style="color:#fff;">#b8a99a</div>
+      <div class="swatch-role" style="color:#fff;">Tagline, subtle text</div>
+    </div>
+  </div>
+
+  <div class="section-title">Action colors</div>
+  <div class="row">
+    <div class="swatch" style="background:#2d5be3;">
+      <div class="swatch-name" style="color:#fff;">Blue</div>
+      <div class="swatch-hex" style="color:#fff;">#2d5be3</div>
+      <div class="swatch-role" style="color:#fff;">Primary action, links, active states</div>
+    </div>
+    <div class="swatch" style="background:#eaeffe;">
+      <div class="swatch-name" style="color:#2d5be3;">Blue light</div>
+      <div class="swatch-hex" style="color:#2d5be3;">#eaeffe</div>
+      <div class="swatch-role" style="color:#2d5be3;">Active backgrounds, chips</div>
+    </div>
+    <div class="swatch" style="background:#b8750a;">
+      <div class="swatch-name" style="color:#fff;">Amber</div>
+      <div class="swatch-hex" style="color:#fff;">#b8750a</div>
+      <div class="swatch-role" style="color:#fff;">Upgrade, warnings, Pro</div>
+    </div>
+    <div class="swatch" style="background:#fdf3e3;">
+      <div class="swatch-name" style="color:#b8750a;">Amber light</div>
+      <div class="swatch-hex" style="color:#b8750a;">#fdf3e3</div>
+      <div class="swatch-role" style="color:#b8750a;">Pro backgrounds, flags</div>
+    </div>
+  </div>
+
+  <div class="section-title">Status colors</div>
+  <div class="row">
+    <div class="swatch" style="background:#1a7a4a;">
+      <div class="swatch-name" style="color:#fff;">Green</div>
+      <div class="swatch-hex" style="color:#fff;">#1a7a4a</div>
+      <div class="swatch-role" style="color:#fff;">High match, success, active</div>
+    </div>
+    <div class="swatch" style="background:#e6f5ed;">
+      <div class="swatch-name" style="color:#1a7a4a;">Green light</div>
+      <div class="swatch-hex" style="color:#1a7a4a;">#e6f5ed</div>
+      <div class="swatch-role" style="color:#1a7a4a;">Success backgrounds</div>
+    </div>
+    <div class="swatch" style="background:#e85d3a;">
+      <div class="swatch-name" style="color:#fff;">Coral</div>
+      <div class="swatch-hex" style="color:#fff;">#e85d3a</div>
+      <div class="swatch-role" style="color:#fff;">New badges, on-site</div>
+    </div>
+    <div class="swatch" style="background:#c0392b;">
+      <div class="swatch-name" style="color:#fff;">Red</div>
+      <div class="swatch-hex" style="color:#fff;">#c0392b</div>
+      <div class="swatch-role" style="color:#fff;">Errors, delete, below target</div>
+    </div>
+  </div>
+
+  <div class="section-title">Typography</div>
+  <div class="row">
+    <div class="swatch" style="background:#fff; border: 0.5px solid rgba(0,0,0,.1);">
+      <div style="font-family: Georgia, serif; font-size: 22px; color: #1a1a1f; letter-spacing: -.02em; margin-bottom: 4px;">fitted<span style="color:#2d5be3;">.</span></div>
+      <div class="swatch-name" style="color:#3d3d45;">Georgia / serif</div>
+      <div class="swatch-role" style="color:#7a7a85;">Headings, logo, feed titles</div>
+    </div>
+    <div class="swatch" style="background:#fff; border: 0.5px solid rgba(0,0,0,.1);">
+      <div style="font-size: 14px; color: #1a1a1f; margin-bottom: 4px;">Campaign Coordinator</div>
+      <div style="font-family: monospace; font-size: 13px; color: #2d5be3; margin-bottom: 4px;">71%</div>
+      <div class="swatch-name" style="color:#3d3d45;">Sans-serif + Monospace</div>
+      <div class="swatch-role" style="color:#7a7a85;">Body text + numbers</div>
+    </div>
+  </div>
+</div>
