@@ -138,6 +138,8 @@ export default function Home() {
 
   // Stripe
   const [stripeLoading,  setStripeLoading]  = useState<string | null>(null)
+  const [showWelcome,    setShowWelcome]    = useState(false)
+  const [welcomeField,   setWelcomeField]   = useState('')
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null)
 
   const saveTimer = useRef<NodeJS.Timeout | null>(null)
@@ -173,6 +175,11 @@ export default function Home() {
   // ── STRIPE SUCCESS ─────────────────────────────────────────────────────────
   useEffect(() => {
     const params    = new URLSearchParams(window.location.search)
+    // Welcome banner for new users coming from quiz
+    if (params.get('welcome') === '1') {
+      setShowWelcome(true)
+      window.history.replaceState({}, '', '/')
+    }
     const payment   = params.get('payment')
     const type      = params.get('type')
     const uid       = params.get('uid')
@@ -892,6 +899,29 @@ ${pasteText}`,
         className="hide-mobile" title="Get help">
         ?
       </button>
+
+      {/* WELCOME BANNER — shown after quiz completion */}
+      {showWelcome && (
+        <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', background: '#2f3e5c', color: '#f4f2ed', borderRadius: 14, padding: '16px 22px', fontSize: 14, zIndex: 200, display: 'flex', alignItems: 'flex-start', gap: 14, boxShadow: '0 4px 24px rgba(0,0,0,.18)', maxWidth: 480, width: 'calc(100vw - 48px)' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: 17, marginBottom: 5 }}>Welcome to fitted<span style={{ color: '#2d5be3' }}>.</span> ✦</div>
+            <div style={{ fontSize: 13, lineHeight: 1.65, color: '#b8a99a' }}>
+              We've loaded a demo resume so your feed looks relevant right away. Upload your real resume anytime using the left sidebar — then you can delete the demo one.
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+              <button onClick={() => { setShowWelcome(false); document.querySelector<HTMLInputElement>('input[type=file]')?.click() }}
+                style={{ padding: '7px 14px', background: '#2d5be3', color: '#fff', border: 'none', borderRadius: 8, fontFamily: 'sans-serif', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                Upload my resume →
+              </button>
+              <button onClick={() => setShowWelcome(false)}
+                style={{ padding: '7px 14px', background: 'rgba(255,255,255,.1)', color: '#f4f2ed', border: 'none', borderRadius: 8, fontFamily: 'sans-serif', fontSize: 12, cursor: 'pointer' }}>
+                Explore first
+              </button>
+            </div>
+          </div>
+          <button onClick={() => setShowWelcome(false)} style={{ background: 'none', border: 'none', color: '#b8a99a', cursor: 'pointer', fontSize: 18, lineHeight: 1, flexShrink: 0 }}>×</button>
+        </div>
+      )}
 
       {/* STRIPE SUCCESS BANNER */}
       {paymentSuccess && (
