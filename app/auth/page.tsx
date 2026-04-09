@@ -24,7 +24,6 @@ export default function AuthPage() {
     setLoading(false)
 
     if (data.needsConfirmation) {
-      // Email confirmation required — show success message, don't redirect
       setSuccess('Account created! Check your email to confirm, then sign in.')
       setMode('signin')
       return
@@ -35,7 +34,9 @@ export default function AuthPage() {
       return
     }
 
-    // Successful sign-in — go to quiz for new accounts, dashboard for existing
+    // ── KEY ROUTING LOGIC ──────────────────────────────────────────────────
+    // New sign-ups → quiz (assigns demo resume + saves career field)
+    // Returning sign-ins → dashboard directly
     if (mode === 'signup') {
       router.push('/quiz')
     } else {
@@ -68,9 +69,7 @@ export default function AuthPage() {
 
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#3d3d45', marginBottom: '6px' }}>
-                Email
-              </label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#3d3d45', marginBottom: '6px' }}>Email</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com"
                 style={{ width: '100%', padding: '10px 12px', border: '1px solid rgba(0,0,0,.13)', borderRadius: '8px', fontSize: '14px', fontFamily: 'sans-serif', color: '#1a1a1f', background: '#f4f2ed', outline: 'none', boxSizing: 'border-box' as const }} />
             </div>
