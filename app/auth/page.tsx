@@ -4,24 +4,43 @@ import { useRouter } from 'next/navigation'
 
 export default function AuthPage() {
   const router = useRouter()
-  const [mode, setMode]       = useState<'signin' | 'signup'>('signin')
-  const [email, setEmail]     = useState('')
+  const [mode,     setMode]     = useState<'signin' | 'signup'>('signin')
+  const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError]     = useState('')
-  const [loading, setLoading] = useState(false)
+  const [error,    setError]    = useState('')
+  const [success,  setSuccess]  = useState('')
+  const [loading,  setLoading]  = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError(''); setLoading(true)
+    setError(''); setSuccess(''); setLoading(true)
+
     const res  = await fetch('/api/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, mode }),
+      body: JSON.stringify({ email: email.trim(), password, mode }),
     })
     const data = await res.json()
     setLoading(false)
-    if (data.error) { setError(data.error); return }
-    router.push('/')
+
+    if (data.needsConfirmation) {
+      // Email confirmation required — show success message, don't redirect
+      setSuccess('Account created! Check your email to confirm, then sign in.')
+      setMode('signin')
+      return
+    }
+
+    if (data.error) {
+      setError(data.error)
+      return
+    }
+
+    // Successful sign-in — go to quiz for new accounts, dashboard for existing
+    if (mode === 'signup') {
+      router.push('/quiz')
+    } else {
+      router.push('/')
+    }
   }
 
   return (
@@ -52,38 +71,29 @@ export default function AuthPage() {
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#3d3d45', marginBottom: '6px' }}>
                 Email
               </label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                placeholder="you@example.com"
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid rgba(0,0,0,.13)', borderRadius: '8px', fontSize: '14px', fontFamily: 'sans-serif', color: '#1a1a1f', background: '#f4f2ed', outline: 'none', boxSizing: 'border-box' as const }}
-              />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com"
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid rgba(0,0,0,.13)', borderRadius: '8px', fontSize: '14px', fontFamily: 'sans-serif', color: '#1a1a1f', background: '#f4f2ed', outline: 'none', boxSizing: 'border-box' as const }} />
             </div>
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#3d3d45', marginBottom: '6px' }}>
-                Password
+                Password {mode === 'signup' && <span style={{ color: '#b0b0b8', fontWeight: 400 }}>(min. 6 characters)</span>}
               </label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid rgba(0,0,0,.13)', borderRadius: '8px', fontSize: '14px', fontFamily: 'sans-serif', color: '#1a1a1f', background: '#f4f2ed', outline: 'none', boxSizing: 'border-box' as const }}
-              />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••"
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid rgba(0,0,0,.13)', borderRadius: '8px', fontSize: '14px', fontFamily: 'sans-serif', color: '#1a1a1f', background: '#f4f2ed', outline: 'none', boxSizing: 'border-box' as const }} />
             </div>
 
             {error && (
-              <div style={{ background: '#fdecea', border: '1px solid #f5c6c6', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#a32d2d', marginBottom: '16px' }}>
+              <div style={{ background: '#fdecea', border: '1px solid #f5c6c6', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#a32d2d', marginBottom: '16px', lineHeight: 1.5 }}>
                 {error}
               </div>
             )}
+            {success && (
+              <div style={{ background: '#e6f5ed', border: '1px solid #a8d5ba', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#1a7a4a', marginBottom: '16px', lineHeight: 1.5 }}>
+                {success}
+              </div>
+            )}
 
-            <button
-              type="submit"
-              disabled={loading}
+            <button type="submit" disabled={loading}
               style={{ width: '100%', padding: '12px', background: '#2d5be3', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'sans-serif', opacity: loading ? .7 : 1 }}>
               {loading ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
             </button>
@@ -92,14 +102,14 @@ export default function AuthPage() {
           <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: '#7a7a85' }}>
             {mode === 'signin' ? (
               <>Don't have an account?{' '}
-                <button onClick={() => { setMode('signup'); setError('') }}
+                <button onClick={() => { setMode('signup'); setError(''); setSuccess('') }}
                   style={{ background: 'none', border: 'none', color: '#2d5be3', cursor: 'pointer', fontFamily: 'sans-serif', fontSize: '13px', fontWeight: 500 }}>
-                  Sign up
+                  Sign up free
                 </button>
               </>
             ) : (
               <>Already have an account?{' '}
-                <button onClick={() => { setMode('signin'); setError('') }}
+                <button onClick={() => { setMode('signin'); setError(''); setSuccess('') }}
                   style={{ background: 'none', border: 'none', color: '#2d5be3', cursor: 'pointer', fontFamily: 'sans-serif', fontSize: '13px', fontWeight: 500 }}>
                   Sign in
                 </button>
