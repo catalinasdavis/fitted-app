@@ -1,0 +1,547 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.shell{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;background:var(--color-background-primary)}
+.topbar{background:#2f3e5c;height:44px;display:flex;align-items:center;padding:0 14px;gap:10px}
+.logo{font-family:var(--font-serif);color:#f4f2ed;font-size:16px;letter-spacing:-0.5px}
+.logo span{color:#2d5be3}
+.sp{flex:1}
+.apply-btn{background:#2d5be3;color:#fff;font-size:11px;font-weight:500;padding:5px 12px;border-radius:6px;cursor:pointer;border:none}
+.save-btn{color:#b8a99a;font-size:11px;border:0.5px solid #b8a99a;padding:4px 10px;border-radius:6px;background:none;cursor:pointer}
+.jheader{padding:14px 16px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.jrow{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.jlogo{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:14px;flex-shrink:0;border:0.5px solid var(--color-border-tertiary)}
+.jtitle{font-size:15px;font-weight:500;color:var(--color-text-primary)}
+.jsub{font-size:12px;color:var(--color-text-secondary);margin-top:2px}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.pill{font-size:10px;padding:2px 9px;border-radius:20px}
+.pill-g{background:#e6f5ed;color:#27500a}
+.pill-b{background:#e6f1fb;color:#0c447c}
+.pill-o{background:#faeeda;color:#633806}
+.tabrow{display:flex;gap:0;overflow-x:auto;border-bottom:0.5px solid var(--color-border-tertiary);padding:0 4px}
+.tab{padding:9px 12px;font-size:12px;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;cursor:pointer;border-top:none;border-left:none;border-right:none;background:none;font-family:var(--font-sans);transition:color .15s}
+.tab:hover{color:var(--color-text-primary)}
+.tab.act{color:#185fa5;border-bottom-color:#185fa5;font-weight:500}
+.tab.pro-tab{color:#854f0b}
+.tab.pro-tab.act{color:#854f0b;border-bottom-color:#854f0b}
+.layout{display:flex;min-height:380px}
+.main{flex:1;min-width:0;overflow:hidden;padding:16px}
+.sidebar{width:200px;flex-shrink:0;border-left:0.5px solid var(--color-border-tertiary);display:flex;flex-direction:column}
+.ss{padding:12px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.ss-lbl{font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--color-text-tertiary);margin-bottom:8px}
+.ss-row{display:flex;justify-content:space-between;margin-bottom:4px}
+.ss-k{font-size:11px;color:var(--color-text-secondary)}
+.ss-v{font-size:11px;font-weight:500;color:var(--color-text-primary)}
+.sim-item{display:flex;align-items:center;gap:7px;margin-bottom:6px;cursor:pointer}
+.sim-logo{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:9px;border:0.5px solid var(--color-border-tertiary)}
+.chat-area{flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.bubble{background:var(--color-background-secondary);border-radius:6px;padding:6px 9px;font-size:11px;color:var(--color-text-secondary);line-height:1.5}
+.bubble.u{background:#e6f1fb;color:#0c447c;text-align:right}
+.chip{display:inline-block;border:0.5px solid var(--color-border-secondary);border-radius:20px;padding:2px 8px;font-size:10px;color:var(--color-text-secondary);margin:2px 2px 0 0;cursor:pointer;background:var(--color-background-primary)}
+.section-title{font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--color-text-tertiary);margin-bottom:10px}
+.score-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.score-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px;text-align:center}
+.score-num{font-size:22px;font-weight:500;line-height:1}
+.score-lbl{font-size:9px;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:5px 6px;border-radius:6px;cursor:pointer;transition:background .1s}
+.bar-row:hover{background:var(--color-background-secondary)}
+.bar-row.active{background:#e6f1fb}
+.bar-lbl{font-size:11px;color:var(--color-text-secondary);width:100px;flex-shrink:0}
+.bar-row.active .bar-lbl{color:#0c447c;font-weight:500}
+.bar-track{flex:1;height:4px;background:var(--color-border-tertiary);border-radius:20px;overflow:hidden}
+.bar-fill{height:100%;border-radius:20px}
+.bar-pct{font-size:11px;color:var(--color-text-tertiary);width:28px;text-align:right;flex-shrink:0}
+.kw-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.kw{font-size:11px;padding:2px 9px;border-radius:20px}
+.kw-hit{background:#eaf3de;color:#27500a}
+.kw-miss{background:var(--color-background-secondary);color:var(--color-text-tertiary);text-decoration:line-through}
+.accordion{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden;margin-top:10px}
+.acc-head{display:flex;justify-content:space-between;padding:9px 12px;background:var(--color-background-secondary);cursor:pointer;font-size:12px;font-weight:500;color:var(--color-text-primary)}
+.acc-body{padding:10px 12px;font-size:12px;color:var(--color-text-secondary);line-height:1.7;display:none}
+.acc-body.open{display:block}
+.hl-b{background:#e6f1fb;color:#0c447c;border-radius:2px;padding:0 2px}
+.hl-g{background:#eaf3de;color:#27500a;border-radius:2px;padding:0 2px}
+.hl-o{background:#faeeda;color:#633806;border-radius:2px;padding:0 2px}
+.hl-p{background:#eeedfe;color:#3c3489;border-radius:2px;padding:0 2px}
+.legend{display:flex;gap:10px;flex-wrap:wrap;padding:4px 12px 8px}
+.leg{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--color-text-secondary)}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.tailor-banner{background:#e6f1fb;border-radius:var(--border-radius-md);padding:9px 12px;font-size:12px;color:#0c447c;margin-bottom:12px}
+.tailor-item{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:11px 13px;margin-bottom:8px}
+.tag{display:inline-flex;font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;margin-bottom:5px}
+.tag-hi{background:#fcebeb;color:#791f1f}
+.tag-md{background:#faeeda;color:#633806}
+.tag-lo{background:#eaf3de;color:#27500a}
+.diff-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.diff-box{padding:7px 8px;border-radius:5px;font-size:11px;line-height:1.5}
+.diff-orig{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.diff-new{background:#eaf3de;color:#27500a}
+.diff-lbl{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.why-line{font-size:11px;color:#185fa5;margin-top:5px;line-height:1.5}
+.dl-row{display:flex;gap:6px;margin-top:10px}
+.dl-btn{flex:1;background:#2d5be3;color:#fff;font-size:11px;padding:7px;border-radius:6px;text-align:center;cursor:pointer;border:none;font-family:var(--font-sans)}
+.cl-btn{flex:1;background:none;border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);font-size:11px;padding:7px;border-radius:6px;text-align:center;cursor:pointer;font-family:var(--font-sans)}
+.standout-item{display:flex;gap:10px;margin-bottom:10px}
+.standout-num{width:22px;height:22px;border-radius:50%;background:#e6f1fb;color:#0c447c;font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.standout-text{font-size:12px;color:var(--color-text-secondary);line-height:1.6}
+.why-you{border:0.5px solid var(--color-border-tertiary);border-left:3px solid #2d5be3;border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;padding:11px 13px;margin:12px 0}
+.email-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.etab{padding:5px 11px;border-radius:20px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary);font-size:11px;cursor:pointer;font-family:var(--font-sans)}
+.etab.act{background:#e6f1fb;color:#0c447c;border-color:#185fa5}
+.email-box{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:13px}
+.email-subj{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:10px;padding-bottom:10px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.email-body{font-size:12px;color:var(--color-text-secondary);line-height:1.8;white-space:pre-wrap}
+.tip-box{background:var(--color-background-secondary);border-left:3px solid #854f0b;border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;padding:8px 11px;margin-top:8px;font-size:11px;color:var(--color-text-secondary);line-height:1.5}
+.copy-row{display:flex;gap:6px;margin-top:10px}
+.copy-btn{padding:6px 12px;border:0.5px solid var(--color-border-secondary);border-radius:6px;background:var(--color-background-primary);color:var(--color-text-secondary);font-size:11px;cursor:pointer;font-family:var(--font-sans)}
+.prep-q{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:11px 13px;margin-bottom:8px}
+.prep-num{font-size:9px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text-tertiary);margin-bottom:4px}
+.prep-q-text{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:7px;line-height:1.4}
+.jd-snippet{background:var(--color-background-secondary);border-radius:5px;padding:7px 9px;font-size:11px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:7px}
+.jd-snippet-lbl{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-tertiary);margin-bottom:3px}
+.pro-gate-inline{background:#faeeda;border-radius:5px;padding:5px 9px;font-size:10px;color:#633806;margin-bottom:7px}
+.answer-area{width:100%;min-height:56px;padding:7px 9px;border:0.5px solid var(--color-border-secondary);border-radius:5px;font-family:var(--font-sans);font-size:12px;color:var(--color-text-primary);background:var(--color-background-secondary);resize:vertical}
+.feedback-btn{margin-top:5px;padding:4px 10px;border:0.5px solid #185fa5;border-radius:5px;background:none;color:#185fa5;font-size:11px;cursor:pointer;font-family:var(--font-sans)}
+.pro-gate-btn{margin-top:5px;display:inline-block;background:#faeeda;color:#633806;font-size:10px;padding:3px 9px;border-radius:20px}
+.salary-section{border-top:0.5px solid var(--color-border-tertiary);margin-top:16px;padding-top:14px}
+.salary-title{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:8px;font-family:var(--font-serif)}
+.salary-stage{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:7px}
+.salary-stage-lbl{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-tertiary);margin-bottom:5px}
+.salary-script{background:#e6f1fb;border-radius:5px;padding:8px 10px;font-size:12px;color:#0c447c;font-style:italic;margin-bottom:5px}
+.salary-script-danger{background:#fcebeb;border-radius:5px;padding:8px 10px;font-size:12px;color:#791f1f;font-style:italic;margin-bottom:5px}
+.salary-note{font-size:11px;color:var(--color-text-secondary);line-height:1.5}
+.career-node{display:flex;align-items:flex-start;gap:12px;margin-bottom:4px}
+.career-dot-col{display:flex;flex-direction:column;align-items:center}
+.career-dot{width:10px;height:10px;border-radius:50%;margin-top:3px;flex-shrink:0}
+.career-line{width:2px;height:28px;background:var(--color-border-tertiary);margin:3px 0}
+.career-content{padding-bottom:6px}
+.career-stage{font-size:10px;color:var(--color-text-tertiary);margin-bottom:2px}
+.career-role{font-size:12px;font-weight:500;color:var(--color-text-primary)}
+.career-pay{font-size:11px;color:#27500a;font-family:var(--font-mono)}
+.notes-area{width:100%;min-height:200px;padding:12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-family:var(--font-sans);font-size:13px;color:var(--color-text-primary);background:var(--color-background-secondary);resize:vertical;line-height:1.7}
+.notes-hint{font-size:11px;color:var(--color-text-tertiary);margin-top:6px}
+.pro-gate-full{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:28px;text-align:center}
+.pro-gate-icon{font-size:20px;margin-bottom:8px;color:#854f0b}
+.pro-gate-title{font-size:15px;font-weight:500;font-family:var(--font-serif);color:var(--color-text-primary);margin-bottom:6px}
+.pro-gate-desc{font-size:12px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:14px;max-width:260px;margin-left:auto;margin-right:auto}
+.pro-unlock-btn{display:inline-block;background:#854f0b;color:#faeeda;font-size:12px;padding:8px 18px;border-radius:6px;cursor:pointer;border:none;font-family:var(--font-sans)}
+.rejected-banner{background:#fcebeb;border-radius:var(--border-radius-md);padding:11px 13px;font-size:12px;color:#791f1f;margin-bottom:12px;border-left:3px solid #a32d2d;border-radius:0 var(--border-radius-md) var(--border-radius-md) 0}
+</style>
+
+<h2 class="sr-only">Interactive reference for the fitted. job detail page — all tabs, features, AI usage, and Pro vs free access</h2>
+
+<div style="padding:1rem 0">
+
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+  <span style="font-size:13px;font-weight:500;color:var(--color-text-primary)">fitted. job detail page — full feature reference</span>
+  <span style="font-size:11px;color:var(--color-text-secondary)">Click any tab to see what was inside</span>
+</div>
+
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+  <span style="font-size:10px;color:var(--color-text-secondary)">Legend:</span>
+  <span style="background:#eaf3de;color:#27500a;font-size:10px;padding:2px 8px;border-radius:20px">Free feature</span>
+  <span style="background:#faeeda;color:#633806;font-size:10px;padding:2px 8px;border-radius:20px">AI-powered (free)</span>
+  <span style="background:#e6f1fb;color:#0c447c;font-size:10px;padding:2px 8px;border-radius:20px">AI-powered (Pro)</span>
+  <span style="background:#fcebeb;color:#791f1f;font-size:10px;padding:2px 8px;border-radius:20px">Pro only</span>
+  <span style="background:#eeedfe;color:#3c3489;font-size:10px;padding:2px 8px;border-radius:20px">Conditional</span>
+</div>
+
+<div class="shell">
+  <div class="topbar">
+    <span style="color:#b8a99a;font-size:11px;cursor:pointer">← Back to jobs</span>
+    <div style="width:1px;height:16px;background:rgba(255,255,255,.15)"></div>
+    <span class="logo">fitted<span>.</span></span>
+    <div class="sp"></div>
+    <button class="save-btn">☆ Save</button>
+    <button class="apply-btn">Apply Now →</button>
+  </div>
+
+  <div class="jheader">
+    <div class="jrow">
+      <div class="jlogo" style="background:#fdf0ec;color:#c44520">Rf</div>
+      <div>
+        <div class="jtitle">Content & Social Coordinator</div>
+        <div class="jsub">Reformation · Remote · $46–56k/yr · 4 days ago</div>
+      </div>
+    </div>
+    <div class="pills">
+      <span class="pill pill-g">Remote</span>
+      <span class="pill pill-b">71% match</span>
+      <span class="pill pill-o">Brand & Marketing</span>
+    </div>
+    <div class="tabrow" id="tabrow">
+      <button class="tab act" onclick="showTab('match',this)">Match Details</button>
+      <button class="tab" onclick="showTab('tailor',this)">Tailor My Resume</button>
+      <button class="tab" onclick="showTab('standout',this)">Help Me Stand Out</button>
+      <button class="tab" onclick="showTab('emails',this)">Email Drafts</button>
+      <button class="tab" onclick="showTab('prep',this)">Interview Prep</button>
+      <button class="tab pro-tab" onclick="showTab('career',this)">Career Path ✦</button>
+      <button class="tab" onclick="showTab('notes',this)">Notes</button>
+      <button class="tab pro-tab" onclick="showTab('rejected',this)">Why Rejected ✦</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="main" id="tab-content">
+
+      <div id="pane-match">
+        <div style="margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:10px;background:#eaf3de;color:#27500a;padding:2px 8px;border-radius:20px">Free — no AI</span>
+          <span style="font-size:11px;color:var(--color-text-tertiary)">Score calculations are algorithmic keyword matching, not LLM</span>
+        </div>
+        <div class="score-grid">
+          <div class="score-card"><div class="score-num" style="color:#185fa5">71%</div><div class="score-lbl">Overall match</div></div>
+          <div class="score-card"><div class="score-num" style="color:#27500a">68%</div><div class="score-lbl">Personal fit</div></div>
+          <div class="score-card"><div class="score-num" style="color:#854f0b">62%</div><div class="score-lbl">Likeliness</div></div>
+        </div>
+        <div class="section-title">Match breakdown — tap any row to expand</div>
+        <div class="bar-row" id="bar-skills" onclick="toggleBar('skills')">
+          <div class="bar-lbl">Skills match</div>
+          <div class="bar-track"><div class="bar-fill" style="width:78%;background:#185fa5"></div></div>
+          <div class="bar-pct">78%</div>
+          <div style="font-size:10px;color:#185fa5;flex-shrink:0">↗</div>
+        </div>
+        <div id="breakdown-skills" style="display:none;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:6px;font-size:11px;color:var(--color-text-secondary)">
+          <div style="font-weight:500;color:var(--color-text-primary);margin-bottom:5px">Skills match — 78%</div>
+          <div style="margin-bottom:3px">✓ Brand storytelling · ✓ Content calendar mgmt · ✓ Canva</div>
+          <div style="color:#a32d2d">✗ Klaviyo · ~ Paid social</div>
+        </div>
+        <div class="bar-row" onclick="toggleBar('exp')">
+          <div class="bar-lbl">Experience</div>
+          <div class="bar-track"><div class="bar-fill" style="width:85%;background:#27500a"></div></div>
+          <div class="bar-pct">85%</div>
+          <div style="font-size:10px;color:#185fa5;flex-shrink:0">↗</div>
+        </div>
+        <div id="breakdown-exp" style="display:none;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:6px;font-size:11px;color:var(--color-text-secondary)">
+          <div style="font-weight:500;color:var(--color-text-primary);margin-bottom:5px">Experience fit — 85%</div>
+          <div>2–4 yrs required · ~3 yrs shown · Coordinator titles matched · Industry overlap detected</div>
+        </div>
+        <div class="bar-row" onclick="toggleBar('kw')">
+          <div class="bar-lbl">Keywords found</div>
+          <div class="bar-track"><div class="bar-fill" style="width:65%;background:#854f0b"></div></div>
+          <div class="bar-pct">65%</div>
+          <div style="font-size:10px;color:#185fa5;flex-shrink:0">↗</div>
+        </div>
+        <div id="breakdown-kw" style="display:none;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:6px;font-size:11px;color:var(--color-text-secondary)">
+          <div style="font-weight:500;color:var(--color-text-primary);margin-bottom:5px">Keywords — 65%</div>
+          <div>Found: brand voice · brand consistency · content calendar</div>
+          <div style="color:#a32d2d;margin-top:2px">Missing: Klaviyo · campaign assets</div>
+        </div>
+        <div class="bar-row" onclick="toggleBar('culture')">
+          <div class="bar-lbl">Culture signals</div>
+          <div class="bar-track"><div class="bar-fill" style="width:70%;background:#534ab7"></div></div>
+          <div class="bar-pct">70%</div>
+          <div style="font-size:10px;color:#185fa5;flex-shrink:0">↗</div>
+        </div>
+        <div id="breakdown-culture" style="display:none;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:6px;font-size:11px;color:var(--color-text-secondary)">
+          <div style="font-weight:500;color:var(--color-text-primary);margin-bottom:5px">Culture signals — 70%</div>
+          <div>✓ DTC brand background · ✓ Purpose-driven experience · ✗ Explicit sustainability language</div>
+        </div>
+        <div class="kw-row">
+          <span class="kw kw-hit">brand storytelling</span><span class="kw kw-hit">brand voice</span><span class="kw kw-hit">cross-functional</span><span class="kw kw-hit">content calendar</span>
+          <span class="kw kw-miss">Klaviyo</span><span class="kw kw-miss">paid social</span><span class="kw kw-miss">campaign assets</span>
+        </div>
+        <div class="accordion">
+          <div class="acc-head" onclick="toggleAcc(this)">
+            <span>Job description — tap to expand with highlights</span><span>▾</span>
+          </div>
+          <div class="acc-body" id="acc-body">
+            <div class="legend">
+              <div class="leg"><div class="leg-dot" style="background:#e6f1fb;border:0.5px solid #185fa5"></div>Skills</div>
+              <div class="leg"><div class="leg-dot" style="background:#eaf3de;border:0.5px solid #3b6d11"></div>Experience</div>
+              <div class="leg"><div class="leg-dot" style="background:#faeeda;border:0.5px solid #854f0b"></div>Keywords</div>
+              <div class="leg"><div class="leg-dot" style="background:#eeedfe;border:0.5px solid #534ab7"></div>Culture</div>
+            </div>
+            <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.8;padding:0 12px 12px">
+              We're looking for a <span class="hl-p">creative and driven</span> <span class="hl-o">Content & Social Coordinator</span> to join our <span class="hl-p">sustainability-focused</span> team. You will <span class="hl-b">own our brand voice</span> across Instagram, TikTok, and Pinterest. The ideal candidate has <span class="hl-g">2–4 years of experience</span> in <span class="hl-b">content creation</span> or <span class="hl-b">brand storytelling</span>. Proficiency in <span class="hl-b">Canva</span> and experience with <span class="hl-o">Klaviyo</span> preferred.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="pane-tailor" style="display:none">
+        <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:10px;background:#faeeda;color:#633806;padding:2px 8px;border-radius:20px">AI-powered on first click (Haiku free · Sonnet Pro)</span>
+        </div>
+        <div class="tailor-banner"><span style="font-weight:500">3 suggested edits</span> — applying all could raise your match from 71% → 86%. Your voice stays intact.</div>
+        <div class="tailor-item">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span class="tag tag-hi">High priority</span>
+            <span style="font-size:10px;color:var(--color-text-tertiary);cursor:pointer">✕ Not for me</span>
+          </div>
+          <div style="font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:5px">Add Klaviyo to your skills list</div>
+          <div class="diff-grid">
+            <div class="diff-box diff-orig"><div class="diff-lbl" style="color:#791f1f">Original</div>Tools: Google Workspace, Asana, Canva</div>
+            <div class="diff-box diff-new"><div class="diff-lbl" style="color:#27500a">Tailored</div>Tools: Google Workspace, Asana, Canva, Klaviyo (familiar)</div>
+          </div>
+          <div class="why-line">Why → Klaviyo appears 3x in the JD. "Familiar" is honest if you've used similar tools.</div>
+          <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:3px">Talk about it: Use this in interviews when they ask about your communication experience.</div>
+        </div>
+        <div class="tailor-item">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span class="tag tag-md">Medium</span>
+            <span style="font-size:10px;color:var(--color-text-tertiary);cursor:pointer">✕ Not for me</span>
+          </div>
+          <div style="font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:5px">Reframe bullet to use "brand voice"</div>
+          <div class="diff-grid">
+            <div class="diff-box diff-orig"><div class="diff-lbl" style="color:#791f1f">Original</div>Drafted client-facing communications and internal updates</div>
+            <div class="diff-box diff-new"><div class="diff-lbl" style="color:#27500a">Tailored</div>Developed brand voice across client comms and internal content</div>
+          </div>
+          <div class="why-line">Why → "Brand voice" appears twice in the JD. Same work, their language.</div>
+        </div>
+        <div style="margin-top:10px">
+          <div class="section-title">Keywords to work in</div>
+          <div class="kw-row" style="margin-top:4px">
+            <span class="kw kw-hit">brand activation</span><span class="kw kw-hit">stakeholder communication</span><span class="kw kw-hit">content calendar</span><span class="kw kw-hit">cross-functional collaboration</span>
+          </div>
+        </div>
+        <div class="dl-row">
+          <button class="dl-btn">↓ Download tailored resume</button>
+          <button class="cl-btn">✦ Generate cover letter</button>
+        </div>
+      </div>
+
+      <div id="pane-standout" style="display:none">
+        <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:10px;background:#faeeda;color:#633806;padding:2px 8px;border-radius:20px">AI-generated tips (free) · Why You paragraph (AI) · Draft email (AI)</span>
+        </div>
+        <div class="section-title" style="margin-bottom:10px">Before you apply</div>
+        <div class="standout-item">
+          <div class="standout-num">1</div>
+          <div class="standout-text"><span style="font-weight:500;color:var(--color-text-primary)">Research their recent work.</span> Look at Reformation's social channels from the last 3 months. Be ready to name something specific — interviewers always know who actually looked.</div>
+        </div>
+        <div class="standout-item">
+          <div class="standout-num">2</div>
+          <div class="standout-text"><span style="font-weight:500;color:var(--color-text-primary)">Lead with your most memorable story.</span> The one experience that's genuinely hard to forget. Open your cover letter with that — it's the detail people remember.</div>
+        </div>
+        <div class="standout-item">
+          <div class="standout-num">3</div>
+          <div class="standout-text"><span style="font-weight:500;color:var(--color-text-primary)">Connect your background to their values.</span> What in your experience gives your "I care about this" claims actual credibility? Name it specifically.</div>
+        </div>
+        <div class="why-you">
+          <div class="section-title" style="margin-bottom:6px">Why you paragraph</div>
+          <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.7;font-style:italic">Your background spanning Marine Layer, Sézane, and Everlane makes you a natural fit for Reformation's brand storytelling role. You've built a career maintaining premium brand voice across multiple touchpoints — that's exactly what this role demands.</div>
+          <button class="copy-btn" style="margin-top:8px;font-size:10px">Copy</button>
+        </div>
+        <div style="border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px">
+          <div class="section-title" style="margin-bottom:6px">Stand-out draft email</div>
+          <div style="font-size:11px;font-weight:500;color:var(--color-text-primary);margin-bottom:6px;padding-bottom:6px;border-bottom:0.5px solid var(--color-border-tertiary)">Subject: Re: Content & Social Coordinator — [Your Name]</div>
+          <div style="font-size:11px;color:var(--color-text-secondary);line-height:1.8">Hi [Name],<br><br>I just applied for the Content & Social Coordinator role and wanted to reach out directly. Reformation's brand storytelling — especially the way you balance sustainability with aspiration — is exactly the kind of work I want to be doing.<br><br>Happy to connect if you have a few minutes.<br><br>Best, [Your Name]</div>
+          <button class="copy-btn" style="margin-top:8px;font-size:10px">Copy email</button>
+        </div>
+      </div>
+
+      <div id="pane-emails" style="display:none">
+        <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:10px;background:#eaf3de;color:#27500a;padding:2px 8px;border-radius:20px">Free — static templates, editable</span>
+          <span style="font-size:10px;background:#faeeda;color:#633806;padding:2px 8px;border-radius:20px">Pro tips have extra AI detail</span>
+        </div>
+        <div class="email-tabs">
+          <button class="etab act" onclick="setEmailTab('apply',this)">After applying</button>
+          <button class="etab" onclick="setEmailTab('followup',this)">Follow-up</button>
+          <button class="etab" onclick="setEmailTab('thankyou',this)">Thank-you note</button>
+          <button class="etab" onclick="setEmailTab('checkin',this)">Checking in</button>
+        </div>
+        <div class="email-box" id="email-content">
+          <div class="email-subj">Re: Content & Social Coordinator — [Your Name]</div>
+          <div class="email-body" contenteditable="true">Hi [Hiring Manager's Name],
+
+I just submitted my application for the Content & Social Coordinator role and wanted to reach out directly.
+
+[1–2 sentences: what specifically draws you to Reformation, and what makes you the right fit.]
+
+I'd love to connect if you have a few minutes.
+
+Best,
+[Your Name]
+[Your Phone Number]</div>
+        </div>
+        <div class="tip-box">
+          <span style="font-size:10px;font-weight:500;color:#854f0b">Tip for [Hiring Manager's Name]...</span><br>
+          Look up the hiring manager on LinkedIn before sending — a named email gets opened more than "Hi there."
+          <div style="margin-top:4px"><span style="background:#faeeda;color:#854f0b;font-size:10px;padding:2px 7px;border-radius:20px;cursor:pointer">✦ Pro — see detailed guidance</span></div>
+        </div>
+        <div class="copy-row">
+          <button class="copy-btn">Copy email</button>
+          <button class="copy-btn">↺ Reset to template</button>
+        </div>
+      </div>
+
+      <div id="pane-prep" style="display:none">
+        <div style="margin-bottom:8px;display:flex;gap:6px;flex-wrap:wrap">
+          <span style="font-size:10px;background:#eaf3de;color:#27500a;padding:2px 8px;border-radius:20px">Questions visible to everyone</span>
+          <span style="font-size:10px;background:#eaf3de;color:#27500a;padding:2px 8px;border-radius:20px">Answer text box — everyone</span>
+          <span style="font-size:10px;background:#fcebeb;color:#791f1f;padding:2px 8px;border-radius:20px">JD snippet highlights — Pro</span>
+          <span style="font-size:10px;background:#fcebeb;color:#791f1f;padding:2px 8px;border-radius:20px">Answer feedback — Pro</span>
+          <span style="font-size:10px;background:#fcebeb;color:#791f1f;padding:2px 8px;border-radius:20px">Salary scripts — Pro</span>
+        </div>
+        <div class="prep-q">
+          <div class="prep-num">Question 1</div>
+          <div class="prep-q-text">"Tell me about a time you represented a brand in a high-stakes situation."</div>
+          <div class="jd-snippet"><div class="jd-snippet-lbl">Why they'll ask this — from the job description (Pro)</div>"...candidate will <span class="hl-b">own our brand voice</span> across channels and be comfortable <span class="hl-p">representing the Reformation brand</span> in external communications..."</div>
+          <textarea class="answer-area" placeholder="Write your answer here — what specific story will you use? What's the key detail that makes it memorable?"></textarea>
+          <button class="feedback-btn">Get feedback on my answer → (Pro)</button>
+        </div>
+        <div class="prep-q">
+          <div class="prep-num">Question 2</div>
+          <div class="prep-q-text">"How do you maintain consistency across multiple social platforms?"</div>
+          <div class="pro-gate-inline">✦ Pro — see why they'll ask this from the JD</div>
+          <textarea class="answer-area" placeholder="Write your answer here..."></textarea>
+          <span class="pro-gate-btn">✦ Pro — get feedback on your answer</span>
+        </div>
+        <div class="salary-section">
+          <div class="salary-title">Salary negotiation</div>
+          <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:10px;line-height:1.6">The negotiation starts before they make an offer. Exact scripts for <span style="font-weight:500;color:var(--color-text-primary)">Reformation</span>.</div>
+          <div class="salary-stage">
+            <div class="salary-stage-lbl">When they ask your expectations</div>
+            <div class="salary-script">"I'm open based on the full picture. Could you share the budgeted range?"</div>
+            <div class="salary-note">Don't name a number first. Whoever speaks first anchors low.</div>
+          </div>
+          <div class="salary-stage">
+            <div class="salary-stage-lbl">When they give you a number</div>
+            <div class="salary-script">"Based on my experience, I was thinking closer to [top third + 10%]. Is there flexibility?"</div>
+            <div class="salary-note">For $46–56k, aim for the high end. Never accept on the spot.</div>
+          </div>
+          <div class="salary-stage">
+            <div class="salary-stage-lbl">If the range is firm</div>
+            <div class="salary-script">"Is there flexibility on start date, title, remote days, or a 90-day review?"</div>
+            <div class="salary-note">Salary isn't the only lever. PTO, title, and reviews are negotiable too.</div>
+          </div>
+          <div class="salary-stage">
+            <div class="salary-stage-lbl">Never say</div>
+            <div class="salary-script-danger">"I really need this job" or "I'll take whatever you're offering."</div>
+            <div class="salary-note">Even if true, it transfers all the power.</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="pane-career" style="display:none">
+        <div class="pro-gate-full">
+          <div class="pro-gate-icon">✦</div>
+          <div class="pro-gate-title">Career Path is a Pro feature</div>
+          <div class="pro-gate-desc">See how this role fits into a path from where you are now to where you want to be — with salary milestones at each stage.</div>
+          <button class="pro-unlock-btn">Unlock with Pro — $9/mo</button>
+        </div>
+        <div style="margin-top:16px;padding:14px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md)">
+          <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:10px">Preview — what Pro users see:</div>
+          <div class="career-node">
+            <div class="career-dot-col"><div class="career-dot" style="background:#185fa5"></div><div class="career-line"></div></div>
+            <div class="career-content"><div class="career-stage">Where you are</div><div class="career-role">Current role</div><div class="career-pay">Varies</div></div>
+          </div>
+          <div class="career-node">
+            <div class="career-dot-col"><div class="career-dot" style="background:#27500a"></div><div class="career-line"></div></div>
+            <div class="career-content"><div class="career-stage">This role</div><div class="career-role">Content & Social Coordinator</div><div class="career-pay">$46–56k/yr</div></div>
+          </div>
+          <div class="career-node">
+            <div class="career-dot-col"><div class="career-dot" style="background:#27500a"></div><div class="career-line"></div></div>
+            <div class="career-content"><div class="career-stage">2 years out</div><div class="career-role">Senior Coordinator / Manager</div><div class="career-pay">$55–75k/yr</div></div>
+          </div>
+          <div class="career-node">
+            <div class="career-dot-col"><div class="career-dot" style="background:#534ab7"></div><div class="career-line"></div></div>
+            <div class="career-content"><div class="career-stage">5 years out</div><div class="career-role">Senior Manager / Director</div><div class="career-pay">$80–120k/yr</div></div>
+          </div>
+          <div class="career-node">
+            <div class="career-dot-col"><div class="career-dot" style="background:#534ab7"></div></div>
+            <div class="career-content"><div class="career-stage">North Star</div><div class="career-role">Head of Brand — dream company</div><div class="career-pay">$100–150k/yr</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="pane-notes" style="display:none">
+        <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:10px;background:#eaf3de;color:#27500a;padding:2px 8px;border-radius:20px">Free — no AI, auto-saves locally</span>
+        </div>
+        <textarea class="notes-area" placeholder="Your thoughts — questions to ask, things to research, why this feels right or wrong…"></textarea>
+        <div class="notes-hint">Notes save automatically as you type.</div>
+      </div>
+
+      <div id="pane-rejected" style="display:none">
+        <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:10px;background:#eeedfe;color:#3c3489;padding:2px 8px;border-radius:20px">Conditional — only appears when job is moved to Rejected column in Tracker</span>
+          <span style="font-size:10px;background:#fcebeb;color:#791f1f;padding:2px 8px;border-radius:20px">Pro only</span>
+        </div>
+        <div class="rejected-banner">This role is in your Rejected column. Here's what might have happened and how to strengthen your next application.</div>
+        <div style="border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px;margin-bottom:8px">
+          <div class="section-title" style="margin-bottom:6px">Most likely reason</div>
+          <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.6">Your match was 71% — solid, but you were likely missing Klaviyo as a listed skill. ATS systems frequently filter on specific tools before a human ever sees your resume.</div>
+        </div>
+        <div style="border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px">
+          <div class="section-title" style="margin-bottom:6px">What to fix for next time</div>
+          <div class="standout-item"><div class="standout-num" style="background:#fcebeb;color:#791f1f">1</div><div class="standout-text">Add Klaviyo (familiar) to your tools section — it appeared 3x in this JD.</div></div>
+          <div class="standout-item"><div class="standout-num" style="background:#fcebeb;color:#791f1f">2</div><div class="standout-text">Mirror "brand voice" language earlier in your resume — your first bullet is where ATS scoring is heaviest.</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="sidebar">
+      <div class="ss">
+        <div class="ss-lbl">Quick info</div>
+        <div class="ss-row"><div class="ss-k">Posted</div><div class="ss-v">4 days ago</div></div>
+        <div class="ss-row"><div class="ss-k">Pay</div><div class="ss-v" style="color:#27500a">$46–56k/yr</div></div>
+        <div class="ss-row"><div class="ss-k">Type</div><div class="ss-v">Remote</div></div>
+        <div class="ss-row"><div class="ss-k">Resume</div><div class="ss-v">Brand & Mktg</div></div>
+        <div style="margin-top:7px"><a style="font-size:11px;color:#185fa5;text-decoration:none" href="#">View original listing →</a></div>
+      </div>
+      <div class="ss">
+        <div class="ss-lbl">Similar roles</div>
+        <div class="sim-item"><div class="sim-logo" style="background:#fdf0ec;color:#c44520">Gl</div><div style="flex:1"><div style="font-size:11px;font-weight:500;color:var(--color-text-primary)">Brand Mktg Coord</div><div style="font-size:10px;color:var(--color-text-secondary)">Glossier</div></div><div style="font-size:11px;color:#27500a;font-weight:500">82%</div></div>
+        <div class="sim-item"><div class="sim-logo" style="background:#e8f5f8;color:#1a6070">Vu</div><div style="flex:1"><div style="font-size:11px;font-weight:500;color:var(--color-text-primary)">Brand Coordinator</div><div style="font-size:10px;color:var(--color-text-secondary)">Vuori</div></div><div style="font-size:11px;color:#854f0b;font-weight:500">68%</div></div>
+      </div>
+      <div class="chat-area">
+        <div class="ss-lbl">Ask fitted.</div>
+        <div class="bubble">Hi! Ask me anything about this role at Reformation.</div>
+        <div>
+          <span class="chip">Should I apply?</span>
+          <span class="chip">Salary tips</span>
+          <span class="chip">Cover letter help</span>
+          <span class="chip">What to research</span>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:auto;padding-top:8px">
+          <input style="flex:1;font-size:11px" placeholder="Ask anything… (free for 3 msgs)">
+          <button style="background:#2d5be3;color:#fff;border:none;border-radius:6px;padding:0 10px;font-size:12px;cursor:pointer">→</button>
+        </div>
+        <div style="font-size:10px;color:var(--color-text-tertiary);margin-top:4px">Free: 3 quick answers · Pro: unlimited chat</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function showTab(id, btn) {
+  document.querySelectorAll('[id^="pane-"]').forEach(p => p.style.display = 'none');
+  document.getElementById('pane-' + id).style.display = 'block';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('act'));
+  btn.classList.add('act');
+}
+function toggleBar(id) {
+  var el = document.getElementById('breakdown-' + id);
+  var row = document.getElementById('bar-' + id);
+  if (!el) return;
+  var open = el.style.display === 'block';
+  el.style.display = open ? 'none' : 'block';
+  if (row) row.classList.toggle('active', !open);
+}
+function toggleAcc(head) {
+  var body = head.nextElementSibling;
+  var open = body.classList.contains('open');
+  body.classList.toggle('open', !open);
+  head.querySelector('span:last-child').textContent = open ? '▾' : '▴';
+}
+var emailTemplates = {
+  apply: {subj: 'Re: Content & Social Coordinator — [Your Name]', body: 'Hi [Hiring Manager\'s Name],\n\nI just submitted my application for the Content & Social Coordinator role and wanted to reach out directly.\n\n[1–2 sentences: what specifically draws you to Reformation, and what makes you the right fit.]\n\nI\'d love to connect if you have a few minutes.\n\nBest,\n[Your Name]'},
+  followup: {subj: 'Following up — Content & Social Coordinator Application', body: 'Hi [Name],\n\nI wanted to follow up on my application for the Content & Social Coordinator position, submitted [X days] ago. I remain very interested in the role at Reformation.\n\nIf there\'s anything additional I can provide, I\'m happy to send it along.\n\nBest,\n[Your Name]'},
+  thankyou: {subj: 'Thank you — Content & Social Coordinator Interview', body: 'Hi [Name],\n\nThank you for taking the time to speak with me about the Content & Social Coordinator role. I really enjoyed learning more about [something specific they mentioned] and left more excited about the opportunity.\n\nI\'m confident I could make a real contribution to the team.\n\nWarm regards,\n[Your Name]'},
+  checkin: {subj: 'Checking in — Content & Social Coordinator', body: 'Hi [Name],\n\nI hope you\'re doing well. I wanted to check in on the Content & Social Coordinator search — I\'ve continued to be excited about the possibility of joining Reformation.\n\nPlease don\'t hesitate to reach out if you need anything.\n\nBest,\n[Your Name]'}
+};
+function setEmailTab(type, btn) {
+  document.querySelectorAll('.etab').forEach(t => t.classList.remove('act'));
+  btn.classList.add('act');
+  var t = emailTemplates[type];
+  var box = document.getElementById('email-content');
+  box.querySelector('.email-subj').textContent = t.subj;
+  box.querySelector('.email-body').textContent = t.body;
+}
+</script>
