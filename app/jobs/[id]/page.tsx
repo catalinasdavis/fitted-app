@@ -199,7 +199,7 @@ Resume excerpt: ${br ? br.resume_text.substring(0, 600) : 'none uploaded'}
 Return ONLY valid JSON. No markdown, no code fences:
 {"tips":["specific tip 1 referencing their actual background","specific tip 2","specific tip 3","specific tip 4"],"whyYou":"2-3 sentences on exactly why this specific person is a strong fit for this specific role — reference their actual experience and ${job.company}'s known culture or work","email":{"subject":"compelling subject line personalized to this role","body":"full outreach email that sounds like a real person wrote it — warm, specific, confident. Include [brackets] for any spots they should personalize further."}}`
     try {
-      const raw = await callAI(prompt, 'tailor')
+      const raw = await callAI(prompt, 'standout')
       const clean = raw.replace(/```json|```/g, '').trim()
       const start = clean.indexOf('{')
       const end   = clean.lastIndexOf('}')
