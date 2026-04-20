@@ -453,9 +453,9 @@ Their answer: "${answer}"`
                               <span style={{ fontSize: 12.5, fontWeight: 600, color: '#1a1a1f' }}>{item.section}</span>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
-                              <div style={{ background: '#f4f2ed', borderRadius: 6, padding: '8px 10px' }}>
+                              <div style={{ background: '#fdecea', borderRadius: 6, padding: '8px 10px' }}>
                                 <div style={{ fontSize: 9, fontWeight: 600, color: '#a32d2d', marginBottom: 4, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>Original</div>
-                                <div style={{ fontSize: 12, color: '#7a7a85', lineHeight: 1.5 }}>{item.original}</div>
+                                <div style={{ fontSize: 12, color: '#791f1f', lineHeight: 1.5 }}>{item.original}</div>
                               </div>
                               <div style={{ background: '#e6f5ed', borderRadius: 6, padding: '8px 10px' }}>
                                 <div style={{ fontSize: 9, fontWeight: 600, color: '#27500a', marginBottom: 4, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>Tailored</div>
@@ -579,7 +579,7 @@ Their answer: "${answer}"`
                           style={{ background: 'none', border: '1px solid #2d5be3', borderRadius: 6, padding: '5px 12px', fontSize: 12, color: '#2d5be3', cursor: 'pointer', fontFamily: 'sans-serif', opacity: prepLoading[i] ? .6 : 1 }}>
                           {prepLoading[i] ? 'Reviewing…' : 'Get feedback on my answer →'}
                         </button>
-                        {prepFeedback[i] && <div style={{ marginTop: 8, background: '#f4f2ed', borderRadius: 6, padding: '8px 10px', fontSize: 12.5, color: '#3d3d45', lineHeight: 1.6 }}>{prepFeedback[i]}</div>}
+                        {prepFeedback[i] && <div style={{ marginTop: 8, background: '#fdecea', borderRadius: 6, padding: '8px 10px', fontSize: 12.5, color: '#3d3d45', lineHeight: 1.6 }}>{prepFeedback[i]}</div>}
                       </div>
                     : <div style={{ marginTop: 6 }}><span style={{ background: '#fdf3e3', color: '#b8750a', fontSize: 11, padding: '3px 10px', borderRadius: 20 }}>✦ Pro — get feedback on your answer</span></div>
                   }
