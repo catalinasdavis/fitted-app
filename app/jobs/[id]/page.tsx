@@ -100,11 +100,11 @@ export default function JobDetail() {
     return best
   }
 
-  async function callAI(prompt: string, currentResumes?: Resume[]): Promise<string> {
+  async function callAI(prompt: string, type: string = 'chat'): Promise<string> {
     const res = await fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, type: 'chat', isPro: profile?.plan === 'pro' }),
+      body: JSON.stringify({ prompt, type, isPro: profile?.plan === 'pro' }),
     })
     const d = await res.json()
     return d.text || ''
@@ -171,7 +171,7 @@ Return ONLY a valid JSON array. No markdown, no code fences, no explanation befo
 
 Priority HIGH = biggest impact on ATS and recruiter attention. Be specific to this actual resume and this actual job — not generic advice.`
     try {
-      const raw = await callAI(prompt)
+      const raw = await callAI(prompt, 'tailor')
       const clean = raw.replace(/```json|```/g, '').trim()
       const start = clean.indexOf('[')
       const end   = clean.lastIndexOf(']')
@@ -199,7 +199,7 @@ Resume excerpt: ${br ? br.resume_text.substring(0, 600) : 'none uploaded'}
 Return ONLY valid JSON. No markdown, no code fences:
 {"tips":["specific tip 1 referencing their actual background","specific tip 2","specific tip 3","specific tip 4"],"whyYou":"2-3 sentences on exactly why this specific person is a strong fit for this specific role — reference their actual experience and ${job.company}'s known culture or work","email":{"subject":"compelling subject line personalized to this role","body":"full outreach email that sounds like a real person wrote it — warm, specific, confident. Include [brackets] for any spots they should personalize further."}}`
     try {
-      const raw = await callAI(prompt)
+      const raw = await callAI(prompt, 'tailor')
       const clean = raw.replace(/```json|```/g, '').trim()
       const start = clean.indexOf('{')
       const end   = clean.lastIndexOf('}')
