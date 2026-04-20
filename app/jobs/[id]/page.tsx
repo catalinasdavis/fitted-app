@@ -61,9 +61,9 @@ export default function JobDetail() {
   const [standoutLoading, setStandoutLoading] = useState(false)
   const standoutDone = useRef(false)
 
-  const [coverLetter,    setCoverLetter]    = useState('')
-  const [coverLoading,  setCoverLoading]  = useState(false)
-  const [showCover,     setShowCover]     = useState(false)
+  const [coverLetter,     setCoverLetter]     = useState('')
+  const [coverLoading,    setCoverLoading]    = useState(false)
+  const [showCover,       setShowCover]       = useState(false)
 
   const [emailType,    setEmailType]    = useState<'apply'|'followup'|'thankyou'|'checkin'>('apply')
   const [prepAnswers,  setPrepAnswers]  = useState<Record<number,string>>({})
@@ -123,7 +123,7 @@ export default function JobDetail() {
       ? `Resume: "${br.name}"\n\n${br.resume_text.substring(0, 1400)}`
       : 'No resume uploaded yet.'
     const aboutMe = profile?.about_me?.trim() || 'Not provided.'
-    const prompt = `You are simultaneously a senior hiring manager at ${job.company} who has reviewed thousands of resumes, and a career coach who is deeply invested in helping this specific person land this specific job. Your job is to give them the most honest, useful, specific analysis possible — not generic advice.
+    const prompt = `You are simultaneously a senior hiring manager at ${job.company} who has reviewed thousands of resumes, and a career coach who is deeply invested in helping this specific person land this specific job. Your job is to give them the most honest, useful, specific analysis possible.
 
 Job: ${job.title} at ${job.company}
 Description: ${job.description.substring(0, 900)}
@@ -135,13 +135,13 @@ ${resumeText}
 About Me: ${aboutMe}
 Career field: ${profile?.career_field || 'not specified'}
 
-Write a professional analysis using exactly these four bold headings, each followed by one focused paragraph. Reference specific details from their actual resume and About Me — nothing generic:
+Write a professional analysis using exactly these four bold headings, each followed by one focused paragraph. Reference specific details from their actual resume and About Me:
 
 **Resume-to-Role Match**
 [Be direct about how well this resume actually matches. Name specific skills or experience that align or are missing.]
 
 **Culture & Values Alignment**
-[Assess fit based on what they've shared about themselves and what you know about ${job.company}.]
+[Assess fit based on what they have shared about themselves and what you know about ${job.company}.]
 
 **Hiring Manager Verdict**
 [Speak as the hiring manager. Would this resume get an interview? What would make you hesitate?]
@@ -149,7 +149,7 @@ Write a professional analysis using exactly these four bold headings, each follo
 **What to Emphasize**
 [Give the candidate 2-3 concrete things to lead with in their application and interviews.]
 
-Do not use asterisks inside paragraphs. Do not ask them to do anything. Be warm but honest — this person is trying to get a job.`
+Do not use asterisks inside paragraphs. Do not ask them to do anything. Be warm but honest.`
     const text = await callAI(prompt)
     setMatchAI(text)
     setMatchLoading(false)
@@ -170,10 +170,8 @@ Required skills: ${(job as any).skills?.map((s: any) => s.name).join(', ') || 'S
 
 ${resumeText}
 
-Return ONLY a valid JSON array. No markdown, no code fences, no explanation before or after. Just the raw JSON:
-[{"priority":"HIGH","section":"exact section name from resume","original":"the actual current text or gap","tailored":"the improved version with specific language","why":"specific reason this edit helps with this job","talkAboutIt":"one sentence on how to reference this in an interview"},{"priority":"MEDIUM","section":"exact section name","original":"current text or gap","tailored":"improved version","why":"specific reason","talkAboutIt":"interview tie-back"},{"priority":"LOW","section":"exact section name","original":"current text or gap","tailored":"improved version","why":"specific reason","talkAboutIt":"interview tie-back"}]
-
-Priority HIGH = biggest impact on ATS and recruiter attention. Be specific to this actual resume and this actual job — not generic advice.`
+Return ONLY a valid JSON array. No markdown, no code fences, no explanation before or after:
+[{"priority":"HIGH","section":"exact section name","original":"current text or gap","tailored":"improved version","why":"specific reason this helps","talkAboutIt":"one interview tie-back sentence"},{"priority":"MEDIUM","section":"exact section name","original":"current text or gap","tailored":"improved version","why":"specific reason","talkAboutIt":"interview tie-back"},{"priority":"LOW","section":"exact section name","original":"current text or gap","tailored":"improved version","why":"specific reason","talkAboutIt":"interview tie-back"}]`
     try {
       const raw = await callAI(prompt, 'tailor')
       const clean = raw.replace(/```json|```/g, '').trim()
@@ -194,14 +192,14 @@ Priority HIGH = biggest impact on ATS and recruiter attention. Be specific to th
     standoutDone.current = true
     setStandoutLoading(true)
     const br = bestResume(resumes)
-    const prompt = `You are a career coach helping a specific person stand out for ${job.title} at ${job.company}. This is not generic advice — it is tailored to this person and this company.
+    const prompt = `You are a career coach helping a specific person stand out for ${job.title} at ${job.company}. This is not generic advice.
 
 Job: ${job.description.substring(0, 500)}
 About them: ${profile?.about_me?.trim() || 'not provided'}
 Resume excerpt: ${br ? br.resume_text.substring(0, 600) : 'none uploaded'}
 
 Return ONLY valid JSON. No markdown, no code fences:
-{"tips":["specific tip 1 referencing their actual background","specific tip 2","specific tip 3","specific tip 4"],"whyYou":"2-3 sentences on exactly why this specific person is a strong fit for this specific role — reference their actual experience and ${job.company}'s known culture or work","email":{"subject":"compelling subject line personalized to this role","body":"full outreach email that sounds like a real person wrote it — warm, specific, confident. Include [brackets] for any spots they should personalize further."}}`
+{"tips":["specific tip 1 referencing their actual background","specific tip 2","specific tip 3","specific tip 4"],"whyYou":"2-3 sentences on exactly why this specific person is a strong fit for this specific role — reference their actual experience and ${job.company}'s known culture","email":{"subject":"compelling subject line personalized to this role","body":"full outreach email that sounds like a real person wrote it — warm, specific, confident. Include [brackets] for personalization spots."}}`
     try {
       const raw = await callAI(prompt, 'standout')
       const clean = raw.replace(/```json|```/g, '').trim()
@@ -212,11 +210,43 @@ Return ONLY valid JSON. No markdown, no code fences:
     setStandoutLoading(false)
   }
 
+  async function generateCoverLetter() {
+    if (!job || coverLoading) return
+    setCoverLoading(true)
+    setShowCover(true)
+    const br = bestResume(resumes)
+    const resumeText = br ? br.resume_text.substring(0, 1200) : 'No resume uploaded.'
+    const aboutMe = profile?.about_me?.trim() || 'Not provided.'
+    const prompt = `You are a professional cover letter writer who thinks like a hiring manager. Write a compelling, personalized cover letter for this candidate.
+
+Job: ${job.title} at ${job.company}
+Job description: ${job.description.substring(0, 800)}
+Required skills: ${(job as any).skills?.map((s: any) => s.name).join(', ') || 'See description'}
+
+Candidate resume:
+${resumeText}
+
+About Me: ${aboutMe}
+
+Write a 3-paragraph cover letter that:
+- Opens with a specific, compelling hook referencing ${job.company} — not a generic opener
+- Middle paragraph connects their actual experience to the role's key requirements with specific details
+- Closes with confidence and a clear call to action
+- Sounds like a real person wrote it — warm, direct, professional
+- Uses [Your Name] and [Date] as placeholders
+- Does NOT start with "I am writing to express my interest" or use clichés like "I would be a great fit"
+
+Return only the cover letter text. No subject line, no extra commentary.`
+    const text = await callAI(prompt)
+    setCoverLetter(text)
+    setCoverLoading(false)
+  }
+
   async function getPrepFeedback(idx: number, question: string) {
     const answer = prepAnswers[idx] || ''
     if (!answer.trim()) { setPrepFeedback(p => ({ ...p, [idx]: 'Write your answer first.' })); return }
     setPrepLoading(p => ({ ...p, [idx]: true }))
-    const prompt = `You are a career coach and former hiring manager. Give honest, specific feedback on this interview answer in 2-3 sentences. What's strong, what would make a hiring manager hesitate, and what one thing would make it stronger. Be direct — this person is trying to get a job.
+    const prompt = `You are a career coach and former hiring manager. Give honest, specific feedback on this interview answer in 2-3 sentences. What is strong, what would make a hiring manager hesitate, and what one thing would make it stronger.
 
 Question: "${question}"
 Their answer: "${answer}"`
@@ -234,6 +264,16 @@ Their answer: "${answer}"`
   async function signOut() {
     await fetch('/api/signout', { method: 'POST' })
     window.location.href = '/'
+  }
+
+  function downloadCoverLetter() {
+    const blob = new Blob([coverLetter], { type: 'text/plain' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `cover-letter-${job?.company.toLowerCase().replace(/\s+/g, '-') || 'fitted'}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   if (!dataReady || !job) return (
@@ -309,6 +349,7 @@ Their answer: "${answer}"`
     <div style={{ minHeight: '100vh', background: '#f4f2ed', fontFamily: 'sans-serif' }}
       onClick={() => setShowMenu(false)}>
 
+      {/* NAV */}
       <nav style={{ height: 60, background: '#fff', borderBottom: '1px solid rgba(0,0,0,.07)', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 14 }}>
         <button onClick={() => router.push('/')}
           style={{ background: 'none', border: 'none', color: '#7a7a85', cursor: 'pointer', fontSize: 13, fontFamily: 'sans-serif' }}>
@@ -344,6 +385,7 @@ Their answer: "${answer}"`
         </div>
       </nav>
 
+      {/* JOB HEADER */}
       <div style={{ background: '#fff', borderBottom: '1px solid rgba(0,0,0,.07)' }}>
         <div style={{ padding: '16px 20px 12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
@@ -359,7 +401,7 @@ Their answer: "${answer}"`
             {br && <span style={{ background: '#e6f5ed', color: '#1a7a4a', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>Using: {br.name}</span>}
             {isPro && <span style={{ background: '#1a7a4a', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>✦ Pro</span>}
             <span style={{ background: '#f4f2ed', color: '#7a7a85', padding: '3px 10px', borderRadius: 20, fontSize: 11 }}>
-              {isPro ? 'Powered by fitted.\'s advanced AI' : 'Powered by fitted.\'s fast AI'}
+              {isPro ? "Powered by fitted.'s advanced AI" : "Powered by fitted.'s fast AI"}
             </span>
           </div>
         </div>
@@ -373,14 +415,16 @@ Their answer: "${answer}"`
         </div>
       </div>
 
+      {/* BODY */}
       <div style={{ display: 'flex', height: 'calc(100vh - 60px - 148px)', overflow: 'hidden' }}>
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
 
+          {/* MATCH */}
           {tab === 'match' && (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 18 }}>
                 {[
-                  { label: 'Resume Match', value: score, note: 'Based on your best resume' },
+                  { label: 'Resume Match', value: score,                                            note: 'Based on your best resume' },
                   { label: 'Personal Fit', value: (job as any).personalFit || Math.max(50, score - 5), note: 'Based on About Me & profile' },
                   { label: 'Likeliness',   value: (job as any).likeliness  || Math.max(45, score - 8), note: 'Likelihood of progressing' },
                 ].map(s => (
@@ -391,10 +435,9 @@ Their answer: "${answer}"`
                   </div>
                 ))}
               </div>
-
               <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderLeft: '3px solid #2d5be3', borderRadius: '0 10px 10px 0', padding: '18px 20px', marginBottom: 16 }}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.1em', textTransform: 'uppercase' as const, marginBottom: 4 }}>✦ fitted. coach analysis</div>
-                <div style={{ fontSize: 10, color: '#b0b0b8', marginBottom: 14 }}>{isPro ? 'Powered by fitted.\'s advanced AI' : 'Powered by fitted.\'s fast AI'}</div>
+                <div style={{ fontSize: 10, color: '#b0b0b8', marginBottom: 14 }}>{isPro ? "Powered by fitted.'s advanced AI" : "Powered by fitted.'s fast AI"}</div>
                 {matchLoading
                   ? <Spinner label="Reading your resume and About Me…" />
                   : matchAI
@@ -402,7 +445,6 @@ Their answer: "${answer}"`
                     : <p style={{ fontSize: 13, color: '#b0b0b8', fontStyle: 'italic', margin: 0 }}>Analysis loading…</p>
                 }
               </div>
-
               <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 12 }}>Match breakdown</div>
                 {[
@@ -420,7 +462,6 @@ Their answer: "${answer}"`
                   </div>
                 ))}
               </div>
-
               <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 10 }}>Keywords</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -429,7 +470,6 @@ Their answer: "${answer}"`
                   ))}
                 </div>
               </div>
-
               <details style={{ border: '1px solid rgba(0,0,0,.07)', borderRadius: 10, overflow: 'hidden' }}>
                 <summary style={{ padding: '12px 16px', background: '#f4f2ed', cursor: 'pointer', fontSize: 13, fontWeight: 500, color: '#3d3d45', listStyle: 'none', display: 'flex', justifyContent: 'space-between' }}>
                   Job description <span style={{ fontSize: 11, color: '#7a7a85' }}>▾ expand</span>
@@ -439,6 +479,7 @@ Their answer: "${answer}"`
             </div>
           )}
 
+          {/* TAILOR */}
           {tab === 'tailor' && (
             <div>
               {tailorLoading
@@ -473,7 +514,7 @@ Their answer: "${answer}"`
                       })}
                       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                         <button style={{ flex: 1, background: '#2d5be3', color: '#fff', border: 'none', borderRadius: 8, padding: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>↓ Download tailored resume</button>
-                        <button style={{ flex: 1, background: '#f4f2ed', color: '#3d3d45', border: '1px solid rgba(0,0,0,.1)', borderRadius: 8, padding: 10, fontSize: 13, cursor: 'pointer', fontFamily: 'sans-serif' }} onClick={generateCoverLetter}>✦ Generate cover letter</button>
+                        <button onClick={generateCoverLetter} style={{ flex: 1, background: '#f4f2ed', color: '#3d3d45', border: '1px solid rgba(0,0,0,.1)', borderRadius: 8, padding: 10, fontSize: 13, cursor: 'pointer', fontFamily: 'sans-serif' }}>✦ Generate cover letter</button>
                       </div>
                     </>
                   : tailorDone.current
@@ -486,6 +527,7 @@ Their answer: "${answer}"`
             </div>
           )}
 
+          {/* STAND OUT */}
           {tab === 'standout' && (
             <div>
               {standoutLoading
@@ -530,6 +572,7 @@ Their answer: "${answer}"`
             </div>
           )}
 
+          {/* EMAILS */}
           {tab === 'emails' && (
             <div>
               <div style={{ display: 'flex', gap: 7, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -564,6 +607,7 @@ Their answer: "${answer}"`
             </div>
           )}
 
+          {/* INTERVIEW PREP */}
           {tab === 'prep' && (
             <div>
               <p style={{ fontSize: 13, color: '#7a7a85', marginBottom: 20, lineHeight: 1.6 }}>
@@ -583,7 +627,7 @@ Their answer: "${answer}"`
                           style={{ background: 'none', border: '1px solid #2d5be3', borderRadius: 6, padding: '5px 12px', fontSize: 12, color: '#2d5be3', cursor: 'pointer', fontFamily: 'sans-serif', opacity: prepLoading[i] ? .6 : 1 }}>
                           {prepLoading[i] ? 'Reviewing…' : 'Get feedback on my answer →'}
                         </button>
-                        {prepFeedback[i] && <div style={{ marginTop: 8, background: '#fdecea', borderRadius: 6, padding: '8px 10px', fontSize: 12.5, color: '#3d3d45', lineHeight: 1.6 }}>{prepFeedback[i]}</div>}
+                        {prepFeedback[i] && <div style={{ marginTop: 8, background: '#f4f2ed', borderRadius: 6, padding: '8px 10px', fontSize: 12.5, color: '#3d3d45', lineHeight: 1.6 }}>{prepFeedback[i]}</div>}
                       </div>
                     : <div style={{ marginTop: 6 }}><span style={{ background: '#fdf3e3', color: '#b8750a', fontSize: 11, padding: '3px 10px', borderRadius: 20 }}>✦ Pro — get feedback on your answer</span></div>
                   }
@@ -626,6 +670,7 @@ Their answer: "${answer}"`
             </div>
           )}
 
+          {/* CAREER PATH */}
           {tab === 'career' && (
             !isPro
               ? <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 240, gap: 10, textAlign: 'center' }}>
@@ -637,10 +682,10 @@ Their answer: "${answer}"`
               : <div>
                   <p style={{ fontSize: 13, color: '#7a7a85', marginBottom: 20, lineHeight: 1.6 }}>How <strong style={{ color: '#3d3d45' }}>{job.title}</strong> fits a realistic career path.</p>
                   {[
-                    { stage: 'Where you are', role: 'Current role', pay: 'Varies', dot: '#2d5be3' },
-                    { stage: 'This role',     role: job.title,      pay: job.pay,  dot: '#1a7a4a' },
-                    { stage: '2 years out',   role: 'Senior Coordinator / Manager', pay: '$55–75k/yr', dot: '#1a7a4a' },
-                    { stage: '5 years out',   role: 'Senior Manager / Director',    pay: '$80–120k/yr', dot: '#6d28d9' },
+                    { stage: 'Where you are', role: 'Current role',                                          pay: 'Varies',       dot: '#2d5be3' },
+                    { stage: 'This role',     role: job.title,                                                pay: job.pay,        dot: '#1a7a4a' },
+                    { stage: '2 years out',   role: 'Senior Coordinator / Manager',                           pay: '$55–75k/yr',   dot: '#1a7a4a' },
+                    { stage: '5 years out',   role: 'Senior Manager / Director',                              pay: '$80–120k/yr',  dot: '#6d28d9' },
                     { stage: 'North Star',    role: `Head of ${profile?.career_field || 'your field'} — dream company`, pay: '$100–150k/yr', dot: '#6d28d9' },
                   ].map((node, i, arr) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 4 }}>
@@ -658,6 +703,7 @@ Their answer: "${answer}"`
                 </div>
           )}
 
+          {/* NOTES */}
           {tab === 'notes' && (
             <div>
               <textarea value={notes} onChange={e => setNotes(e.target.value)}
@@ -667,6 +713,7 @@ Their answer: "${answer}"`
             </div>
           )}
 
+          {/* WHY REJECTED */}
           {tab === 'rejected' && (
             !isPro
               ? <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 240, gap: 10, textAlign: 'center' }}>
@@ -715,6 +762,7 @@ Their answer: "${answer}"`
 
         </div>
 
+        {/* SIDEBAR */}
         <div style={{ width: 240, flexShrink: 0, background: '#fff', borderLeft: '1px solid rgba(0,0,0,.07)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,.07)' }}>
             <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase' as const, color: '#b0b0b8', marginBottom: 10 }}>Quick info</div>
@@ -764,6 +812,43 @@ Their answer: "${answer}"`
         </div>
 
       </div>
+
+      {/* COVER LETTER MODAL */}
+      {showCover && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20 }}
+          onClick={() => setShowCover(false)}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 28, maxWidth: 640, width: '100%', maxHeight: '80vh', overflowY: 'auto' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+              <div>
+                <div style={{ fontFamily: 'Georgia,serif', fontSize: 18, color: '#1a1a1f', fontWeight: 400 }}>Cover letter</div>
+                <div style={{ fontSize: 11, color: '#b0b0b8', marginTop: 3 }}>{isPro ? "Powered by fitted.'s advanced AI" : "Powered by fitted.'s fast AI"}</div>
+              </div>
+              <button onClick={() => setShowCover(false)}
+                style={{ background: 'none', border: 'none', fontSize: 20, color: '#7a7a85', cursor: 'pointer', lineHeight: 1 }}>×</button>
+            </div>
+            {coverLoading
+              ? <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '40px 0', color: '#7a7a85', fontSize: 13 }}>
+                  <div style={{ width: 28, height: 28, border: '3px solid #eaeffe', borderTop: '3px solid #2d5be3', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  Writing your cover letter…
+                  <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+                </div>
+              : <>
+                  <div style={{ fontSize: 13, color: '#3d3d45', lineHeight: 1.9, whiteSpace: 'pre-wrap', marginBottom: 18 }}>{coverLetter}</div>
+                  <div style={{ display: 'flex', gap: 8, borderTop: '1px solid rgba(0,0,0,.07)', paddingTop: 14 }}>
+                    <button onClick={() => navigator.clipboard?.writeText(coverLetter)}
+                      style={{ background: 'none', border: '1px solid rgba(0,0,0,.1)', borderRadius: 8, padding: '8px 16px', fontSize: 13, color: '#3d3d45', cursor: 'pointer', fontFamily: 'sans-serif' }}>Copy</button>
+                    <button onClick={downloadCoverLetter}
+                      style={{ background: '#2d5be3', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>↓ Download</button>
+                    <button onClick={() => { setCoverLetter(''); setCoverLoading(false); generateCoverLetter() }}
+                      style={{ background: 'none', border: '1px solid rgba(0,0,0,.1)', borderRadius: 8, padding: '8px 16px', fontSize: 13, color: '#7a7a85', cursor: 'pointer', fontFamily: 'sans-serif', marginLeft: 'auto' }}>Regenerate</button>
+                  </div>
+                </>
+            }
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
