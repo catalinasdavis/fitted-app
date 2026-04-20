@@ -61,6 +61,10 @@ export default function JobDetail() {
   const [standoutLoading, setStandoutLoading] = useState(false)
   const standoutDone = useRef(false)
 
+  const [coverLetter,    setCoverLetter]    = useState('')
+  const [coverLoading,  setCoverLoading]  = useState(false)
+  const [showCover,     setShowCover]     = useState(false)
+
   const [emailType,    setEmailType]    = useState<'apply'|'followup'|'thankyou'|'checkin'>('apply')
   const [prepAnswers,  setPrepAnswers]  = useState<Record<number,string>>({})
   const [prepFeedback, setPrepFeedback] = useState<Record<number,string>>({})
@@ -469,7 +473,7 @@ Their answer: "${answer}"`
                       })}
                       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                         <button style={{ flex: 1, background: '#2d5be3', color: '#fff', border: 'none', borderRadius: 8, padding: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>↓ Download tailored resume</button>
-                        <button style={{ flex: 1, background: '#f4f2ed', color: '#3d3d45', border: '1px solid rgba(0,0,0,.1)', borderRadius: 8, padding: 10, fontSize: 13, cursor: 'pointer', fontFamily: 'sans-serif' }}>✦ Generate cover letter</button>
+                        <button style={{ flex: 1, background: '#f4f2ed', color: '#3d3d45', border: '1px solid rgba(0,0,0,.1)', borderRadius: 8, padding: 10, fontSize: 13, cursor: 'pointer', fontFamily: 'sans-serif' }} onClick={generateCoverLetter}>✦ Generate cover letter</button>
                       </div>
                     </>
                   : tailorDone.current
