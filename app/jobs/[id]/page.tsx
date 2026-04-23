@@ -150,7 +150,7 @@ Write a professional analysis using exactly these four bold headings, each follo
 [Give the candidate 2-3 concrete things to lead with in their application and interviews.]
 
 Do not use asterisks inside paragraphs. Do not ask them to do anything. Be warm but honest.`
-    const text = await callAI(prompt)
+    const text = await callAI(prompt, 'match')
     setMatchAI(text)
     setMatchLoading(false)
   }
