@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       ? 'claude-sonnet-4-20250514'
       : 'claude-haiku-4-5-20251001'
 
-    const maxTokens = isJson ? 1200 : type === 'chat' ? 400 : 1000
+    const maxTokens = isJson ? 1200 : type === 'match' ? 800 : 400
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
