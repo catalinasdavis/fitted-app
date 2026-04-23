@@ -276,6 +276,25 @@ Their answer: "${answer}"`
     URL.revokeObjectURL(url)
   }
 
+  async function startCheckout(plan: 'monthly' | 'annual' | 'extraSlot' = 'monthly') {
+    if (!user) return
+    try {
+      const res = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, userId: user.id, userEmail: user.email }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        alert('Could not start checkout. Please try again.')
+      }
+    } catch (err) {
+      alert('Checkout failed. Please try again.')
+    }
+  }
+
   if (!dataReady || !job) return (
     <div style={{ minHeight: '100vh', background: '#f4f2ed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#b8a99a' }}>
       {job === null && dataReady
@@ -349,7 +368,6 @@ Their answer: "${answer}"`
     <div style={{ minHeight: '100vh', background: '#f4f2ed', fontFamily: 'sans-serif' }}
       onClick={() => setShowMenu(false)}>
 
-      {/* NAV */}
       <nav style={{ height: 60, background: '#fff', borderBottom: '1px solid rgba(0,0,0,.07)', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 14 }}>
         <button onClick={() => router.push('/')}
           style={{ background: 'none', border: 'none', color: '#7a7a85', cursor: 'pointer', fontSize: 13, fontFamily: 'sans-serif' }}>
@@ -377,7 +395,7 @@ Their answer: "${answer}"`
               <div style={{ padding: '10px 14px', fontSize: 12, color: '#b0b0b8', borderBottom: '1px solid rgba(0,0,0,.07)' }}>{user?.email}</div>
               {isPro
                 ? <button style={{ width: '100%', padding: '10px 14px', textAlign: 'left', background: 'none', border: 'none', fontSize: 13, color: '#3d3d45', cursor: 'pointer', fontFamily: 'sans-serif' }}>Manage subscription</button>
-                : <button onClick={() => { setShowMenu(false); router.push('/') }} style={{ width: '100%', padding: '10px 14px', textAlign: 'left', background: 'none', border: 'none', fontSize: 13, color: '#b8750a', cursor: 'pointer', fontFamily: 'sans-serif' }}>✦ Upgrade to Pro</button>
+                : <button onClick={() => { setShowMenu(false); startCheckout('monthly') }} style={{ width: '100%', padding: '10px 14px', textAlign: 'left', background: 'none', border: 'none', fontSize: 13, color: '#b8750a', cursor: 'pointer', fontFamily: 'sans-serif' }}>✦ Upgrade to Pro</button>
               }
               <button onClick={signOut} style={{ width: '100%', padding: '10px 14px', textAlign: 'left', background: 'none', border: 'none', borderTop: '1px solid rgba(0,0,0,.07)', fontSize: 13, color: '#7a7a85', cursor: 'pointer', fontFamily: 'sans-serif' }}>Sign out</button>
             </div>
@@ -385,7 +403,6 @@ Their answer: "${answer}"`
         </div>
       </nav>
 
-      {/* JOB HEADER */}
       <div style={{ background: '#fff', borderBottom: '1px solid rgba(0,0,0,.07)' }}>
         <div style={{ padding: '16px 20px 12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
@@ -415,11 +432,9 @@ Their answer: "${answer}"`
         </div>
       </div>
 
-      {/* BODY */}
       <div style={{ display: 'flex', height: 'calc(100vh - 60px - 148px)', overflow: 'hidden' }}>
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
 
-          {/* MATCH */}
           {tab === 'match' && (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 18 }}>
@@ -479,7 +494,6 @@ Their answer: "${answer}"`
             </div>
           )}
 
-          {/* TAILOR */}
           {tab === 'tailor' && (
             <div>
               {tailorLoading
@@ -527,7 +541,6 @@ Their answer: "${answer}"`
             </div>
           )}
 
-          {/* STAND OUT */}
           {tab === 'standout' && (
             <div>
               {standoutLoading
@@ -572,7 +585,6 @@ Their answer: "${answer}"`
             </div>
           )}
 
-          {/* EMAILS */}
           {tab === 'emails' && (
             <div>
               <div style={{ display: 'flex', gap: 7, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -607,7 +619,6 @@ Their answer: "${answer}"`
             </div>
           )}
 
-          {/* INTERVIEW PREP */}
           {tab === 'prep' && (
             <div>
               <p style={{ fontSize: 13, color: '#7a7a85', marginBottom: 20, lineHeight: 1.6 }}>
@@ -662,7 +673,7 @@ Their answer: "${answer}"`
                         <div style={{ fontSize: 20, color: '#b8750a' }}>✦</div>
                         <div style={{ fontFamily: 'Georgia,serif', fontSize: 16, color: '#1a1a1f' }}>Pro feature</div>
                         <div style={{ fontSize: 12, color: '#7a7a85', textAlign: 'center', maxWidth: 220, lineHeight: 1.5 }}>Exact scripts for every negotiation stage, tailored to this role and company.</div>
-                        <button onClick={() => router.push('/')} style={{ background: '#b8750a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>Unlock with Pro</button>
+                        <button onClick={() => startCheckout('monthly')} style={{ background: '#b8750a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>Unlock with Pro</button>
                       </div>
                     </div>
                 }
@@ -670,14 +681,13 @@ Their answer: "${answer}"`
             </div>
           )}
 
-          {/* CAREER PATH */}
           {tab === 'career' && (
             !isPro
               ? <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 240, gap: 10, textAlign: 'center' }}>
                   <div style={{ fontSize: 24, color: '#b8750a' }}>✦</div>
                   <h3 style={{ fontFamily: 'Georgia,serif', fontSize: 18, color: '#1a1a1f', fontWeight: 400 }}>Career Path is a Pro feature</h3>
                   <p style={{ fontSize: 13, color: '#7a7a85', maxWidth: 280, lineHeight: 1.6 }}>See how this role fits into a realistic path from where you are now to where you want to be — with salary milestones.</p>
-                  <button onClick={() => router.push('/')} style={{ background: '#b8750a', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>Unlock with Pro</button>
+                  <button onClick={() => startCheckout('monthly')} style={{ background: '#b8750a', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>Unlock with Pro</button>
                 </div>
               : <div>
                   <p style={{ fontSize: 13, color: '#7a7a85', marginBottom: 20, lineHeight: 1.6 }}>How <strong style={{ color: '#3d3d45' }}>{job.title}</strong> fits a realistic career path.</p>
@@ -703,7 +713,6 @@ Their answer: "${answer}"`
                 </div>
           )}
 
-          {/* NOTES */}
           {tab === 'notes' && (
             <div>
               <textarea value={notes} onChange={e => setNotes(e.target.value)}
@@ -713,14 +722,13 @@ Their answer: "${answer}"`
             </div>
           )}
 
-          {/* WHY REJECTED */}
           {tab === 'rejected' && (
             !isPro
               ? <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 240, gap: 10, textAlign: 'center' }}>
                   <div style={{ fontSize: 24, color: '#b8750a' }}>✦</div>
                   <h3 style={{ fontFamily: 'Georgia,serif', fontSize: 18, color: '#1a1a1f', fontWeight: 400 }}>Why Rejected is a Pro feature</h3>
                   <p style={{ fontSize: 13, color: '#7a7a85', maxWidth: 280, lineHeight: 1.6 }}>Get analysis of what likely happened and a polite email to request real feedback from the hiring team.</p>
-                  <button onClick={() => router.push('/')} style={{ background: '#b8750a', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>Unlock with Pro</button>
+                  <button onClick={() => startCheckout('monthly')} style={{ background: '#b8750a', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>Unlock with Pro</button>
                 </div>
               : <div>
                   <div style={{ background: '#fdecea', border: '1px solid rgba(192,57,43,.15)', borderLeft: '3px solid #c0392b', borderRadius: '0 10px 10px 0', padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#7a0000', lineHeight: 1.6 }}>
@@ -762,7 +770,6 @@ Their answer: "${answer}"`
 
         </div>
 
-        {/* SIDEBAR */}
         <div style={{ width: 240, flexShrink: 0, background: '#fff', borderLeft: '1px solid rgba(0,0,0,.07)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,.07)' }}>
             <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase' as const, color: '#b0b0b8', marginBottom: 10 }}>Quick info</div>
@@ -813,7 +820,6 @@ Their answer: "${answer}"`
 
       </div>
 
-      {/* COVER LETTER MODAL */}
       {showCover && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20 }}
           onClick={() => setShowCover(false)}>
