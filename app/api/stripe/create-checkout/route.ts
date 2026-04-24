@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-10-28.acacia' as any,
 })
+
+const SUPABASE_URL      = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const SUPABASE_ADMIN_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 const PRICE_IDS: Record<string, string> = {
   monthly:     process.env.STRIPE_MONTHLY_PRICE_ID!,
@@ -15,38 +18,31 @@ const PRICE_IDS: Record<string, string> = {
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
-async function getUser() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: () => {},
-      },
-    }
-  )
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
+async function getUserFromCookie(request: NextRequest) {
+  const token = request.cookies.get('fitted-token')?.value
+  if (!token) return null
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${token}`,
+    },
+  })
+  if (!res.ok) return null
+  return await res.json()
 }
 
 export async function POST(request: NextRequest) {
   try {
     const { type } = await request.json()
-    const user = await getUser()
+    const user = await getUserFromCookie(request)
 
     if (!user) {
       return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
     }
 
     if (type === 'portal') {
-      const adminSupabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        { cookies: { getAll: () => [], setAll: () => {} } }
-      )
-      const { data: profile } = await adminSupabase
+      const admin = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY)
+      const { data: profile } = await admin
         .from('profiles')
         .select('stripe_customer_id')
         .eq('id', user.id)
@@ -107,14 +103,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Payment not completed' }, { status: 400 })
     }
 
-    const adminSupabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { cookies: { getAll: () => [], setAll: () => {} } }
-    )
+    const admin = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY)
 
     if (type === 'monthly' || type === 'annual') {
-      await adminSupabase
+      await admin
         .from('profiles')
         .update({
           plan: 'pro',
@@ -122,13 +114,13 @@ export async function GET(request: NextRequest) {
         })
         .eq('id', uid)
     } else if (type === 'resume_slot') {
-      const { data: p } = await adminSupabase
+      const { data: p } = await admin
         .from('profiles')
         .select('extra_resume_slot')
         .eq('id', uid)
         .single()
       const current = p?.extra_resume_slot || 0
-      await adminSupabase
+      await admin
         .from('profiles')
         .update({ extra_resume_slot: current + 1 })
         .eq('id', uid)
