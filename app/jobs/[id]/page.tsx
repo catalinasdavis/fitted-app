@@ -282,7 +282,7 @@ Their answer: "${answer}"`
       const res = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, userId: user.id, userEmail: user.email }),
+        body: JSON.stringify({ type: plan === 'extraSlot' ? 'resume_slot' : plan }),
       })
       const data = await res.json()
       if (data.url) {
