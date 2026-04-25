@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getJob, getSimilarJobs, Job } from '../../../lib/jobs'
 
-interface Profile { plan: string; about_me: string | null; career_field: string | null; pay_target: string | null }
+interface Profile { plan: string; about_me: string | null; career_field: string | null; pay_target: string | null; subscription_status?: string | null; current_period_end?: string | null }
 interface Resume { id: string; name: string; resume_text: string; is_active: boolean }
 interface User { email: string; id: string }
 
@@ -309,7 +309,7 @@ Their answer: "${answer}"`
 
   const similar = getSimilarJobs(job)
   const br      = bestResume(resumes)
-  const isPro   = profile?.plan === 'pro'
+  const isPro = profile?.plan === 'pro'; const isCancelled = isPro && profile?.subscription_status === 'cancelled'
   const score   = job.match
 
   const TABS = [
@@ -416,7 +416,7 @@ Their answer: "${answer}"`
             <span style={{ background: job.type === 'Remote' ? '#e6f5ed' : '#fdf3e3', color: job.type === 'Remote' ? '#1a7a4a' : '#b8750a', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>{job.type}</span>
             <span style={{ background: '#eaeffe', color: '#185fa5', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>{score}% Resume Match</span>
             {br && <span style={{ background: '#e6f5ed', color: '#1a7a4a', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>Using: {br.name}</span>}
-            {isPro && <span style={{ background: '#1a7a4a', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>✦ Pro</span>}
+            {isPro && (isCancelled ? <span style={{ background: 'rgba(26, 122, 74, 0.45)', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>✦ Pro · ends soon</span> : <span style={{ background: '#1a7a4a', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>✦ Pro</span>)}
             <span style={{ background: '#f4f2ed', color: '#7a7a85', padding: '3px 10px', borderRadius: 20, fontSize: 11 }}>
               {isPro ? "Powered by fitted.'s advanced AI" : "Powered by fitted.'s fast AI"}
             </span>
