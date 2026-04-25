@@ -13,6 +13,7 @@ interface Profile {
   plan: string; career_field: string | null; about_me: string | null
   locations: string[] | null; pay_target: string | null
   portfolio_files: any[] | null; extra_resume_slot?: boolean
+  stripe_customer_id?: string | null
 }
 interface Resume  { id: string; name: string; filename: string; is_active: boolean; resume_text: string; created_at: string }
 interface TrackerEntry {
@@ -69,6 +70,7 @@ const TCOLS = [
 const DREASONS = ['Pay too low','Not remote enough',"Role doesn't match my skills","Company culture doesn't appeal","Location doesn't work for me",'Not the right seniority level','Other']
 const FEEDBACK = 'https://docs.google.com/forms/d/1eGLhittpd7Ez6V0rTna-us3ubkCXS_RbqDhbOseQ1jw/edit'
 const TTL = 14
+const GOLD_ANNUAL = 'rgba(184, 117, 10, 0.90)'
 
 interface HA { keywords: string[]; title: string; answer: string }
 const HAS: HA[] = [
@@ -141,6 +143,7 @@ export default function Home() {
   const [stripeL,   setStripeL]   = useState<string | null>(null)
   const [pSuccess,  setPSuccess]  = useState<string | null>(null)
   const [welcome,   setWelcome]   = useState(false)
+  const [portalErr, setPortalErr] = useState('')
 
   const stRef = useRef<NodeJS.Timeout | null>(null)
   const fRef  = useRef<HTMLInputElement>(null)
@@ -171,12 +174,36 @@ export default function Home() {
     const pay = p.get('payment'); const type = p.get('type'); const uid = p.get('uid'); const sid = p.get('session_id')
     if (pay === 'success' && uid && sid) {
       setPSuccess(type||'pro')
-      fetch(`/api/stripe/create-checkout?session_id=${sid}&uid=${uid}&type=${type}`)
-      if (type === 'resume_slot') setProfile(pr => pr ? {...pr, extra_resume_slot: true} : pr)
-      else setProfile(pr => pr ? {...pr, plan: 'pro'} : pr)
       window.history.replaceState({}, '', '/')
+      ;(async () => {
+        try {
+          const r = await fetch(`/api/stripe/create-checkout?session_id=${sid}&uid=${uid}&type=${type}`)
+          if (r.ok) {
+            if (type === 'resume_slot') setProfile(pr => pr ? {...pr, extra_resume_slot: true} : pr)
+            else setProfile(pr => pr ? {...pr, plan: 'pro'} : pr)
+          } else { console.error('Stripe verify failed:', await r.text()) }
+        } catch (e) { console.error('Stripe verify error:', e) }
+      })()
     }
   }, [])
+
+  useEffect(() => {
+    if (!pSuccess) return
+    const t = setTimeout(() => setPSuccess(null), 5000)
+    return () => clearTimeout(t)
+  }, [pSuccess])
+
+  useEffect(() => {
+    if (!welcome) return
+    const t = setTimeout(() => setWelcome(false), 8000)
+    return () => clearTimeout(t)
+  }, [welcome])
+
+  useEffect(() => {
+    if (!portalErr) return
+    const t = setTimeout(() => setPortalErr(''), 4000)
+    return () => clearTimeout(t)
+  }, [portalErr])
 
   const savePr = useCallback(async (fields: any) => {
     setSaveInd('Saving…')
@@ -280,7 +307,16 @@ export default function Home() {
   }
   async function checkout(type: 'monthly'|'annual'|'resume_slot'|'portal') {
     setStripeL(type)
-    try { const res = await fetch('/api/stripe/create-checkout', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type})}); const data = await res.json(); if (data.url) window.location.href = data.url; else { alert(data.error||'Could not start checkout.'); setStripeL(null) } } catch { alert('Something went wrong.'); setStripeL(null) }
+    try {
+      const res = await fetch('/api/stripe/create-checkout', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type})})
+      const data = await res.json()
+      if (data.url) { window.location.href = data.url }
+      else if (type === 'portal') { setPortalErr(data.error || "Couldn't open subscription portal. Please refresh and try again."); setStripeL(null) }
+      else { alert(data.error||'Could not start checkout.'); setStripeL(null) }
+    } catch {
+      if (type === 'portal') { setPortalErr('Something went wrong opening your subscription portal.'); setStripeL(null) }
+      else { alert('Something went wrong.'); setStripeL(null) }
+    }
   }
 
   // ── JOB FEED — career_field drives filtering ───────────────────────────────
@@ -613,8 +649,8 @@ export default function Home() {
 
       <button onClick={()=>{setShowHelp(true);setHelpQ('');setHelpR(null);setHelpS(false)}} className="hide-mobile" style={{position:'fixed',bottom:24,right:24,width:44,height:44,borderRadius:'50%',background:'#2f3e5c',color:'#fff',border:'none',cursor:'pointer',fontSize:18,display:'inline-flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 12px rgba(0,0,0,.2)',zIndex:40}} title="Get help">?</button>
 
-      {/* WELCOME BANNER */}
-      {welcome&&(
+      {/* WELCOME BANNER — hides if pSuccess showing */}
+      {welcome&&!pSuccess&&(
         <div style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',background:'#2f3e5c',color:'#f4f2ed',borderRadius:14,padding:'16px 22px',fontSize:14,zIndex:200,display:'flex',alignItems:'flex-start',gap:14,boxShadow:'0 4px 24px rgba(0,0,0,.18)',maxWidth:480,width:'calc(100vw - 48px)'}}>
           <div style={{flex:1}}>
             <div style={{fontFamily:'Georgia, serif',fontSize:17,marginBottom:5}}>Welcome to fitted<span style={{color:'#2d5be3'}}>.</span> ✦</div>
@@ -628,11 +664,19 @@ export default function Home() {
         </div>
       )}
 
-      {/* STRIPE SUCCESS */}
+      {/* STRIPE SUCCESS — auto-dismisses after 5s */}
       {pSuccess&&(
         <div style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',background:'#1a7a4a',color:'#fff',borderRadius:12,padding:'12px 20px',fontSize:14,fontWeight:500,zIndex:200,display:'flex',alignItems:'center',gap:10,boxShadow:'0 4px 20px rgba(0,0,0,.2)',whiteSpace:'nowrap'}}>
           ✓ {pSuccess==='resume_slot'?'Second resume slot unlocked!':'fitted. Pro is now active — welcome!'}
           <button onClick={()=>setPSuccess(null)} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:18,opacity:.7,marginLeft:4}}>×</button>
+        </div>
+      )}
+
+      {/* PORTAL ERROR — auto-dismisses after 4s */}
+      {portalErr&&(
+        <div style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',background:'#c0392b',color:'#fff',borderRadius:12,padding:'12px 20px',fontSize:13,fontWeight:500,zIndex:200,display:'flex',alignItems:'center',gap:10,boxShadow:'0 4px 20px rgba(0,0,0,.2)',maxWidth:420}}>
+          {portalErr}
+          <button onClick={()=>setPortalErr('')} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:18,opacity:.7,marginLeft:4}}>×</button>
         </div>
       )}
 
@@ -720,7 +764,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* UPGRADE MODAL */}
+      {/* UPGRADE MODAL — annual button uses 90% opacity gold */}
       {showUp&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget)setShowUp(false)}}>
           <div style={{background:'#fff',borderRadius:20,padding:32,maxWidth:440,width:'100%',maxHeight:'90vh',overflowY:'auto'}}>
@@ -730,12 +774,12 @@ export default function Home() {
               {['Unlimited resumes','Salary negotiation scripts','Career path & milestones','Interview answer feedback','AI-powered tailor suggestions','Unlimited chat','Portfolio uploads','Company search'].map(f=><div key={f} style={{display:'flex',alignItems:'center',gap:8,padding:'4px 0',fontSize:13,color:'#3d3d45'}}><span style={{color:'#1a7a4a',fontWeight:700}}>✓</span> {f}</div>)}
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
-              <button onClick={()=>checkout('annual')} disabled={!!stripeL} style={{width:'100%',padding:'13px 16px',background:'#2d5be3',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:14,fontWeight:600,cursor:stripeL?'wait':'pointer',textAlign:'left' as const,display:'flex',justifyContent:'space-between',alignItems:'center',opacity:stripeL&&stripeL!=='annual'?.5:1}}>
-                <div><div>{stripeL==='annual'?'Redirecting…':'$89 / year'}</div><div style={{fontSize:11,opacity:.8,fontWeight:400,marginTop:2}}>Best value — save 17% vs monthly</div></div>
-                {stripeL!=='annual'&&<span style={{background:'#fff',color:'#2d5be3',fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,flexShrink:0}}>BEST VALUE</span>}
+              <button onClick={()=>checkout('annual')} disabled={!!stripeL} style={{width:'100%',padding:'13px 16px',background:GOLD_ANNUAL,color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:14,fontWeight:600,cursor:stripeL?'wait':'pointer',textAlign:'left' as const,display:'flex',justifyContent:'space-between',alignItems:'center',opacity:stripeL&&stripeL!=='annual'?.5:1}}>
+                <div><div>{stripeL==='annual'?'Redirecting…':'$89 / year'}</div><div style={{fontSize:11,opacity:.85,fontWeight:400,marginTop:2}}>Best value — save 17% vs monthly</div></div>
+                {stripeL!=='annual'&&<span style={{background:'#fff',color:'#b8750a',fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,flexShrink:0}}>BEST VALUE</span>}
               </button>
               <button onClick={()=>checkout('monthly')} disabled={!!stripeL} style={{width:'100%',padding:'13px 16px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:14,fontWeight:600,cursor:stripeL?'wait':'pointer',textAlign:'left' as const,opacity:stripeL&&stripeL!=='monthly'?.5:1}}>
-                <div>{stripeL==='monthly'?'Redirecting…':'$9 / month'}</div><div style={{fontSize:11,opacity:.8,fontWeight:400,marginTop:2}}>Cancel anytime</div>
+                <div>{stripeL==='monthly'?'Redirecting…':'$9 / month'}</div><div style={{fontSize:11,opacity:.85,fontWeight:400,marginTop:2}}>Cancel anytime</div>
               </button>
             </div>
             {!isPro&&!profile?.extra_resume_slot&&(<>
@@ -746,7 +790,7 @@ export default function Home() {
             </>)}
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}><div style={{flex:1,height:1,background:'rgba(0,0,0,.08)'}}/><span style={{fontSize:11,color:'#b0b0b8'}}>Have a promo code?</span><div style={{flex:1,height:1,background:'rgba(0,0,0,.08)'}}/></div>
             <div style={{display:'flex',gap:8,marginBottom:8}}>
-              <input value={promo} onChange={e=>setPromo(e.target.value.toUpperCase())} onKeyDown={e=>e.key==='Enter'&&redeem()} placeholder="Enter code" style={{flex:1,padding:'10px 14px',border:'1.5px solid #e8e4db',borderRadius:10,fontFamily:'monospace',fontSize:14,letterSpacing:'.08em',outline:'none',color:'#1a1a1f',background:'#f4f2ed'}}/>
+              <input value={promo} onChange={e=>setPromo(e.target.value.toUpperCase())} onKeyDown={e=>e.key==='Enter'&&redeem()} placeholder="e.g. ALEX44" style={{flex:1,padding:'10px 14px',border:'1.5px solid #e8e4db',borderRadius:10,fontFamily:'monospace',fontSize:14,letterSpacing:'.08em',outline:'none',color:'#1a1a1f',background:'#f4f2ed'}}/>
               <button onClick={redeem} disabled={promoLoad||!!stripeL} style={{padding:'10px 18px',background:'#2d5be3',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',opacity:promoLoad?.6:1}}>{promoLoad?'…':'Apply'}</button>
             </div>
             {promoMsg&&<p style={{fontSize:13,color:promoMsg.startsWith('✓')?'#1a7a4a':'#e85d3a',margin:'0 0 16px'}}>{promoMsg}</p>}
