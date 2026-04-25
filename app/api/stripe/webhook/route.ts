@@ -10,6 +10,12 @@ const SUPABASE_URL       = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ADMIN_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const WEBHOOK_SECRET     = process.env.STRIPE_WEBHOOK_SECRET!
 
+function getPeriodEnd(sub: any): string | null {
+  const ts = sub?.current_period_end || sub?.items?.data?.[0]?.current_period_end
+  if (!ts) return null
+  return new Date(ts * 1000).toISOString()
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.text()
   const signature = request.headers.get('stripe-signature')
@@ -32,10 +38,15 @@ export async function POST(request: NextRequest) {
 
   try {
     if (event.type === 'customer.subscription.updated') {
-      const sub = event.data.object as Stripe.Subscription
+      const sub = event.data.object as any
       const customerId = sub.customer as string
-      const periodEnd  = new Date(sub.current_period_end * 1000).toISOString()
-      const cancelled  = sub.cancel_at_period_end === true
+      const periodEnd = getPeriodEnd(sub)
+      const cancelled = sub.cancel_at_period_end === true
+
+      if (!periodEnd) {
+        console.warn('[Webhook] no period end found in subscription, skipping')
+        return NextResponse.json({ received: true })
+      }
 
       const { data: profile } = await admin
         .from('profiles')
@@ -60,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     else if (event.type === 'customer.subscription.deleted') {
-      const sub = event.data.object as Stripe.Subscription
+      const sub = event.data.object as any
       const customerId = sub.customer as string
 
       const { data: profile } = await admin
@@ -83,15 +94,20 @@ export async function POST(request: NextRequest) {
     }
 
     else if (event.type === 'invoice.payment_succeeded') {
-      const invoice = event.data.object as Stripe.Invoice
+      const invoice = event.data.object as any
       const customerId = invoice.customer as string
 
       if (!invoice.subscription) {
         return NextResponse.json({ received: true })
       }
 
-      const sub = await stripe.subscriptions.retrieve(invoice.subscription as string)
-      const periodEnd = new Date(sub.current_period_end * 1000).toISOString()
+      const sub = await stripe.subscriptions.retrieve(invoice.subscription as string) as any
+      const periodEnd = getPeriodEnd(sub)
+
+      if (!periodEnd) {
+        console.warn('[Webhook] no period end on renewal, skipping')
+        return NextResponse.json({ received: true })
+      }
 
       const { data: profile } = await admin
         .from('profiles')
