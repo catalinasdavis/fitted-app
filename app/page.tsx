@@ -179,8 +179,7 @@ export default function Home() {
         try {
           const r = await fetch(`/api/stripe/create-checkout?session_id=${sid}&uid=${uid}&type=${type}`)
           if (r.ok) {
-            if (type === 'resume_slot') setProfile(pr => pr ? {...pr, extra_resume_slot: true} : pr)
-            else setProfile(pr => pr ? {...pr, plan: 'pro'} : pr)
+            const fresh = await fetch('/api/profile').then(rr => rr.json()); if (fresh.profile) setProfile(fresh.profile); else if (type === 'resume_slot') setProfile(pr => pr ? {...pr, extra_resume_slot: true} : pr); else setProfile(pr => pr ? {...pr, plan: 'pro'} : pr)
           } else { console.error('Stripe verify failed:', await r.text()) }
         } catch (e) { console.error('Stripe verify error:', e) }
       })()
