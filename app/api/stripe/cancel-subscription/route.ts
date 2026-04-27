@@ -9,6 +9,9 @@ import Stripe from 'stripe'
 // We cancel at period end — user keeps Pro until the period they paid for ends.
 // We also increment discount_offers_used (if < 3 and the user is monthly) so
 // they can't game the system by cancel → re-subscribe → see same tier offer again.
+//
+// Stripe SDK v22 note: current_period_end and recurring.interval live on the
+// subscription's line items, not the subscription itself.
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-03-25.dahlia',
@@ -80,9 +83,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Detect monthly vs annual for the save-counter increment rule
+    // Fetch current subscription state to detect monthly vs annual
     const subBefore = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
-    const isMonthly = subBefore.items.data[0]?.price?.recurring?.interval === 'month'
+    const firstItemBefore = subBefore.items.data[0]
+    const isMonthly = firstItemBefore?.price?.recurring?.interval === 'month'
 
     // Cancel at period end (user keeps Pro through what they paid for)
     const subscription = await stripe.subscriptions.update(
@@ -90,12 +94,20 @@ export async function POST(request: NextRequest) {
       { cancel_at_period_end: true }
     )
 
+    // In SDK v22, current_period_end lives on the line item, not the subscription
+    const firstItem = subscription.items.data[0]
+    if (!firstItem) {
+      throw new Error('Subscription has no line items — cannot read period end')
+    }
+    const periodEndUnix = firstItem.current_period_end
+    const periodEndIso = new Date(periodEndUnix * 1000).toISOString()
+
     const offersUsed: number = profile.discount_offers_used || 0
 
     const updates: Record<string, any> = {
       subscription_status: 'canceling',
       cancel_at_period_end: true,
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_end: periodEndIso,
     }
 
     // Only increment the save-flow counter for monthly users who still had
@@ -109,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      cancels_at: new Date(subscription.current_period_end * 1000).toISOString(),
+      cancels_at: periodEndIso,
     })
   } catch (err: any) {
     console.error('Failed to cancel subscription:', err)

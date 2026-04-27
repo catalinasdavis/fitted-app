@@ -14,6 +14,9 @@ import Stripe from 'stripe'
 //
 // Annual subscribers skip this entirely (the next-month discount has no
 // real meaning when next renewal is ~12 months away).
+//
+// Stripe SDK v22 note: recurring.interval lives on the subscription's line items,
+// not the subscription itself.
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-03-25.dahlia',
@@ -100,7 +103,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No active Pro subscription' }, { status: 400 })
   }
 
-  // Detect annual vs monthly — annual skips the save flow
+  // Detect monthly vs annual via the first line item's recurring interval
   let isMonthly = true
   try {
     const sub = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
