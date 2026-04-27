@@ -15,8 +15,10 @@ import Stripe from 'stripe'
 // Annual subscribers skip this entirely (the next-month discount has no
 // real meaning when next renewal is ~12 months away).
 //
-// Stripe SDK v22 note: recurring.interval lives on the subscription's line items,
-// not the subscription itself.
+// Stripe SDK v22 notes:
+// - recurring.interval lives on subscription.items.data[0], not on the subscription
+// - coupons are applied via the `discounts` array on subscription update,
+//   not via the legacy top-level `coupon` field (removed from v22 types)
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-03-25.dahlia',
@@ -145,8 +147,10 @@ export async function POST(request: NextRequest) {
     const couponId = COUPONS[nextTier]
 
     try {
+      // SDK v22: coupons are applied via the discounts array on subscription update.
+      // The legacy top-level `coupon` parameter was removed in v22.
       await stripe.subscriptions.update(profile.stripe_subscription_id, {
-        coupon: couponId,
+        discounts: [{ coupon: couponId }],
       })
 
       const expiresAt = new Date()
