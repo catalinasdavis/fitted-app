@@ -24,7 +24,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-03-25.dahlia',
 })
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_URL       = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON_KEY  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 // Stripe coupon IDs — must match what was created in the Stripe dashboard
@@ -40,10 +41,12 @@ const TIER_INFO: Record<number, { percent: number; label: string }> = {
   3: { percent: 25, label: '25% off your next month' },
 }
 
-async function getUser(token: string) {
+async function getUserFromCookie(request: NextRequest) {
+  const token = request.cookies.get('fitted-token')?.value
+  if (!token) return null
   const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: {
-      'apikey': SUPABASE_SERVICE_KEY,
+      'apikey': SUPABASE_ANON_KEY,
       'Authorization': `Bearer ${token}`,
     },
   })
@@ -83,36 +86,58 @@ async function updateProfile(userId: string, updates: Record<string, any>) {
 }
 
 export async function POST(request: NextRequest) {
-  const token = request.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
-
-  const user = await getUser(token)
+  const user = await getUserFromCookie(request)
   if (!user?.id) {
-    return NextResponse.json({ error: 'Invalid auth' }, { status: 401 })
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
   const body = await request.json()
   const action = body.action as 'check' | 'apply'
+  if (action !== 'check' && action !== 'apply') {
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+  }
 
   const profile = await getProfile(user.id)
   if (!profile) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
 
-  if (profile.plan !== 'pro' || !profile.stripe_subscription_id) {
+  if (profile.plan !== 'pro') {
     return NextResponse.json({ error: 'No active Pro subscription' }, { status: 400 })
+  }
+
+  // Resolve subscription ID — look up by customer if not cached
+  let subscriptionId: string | null = profile.stripe_subscription_id || null
+  if (!subscriptionId && profile.stripe_customer_id) {
+    try {
+      const subs = await stripe.subscriptions.list({
+        customer: profile.stripe_customer_id,
+        status: 'active',
+        limit: 1,
+      })
+      if (subs.data[0]) {
+        subscriptionId = subs.data[0].id
+        await updateProfile(user.id, { stripe_subscription_id: subscriptionId })
+      }
+    } catch (err) {
+      console.error('Save offer: failed to look up subscription by customer:', err)
+    }
+  }
+
+  if (!subscriptionId) {
+    if (action === 'check') return NextResponse.json({ hasOffer: false, reason: 'no_subscription' })
+    return NextResponse.json({ error: 'No active subscription found' }, { status: 400 })
   }
 
   // Detect monthly vs annual via the first line item's recurring interval
   let isMonthly = true
   try {
-    const sub = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
+    const sub = await stripe.subscriptions.retrieve(subscriptionId)
     const interval = sub.items.data[0]?.price?.recurring?.interval
     isMonthly = interval === 'month'
   } catch (err) {
     console.error('Failed to retrieve subscription for interval check:', err)
+    if (action === 'check') return NextResponse.json({ hasOffer: false, reason: 'lookup_failed' })
     return NextResponse.json({ error: 'Could not verify subscription' }, { status: 500 })
   }
 
@@ -149,7 +174,7 @@ export async function POST(request: NextRequest) {
     try {
       // SDK v22: coupons are applied via the discounts array on subscription update.
       // The legacy top-level `coupon` parameter was removed in v22.
-      await stripe.subscriptions.update(profile.stripe_subscription_id, {
+      await stripe.subscriptions.update(subscriptionId, {
         discounts: [{ coupon: couponId }],
       })
 

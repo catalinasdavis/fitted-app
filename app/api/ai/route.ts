@@ -1,6 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY!
+const ANTHROPIC_KEY  = process.env.ANTHROPIC_API_KEY!
+const SUPABASE_URL   = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+const PROMPT_MAX_FREE = 8_000
+const PROMPT_MAX_PRO  = 16_000
+
+// In-memory rate limiter — same pattern as /api/auth and /api/redeem.
+// Replace with Upstash Redis before horizontal scale-out.
+const WINDOW_MS = 15 * 60 * 1000
+const MAX_HITS  = 20
+
+interface RateEntry { count: number; windowStart: number }
+const ratemap = new Map<string, RateEntry>()
+
+function getIP(request: NextRequest): string {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown'
+  )
+}
+
+function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
+  const now   = Date.now()
+  const entry = ratemap.get(ip)
+
+  if (!entry || now - entry.windowStart >= WINDOW_MS) {
+    ratemap.set(ip, { count: 1, windowStart: now })
+    return { allowed: true, remaining: MAX_HITS - 1 }
+  }
+
+  if (entry.count >= MAX_HITS) {
+    return { allowed: false, remaining: 0 }
+  }
+
+  entry.count++
+  return { allowed: true, remaining: MAX_HITS - entry.count }
+}
 
 const COACH_SYSTEM = `You are fitted., an AI career assistant with a unique dual perspective.
 
@@ -18,11 +56,64 @@ Rules you always follow:
 
 const JSON_SYSTEM = `You are a career AI assistant. You return only valid JSON — no markdown, no code fences, no explanation before or after, no conversational text. Just the raw JSON object or array exactly as specified in the prompt. If you cannot generate the content, return the empty version of the requested structure ([] for arrays, {} for objects).`
 
+async function getUserFromCookie(request: NextRequest) {
+  const token = request.cookies.get('fitted-token')?.value
+  if (!token) return null
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${token}` },
+  })
+  return res.ok ? await res.json() : null
+}
+
+async function getProfile(token: string, userId: string) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=plan`,
+    { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${token}` } }
+  )
+  if (!res.ok) return null
+  const rows = await res.json()
+  return rows[0] || null
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, type, isPro, userContext } = await request.json()
+    const ip = getIP(request)
+    const { allowed, remaining } = checkRateLimit(ip)
 
-    if (!prompt) return NextResponse.json({ error: 'No prompt provided' }, { status: 400 })
+    if (!allowed) {
+      console.warn(`[AI] rate limit hit ip=${ip}`)
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait 15 minutes and try again.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': '900',
+            'X-RateLimit-Limit': String(MAX_HITS),
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      )
+    }
+
+    const user = await getUserFromCookie(request)
+    if (!user?.id) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    const token = request.cookies.get('fitted-token')!.value
+    const profile = await getProfile(token, user.id)
+    const isPro = profile?.plan === 'pro'
+
+    const { prompt, type, userContext } = await request.json()
+
+    if (!prompt || typeof prompt !== 'string') {
+      return NextResponse.json({ error: 'No prompt provided' }, { status: 400 })
+    }
+
+    const promptMax = isPro ? PROMPT_MAX_PRO : PROMPT_MAX_FREE
+    if (prompt.length > promptMax) {
+      return NextResponse.json({ error: 'Prompt too long' }, { status: 400 })
+    }
 
     const isJson = type === 'tailor' || type === 'standout'
     const systemPrompt = isJson ? JSON_SYSTEM : COACH_SYSTEM

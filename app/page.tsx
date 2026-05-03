@@ -17,6 +17,7 @@ interface Profile {
   subscription_status?: string | null
   current_period_end?: string | null
   cancelled_at?: string | null
+  grace_period_ends_at?: string | null
 }
 interface Resume  { id: string; name: string; filename: string; is_active: boolean; resume_text: string; created_at: string }
 interface TrackerEntry {
@@ -157,12 +158,24 @@ export default function Home() {
   const [stripeL,   setStripeL]   = useState<string | null>(null)
   const [pSuccess,  setPSuccess]  = useState<string | null>(null)
   const [welcome,   setWelcome]   = useState(false)
+  const [showCancel,  setShowCancel]  = useState(false)
+  const [cancelStep,  setCancelStep]  = useState<'intent'|'checking'|'offer'|'confirm'|'cancelling'>('intent')
+  const [cancelOffer, setCancelOffer] = useState<{tier:number;percent:number;label:string}|null>(null)
+  const [cancelErr,   setCancelErr]   = useState('')
+  const [showExtend,  setShowExtend]  = useState(false)
+  const [showAccount, setShowAccount] = useState(false)
+  const [acctInvoices, setAcctInvoices] = useState<Array<{id:string;amount:number;currency:string;date:number;description:string;url:string|null;pdf:string|null}>|null>(null)
+  const [acctInvLoad, setAcctInvLoad] = useState(false)
 
   const stRef = useRef<NodeJS.Timeout | null>(null)
   const fRef  = useRef<HTMLInputElement>(null)
 
   const isPro       = profile?.plan === 'pro'
-  const isCancelled = isPro && profile?.subscription_status === 'cancelled'
+  const isCancelled = isPro && (profile?.subscription_status === 'cancelled' || profile?.subscription_status === 'canceling')
+  const isExtended  = isPro && profile?.subscription_status === 'extended'
+  const isPastDue   = isPro && profile?.subscription_status === 'past_due'
+  const graceActive = isPastDue && !!profile?.grace_period_ends_at && daysUntil(profile.grace_period_ends_at) >= 0
+  const showExtendOffer = (isCancelled || isExtended) && daysUntil(profile?.current_period_end) <= 3
   const lim         = getLimit(profile, resumes.length)
   const activeR     = resumes.filter(r => r.is_active)
   const activeDL    = dislikes.filter(d => (Date.now() - new Date(d.dislikedAt).getTime()) / 86400000 < TTL)
@@ -185,6 +198,10 @@ export default function Home() {
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
     if (p.get('welcome') === '1') { setWelcome(true); window.history.replaceState({}, '', '/') }
+    if (p.get('portal_return') === '1') {
+      window.history.replaceState({}, '', '/')
+      fetch('/api/profile').then(r => r.json()).then(d => { if (d.profile) setProfile(d.profile) })
+    }
     const pay = p.get('payment')
     const type = p.get('type')
     const uid = p.get('uid')
@@ -195,12 +212,21 @@ export default function Home() {
       ;(async () => {
         try {
           const r = await fetch(`/api/stripe/create-checkout?session_id=${sid}&uid=${uid}&type=${type}`)
-          if (r.ok) {
-            const fresh = await fetch('/api/profile').then(rr => rr.json())
-            if (fresh.profile) setProfile(fresh.profile)
-            else if (type === 'resume_slot') setProfile(pr => pr ? {...pr, extra_resume_slot: true} : pr)
+          if (!r.ok) console.error('Stripe verify failed:', await r.text())
+          // Always fetch fresh profile — don't gate on verification success
+          const fresh = await fetch('/api/profile').then(rr => rr.json())
+          if (fresh.profile) {
+            setProfile(fresh.profile)
+            // Optimistic patch if DB update raced or failed
+            if ((type === 'monthly' || type === 'annual') && fresh.profile.plan !== 'pro') {
+              setProfile(pr => pr ? {...pr, plan: 'pro'} : pr)
+            } else if (type === 'resume_slot' && !fresh.profile.extra_resume_slot) {
+              setProfile(pr => pr ? {...pr, extra_resume_slot: true} : pr)
+            }
+          } else {
+            if (type === 'resume_slot') setProfile(pr => pr ? {...pr, extra_resume_slot: true} : pr)
             else setProfile(pr => pr ? {...pr, plan: 'pro'} : pr)
-          } else { console.error('Stripe verify failed:', await r.text()) }
+          }
         } catch (e) { console.error('Stripe verify error:', e) }
       })()
     }
@@ -306,9 +332,48 @@ export default function Home() {
     if (data.success) { setProfile(p => ({...p!, plan:'pro'})); setPromoMsg('✓ Pro unlocked!'); setTimeout(() => setShowUp(false), 2000) } else setPromoMsg(data.error||'Invalid code.')
     setPromoLoad(false)
   }
-  async function checkout(type: 'monthly'|'annual'|'resume_slot'|'portal') {
+  async function checkout(type: 'monthly'|'annual'|'resume_slot'|'portal'|'pro_extension') {
     setStripeL(type)
     try { const res = await fetch('/api/stripe/create-checkout', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type})}); const data = await res.json(); if (data.url) window.location.href = data.url; else { alert(data.error||'Could not start checkout.'); setStripeL(null) } } catch { alert('Something went wrong.'); setStripeL(null) }
+  }
+  async function openAccount() {
+    setShowAccount(true)
+    if (acctInvoices !== null) return
+    setAcctInvLoad(true)
+    try {
+      const res = await fetch('/api/stripe/invoices')
+      const data = await res.json()
+      setAcctInvoices(data.invoices || [])
+    } catch { setAcctInvoices([]) }
+    finally { setAcctInvLoad(false) }
+  }
+  function startCancelFlow() {
+    setShowCancel(true); setCancelStep('intent'); setCancelErr('')
+  }
+  async function proceedToOffer() {
+    setCancelStep('checking')
+    const res = await fetch('/api/stripe/save-offer', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'check'})})
+    const data = await res.json()
+    if (data.hasOffer) { setCancelOffer({tier:data.tier, percent:data.percent, label:data.label}); setCancelStep('offer') }
+    else { setCancelOffer(null); setCancelStep('confirm') }
+  }
+  async function applyOffer() {
+    setCancelStep('cancelling')
+    const res = await fetch('/api/stripe/save-offer', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'apply'})})
+    const data = await res.json()
+    if (data.success) { setShowCancel(false); const fresh = await fetch('/api/profile').then(r=>r.json()); if (fresh.profile) setProfile(fresh.profile) }
+    else { setCancelErr(data.error||'Something went wrong'); setCancelStep('offer') }
+  }
+  async function confirmCancel() {
+    setCancelStep('cancelling')
+    const res = await fetch('/api/stripe/cancel-subscription', {method:'POST'})
+    const data = await res.json()
+    if (data.success) {
+      setShowCancel(false)
+      setProfile(pr => pr ? {...pr, subscription_status: 'canceling', current_period_end: data.cancels_at || pr.current_period_end} : pr)
+      const fresh = await fetch('/api/profile').then(r=>r.json()); if (fresh.profile) setProfile(fresh.profile)
+    }
+    else { setCancelErr(data.error||'Something went wrong'); setCancelStep('confirm') }
   }
 
   // ── JOB FEED — career_field drives filtering ───────────────────────────────
@@ -562,14 +627,18 @@ export default function Home() {
           ) : (
             <>
               {isCancelled ? (
-                <span style={{background:'rgba(26, 122, 74, 0.45)',color:'#fff',fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:20,whiteSpace:'nowrap'}}>✦ Pro · ends {formatEndDate(profile?.current_period_end)}</span>
+                <span style={{background:'rgba(26, 122, 74, 0.45)',color:'#fff',fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:20,whiteSpace:'nowrap'}}>✦ Pro · {daysUntil(profile?.current_period_end)}d left</span>
               ) : (
                 <span style={{background:'#1a7a4a',color:'#fff',fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:20}}>✦ Pro</span>
               )}
               <button onClick={()=>checkout('portal')} disabled={stripeL==='portal'} className="hide-mobile" style={{padding:'6px 12px',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,background:'none',fontFamily:'sans-serif',fontSize:12,color:'#7a7a85',cursor:'pointer'}}>{stripeL==='portal'?'…':'Manage subscription'}</button>
+              {!isCancelled&&<button onClick={startCancelFlow} className="hide-mobile" style={{padding:0,background:'none',border:'none',fontFamily:'sans-serif',fontSize:12,color:'#b0b0b8',cursor:'pointer',textDecoration:'underline'}}>Cancel subscription</button>}
             </>
           )}
-          <span className="hide-mobile" style={{fontSize:13,color:'#7a7a85'}}>{user.email}</span>
+          <button onClick={openAccount} className="hide-mobile" style={{padding:'6px 12px',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,background:'none',fontFamily:'sans-serif',fontSize:12,color:'#7a7a85',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}>
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M1.5 11.5c0-2.2 2.2-4 5-4s5 1.8 5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+            Account
+          </button>
           <button className="hide-mobile" onClick={async()=>{await fetch('/api/signout',{method:'POST'});window.location.href='/'}} style={{padding:'7px 13px',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,background:'none',fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Sign out</button>
         </div>
       </nav>
@@ -623,10 +692,28 @@ export default function Home() {
 
         {/* CENTER */}
         <main className="main-feed" style={{overflowY:'auto',padding:'18px 20px'}}>
+          {graceActive && (
+            <div style={{background:'rgba(184,117,10,0.07)',border:'1px solid rgba(184,117,10,0.25)',borderLeft:'3px solid #b8750a',borderRadius:'0 10px 10px 0',padding:'12px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:12,fontSize:13,color:'#5a3a00',lineHeight:1.5}}>
+              <span style={{flex:1}}><strong style={{fontWeight:600}}>Payment failed.</strong> Update your payment details to keep Pro access — grace period ends {formatEndDate(profile!.grace_period_ends_at)} ({daysUntil(profile!.grace_period_ends_at)} days left).</span>
+              <button onClick={()=>checkout('portal')} disabled={stripeL==='portal'} style={{background:'#b8750a',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',fontSize:12,fontWeight:600,cursor:stripeL==='portal'?'wait':'pointer',fontFamily:'sans-serif',flexShrink:0,opacity:stripeL==='portal'?.7:1}}>{stripeL==='portal'?'…':'Update payment'}</button>
+            </div>
+          )}
           {isCancelled && profile?.current_period_end && (
             <div style={{background:'rgba(26, 122, 74, 0.08)',border:'1px solid rgba(26, 122, 74, 0.20)',borderLeft:'3px solid rgba(26, 122, 74, 0.55)',borderRadius:'0 10px 10px 0',padding:'12px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:12,fontSize:13,color:'#1a3d2a',lineHeight:1.5}}>
               <span style={{flex:1}}><strong style={{fontWeight:600}}>Your fitted. Pro</strong> ends {formatEndDate(profile.current_period_end)} ({daysUntil(profile.current_period_end)} days)</span>
-              <button onClick={()=>checkout('portal')} disabled={stripeL==='portal'} style={{background:'#1a7a4a',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',fontSize:12,fontWeight:600,cursor:stripeL==='portal'?'wait':'pointer',fontFamily:'sans-serif',flexShrink:0,opacity:stripeL==='portal'?.7:1}}>{stripeL==='portal'?'…':'Restore Pro'}</button>
+              <div style={{display:'flex',gap:8,flexShrink:0}}>
+                {showExtendOffer&&<button onClick={()=>setShowExtend(true)} style={{background:'none',color:'#1a7a4a',border:'1.5px solid rgba(26,122,74,.4)',borderRadius:8,padding:'6px 12px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif'}}>Extend 24h — $1.99</button>}
+                <button onClick={()=>checkout('portal')} disabled={stripeL==='portal'} style={{background:'#1a7a4a',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',fontSize:12,fontWeight:600,cursor:stripeL==='portal'?'wait':'pointer',fontFamily:'sans-serif',opacity:stripeL==='portal'?.7:1}}>{stripeL==='portal'?'…':'Restore Pro'}</button>
+              </div>
+            </div>
+          )}
+          {isExtended && profile?.current_period_end && (
+            <div style={{background:'rgba(45,91,227,0.06)',border:'1px solid rgba(45,91,227,0.18)',borderLeft:'3px solid #2d5be3',borderRadius:'0 10px 10px 0',padding:'12px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:12,fontSize:13,color:'#1a1a4a',lineHeight:1.5}}>
+              <span style={{flex:1}}><strong style={{fontWeight:600}}>24-hour extension active.</strong> Pro access expires {formatEndDate(profile.current_period_end)} ({daysUntil(profile.current_period_end)} days). Upgrade to keep it permanently.</span>
+              <div style={{display:'flex',gap:8,flexShrink:0}}>
+                {showExtendOffer&&<button onClick={()=>setShowExtend(true)} style={{background:'none',color:'#2d5be3',border:'1.5px solid rgba(45,91,227,.35)',borderRadius:8,padding:'6px 12px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif'}}>Extend again</button>}
+                <button onClick={()=>setShowUp(true)} style={{background:'#2d5be3',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif'}}>Upgrade</button>
+              </div>
             </div>
           )}
           <div className="desktop-view">
@@ -675,7 +762,7 @@ export default function Home() {
       {/* STRIPE SUCCESS */}
       {pSuccess&&(
         <div style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',background:'#1a7a4a',color:'#fff',borderRadius:12,padding:'12px 20px',fontSize:14,fontWeight:500,zIndex:200,display:'flex',alignItems:'center',gap:10,boxShadow:'0 4px 20px rgba(0,0,0,.2)',whiteSpace:'nowrap'}}>
-          ✓ {pSuccess==='resume_slot'?'Second resume slot unlocked!':'fitted. Pro is now active — welcome!'}
+          ✓ {pSuccess==='resume_slot'?'Second resume slot unlocked!':pSuccess==='pro_extension'?'24-hour Pro extension activated!':'fitted. Pro is now active — welcome!'}
           <button onClick={()=>setPSuccess(null)} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:18,opacity:.7,marginLeft:4}}>×</button>
         </div>
       )}
@@ -795,6 +882,224 @@ export default function Home() {
             </div>
             {promoMsg&&<p style={{fontSize:13,color:promoMsg.startsWith('✓')?'#1a7a4a':'#e85d3a',margin:'0 0 16px'}}>{promoMsg}</p>}
             <button onClick={()=>setShowUp(false)} style={{width:'100%',padding:11,background:'none',border:'1.5px solid #e8e4db',borderRadius:10,fontSize:13,color:'#7a7a85',cursor:'pointer',fontFamily:'sans-serif'}}>Maybe later</button>
+          </div>
+        </div>
+      )}
+
+      {/* PRO EXTENSION MODAL */}
+      {showExtend&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget)setShowExtend(false)}}>
+          <div style={{background:'#fff',borderRadius:20,padding:32,maxWidth:400,width:'100%'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+              <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:0}}>Extend Pro access</h2>
+              <button onClick={()=>setShowExtend(false)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:22,lineHeight:1,padding:4}}>×</button>
+            </div>
+            <p style={{fontFamily:'sans-serif',fontSize:13.5,color:'#7a7a85',margin:'0 0 22px',lineHeight:1.65}}>
+              Keep all your Pro features for 24 more hours while you decide. One-time charge — no subscription.
+            </p>
+            <div style={{background:'#f4f2ed',borderRadius:14,padding:'18px 20px',marginBottom:22}}>
+              {['Unlimited resumes','AI tailor suggestions','Salary scripts','Company search','Interview feedback','Unlimited chat'].map(f=>(
+                <div key={f} style={{display:'flex',alignItems:'center',gap:8,padding:'3px 0',fontSize:13,color:'#3d3d45'}}><span style={{color:'#1a7a4a',fontWeight:700}}>✓</span> {f}</div>
+              ))}
+            </div>
+            <button onClick={()=>{setShowExtend(false);checkout('pro_extension')}} disabled={!!stripeL} style={{width:'100%',padding:'14px 16px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:15,fontWeight:600,cursor:stripeL?'wait':'pointer',display:'flex',justifyContent:'space-between',alignItems:'center',opacity:stripeL?.6:1}}>
+              <span>{stripeL==='pro_extension'?'Redirecting…':'Extend for $1.99'}</span>
+              {stripeL!=='pro_extension'&&<span style={{fontSize:12,opacity:.75,fontWeight:400}}>24 hours · one-time</span>}
+            </button>
+            <p style={{fontFamily:'sans-serif',fontSize:11.5,color:'#b0b0b8',textAlign:'center',marginTop:14,lineHeight:1.5}}>
+              Want it permanently?{' '}
+              <button onClick={()=>{setShowExtend(false);setShowUp(true)}} style={{background:'none',border:'none',padding:0,cursor:'pointer',color:'#2d5be3',fontSize:11.5,fontFamily:'sans-serif',textDecoration:'underline'}}>Upgrade to Pro →</button>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ACCOUNT SETTINGS MODAL */}
+      {showAccount&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget)setShowAccount(false)}}>
+          <div style={{background:'#fff',borderRadius:20,padding:0,maxWidth:480,width:'100%',maxHeight:'85vh',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+
+            {/* Header */}
+            <div style={{padding:'24px 28px 20px',borderBottom:'1px solid rgba(0,0,0,.07)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+              <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:0}}>Account Settings</h2>
+              <button onClick={()=>setShowAccount(false)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:22,lineHeight:1,padding:4}}>×</button>
+            </div>
+
+            {/* Scrollable body */}
+            <div style={{overflowY:'auto',flex:1}}>
+
+              {/* Profile section */}
+              <div style={{padding:'20px 28px 0'}}>
+                <div style={{fontSize:10.5,fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase' as const,color:'#b0b0b8',marginBottom:12}}>Profile</div>
+                <div style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:'#f9f8f5',borderRadius:12}}>
+                  <div style={{width:38,height:38,borderRadius:'50%',background:'#2f3e5c',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Georgia, serif',fontSize:15,flexShrink:0}}>
+                    {user.email?.[0]?.toUpperCase()}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13.5,fontWeight:500,color:'#1a1a1f',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user.email}</div>
+                    <div style={{fontSize:12,color:'#7a7a85',marginTop:2}}>
+                      {isPro ? (
+                        isCancelled
+                          ? <span style={{color:'#b8750a'}}>✦ Pro · ends {formatEndDate(profile?.current_period_end)}</span>
+                          : <span style={{color:'#1a7a4a'}}>✦ Pro</span>
+                      ) : 'Free plan'}
+                    </div>
+                  </div>
+                  {!isPro&&(
+                    <button onClick={()=>{setShowAccount(false);setShowUp(true)}} style={{padding:'6px 12px',background:'#b8750a',color:'#fff',border:'none',borderRadius:8,fontFamily:'sans-serif',fontSize:12,fontWeight:600,cursor:'pointer',flexShrink:0}}>Upgrade</button>
+                  )}
+                </div>
+              </div>
+
+              {/* Subscription section — Pro only */}
+              {isPro&&(
+                <div style={{padding:'20px 28px 0'}}>
+                  <div style={{fontSize:10.5,fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase' as const,color:'#b0b0b8',marginBottom:12}}>Subscription</div>
+                  <div style={{border:'1px solid rgba(0,0,0,.08)',borderRadius:12,overflow:'hidden'}}>
+                    <div style={{padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <div>
+                        <div style={{fontSize:13.5,fontWeight:500,color:'#1a1a1f'}}>fitted. Pro</div>
+                        <div style={{fontSize:12,color:'#7a7a85',marginTop:2}}>
+                          {isCancelled
+                            ? `Access until ${formatEndDate(profile?.current_period_end)}`
+                            : profile?.current_period_end ? `Renews ${formatEndDate(profile.current_period_end)}` : 'Active'}
+                        </div>
+                      </div>
+                      {isCancelled
+                        ? <span style={{fontSize:11,fontWeight:600,color:'#b8750a',background:'#fdf3e3',padding:'3px 9px',borderRadius:20}}>Cancelling</span>
+                        : <span style={{fontSize:11,fontWeight:600,color:'#1a7a4a',background:'rgba(26,122,74,.1)',padding:'3px 9px',borderRadius:20}}>Active</span>
+                      }
+                    </div>
+                    <div style={{borderTop:'1px solid rgba(0,0,0,.06)',padding:'12px 16px',display:'flex',gap:10,background:'#fafaf8'}}>
+                      <button onClick={()=>{setShowAccount(false);checkout('portal')}} disabled={stripeL==='portal'} style={{flex:1,padding:'9px 12px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:10,fontFamily:'sans-serif',fontSize:13,fontWeight:500,cursor:'pointer',opacity:stripeL==='portal'?.6:1}}>
+                        {stripeL==='portal'?'Redirecting…':'Manage subscription'}
+                      </button>
+                      {!isCancelled&&(
+                        <button onClick={()=>{setShowAccount(false);startCancelFlow()}} style={{padding:'9px 12px',background:'none',border:'1.5px solid rgba(0,0,0,.1)',borderRadius:10,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Cancel</button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Receipts section */}
+              <div style={{padding:'20px 28px 24px'}}>
+                <div style={{fontSize:10.5,fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase' as const,color:'#b0b0b8',marginBottom:12}}>Receipts</div>
+
+                {acctInvLoad&&(
+                  <div style={{textAlign:'center',padding:'28px 0',color:'#b0b0b8',fontFamily:'sans-serif',fontSize:13}}>Loading…</div>
+                )}
+
+                {!acctInvLoad&&acctInvoices===null&&!isPro&&(
+                  <div style={{textAlign:'center',padding:'28px 0',color:'#b0b0b8',fontFamily:'sans-serif',fontSize:13}}>No receipts yet.</div>
+                )}
+
+                {!acctInvLoad&&acctInvoices!==null&&acctInvoices.length===0&&(
+                  <div style={{textAlign:'center',padding:'28px 0',color:'#b0b0b8',fontFamily:'sans-serif',fontSize:13}}>No receipts yet.</div>
+                )}
+
+                {!acctInvLoad&&acctInvoices!==null&&acctInvoices.length>0&&(
+                  <div style={{border:'1px solid rgba(0,0,0,.08)',borderRadius:12,overflow:'hidden'}}>
+                    {acctInvoices.map((inv, i) => (
+                      <div key={inv.id} style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',borderTop:i===0?'none':'1px solid rgba(0,0,0,.06)',background:'#fff'}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:500,color:'#1a1a1f'}}>
+                            {new Intl.NumberFormat('en-US',{style:'currency',currency:inv.currency.toUpperCase()}).format(inv.amount/100)}
+                          </div>
+                          <div style={{fontSize:11.5,color:'#7a7a85',marginTop:2}}>
+                            {new Date(inv.date*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+                            {' · '}{inv.description}
+                          </div>
+                        </div>
+                        <div style={{display:'flex',gap:8,flexShrink:0}}>
+                          {inv.url&&(
+                            <a href={inv.url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:'#2f3e5c',fontWeight:500,textDecoration:'none',padding:'5px 10px',border:'1px solid rgba(47,62,92,.25)',borderRadius:8,fontFamily:'sans-serif'}}>View</a>
+                          )}
+                          {inv.pdf&&(
+                            <a href={inv.pdf} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:'#7a7a85',textDecoration:'none',padding:'5px 10px',border:'1px solid rgba(0,0,0,.1)',borderRadius:8,fontFamily:'sans-serif'}}>PDF</a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* Footer */}
+            <div style={{padding:'16px 28px',borderTop:'1px solid rgba(0,0,0,.07)',flexShrink:0}}>
+              <button onClick={async()=>{await fetch('/api/signout',{method:'POST'});window.location.href='/'}} style={{width:'100%',padding:'10px',background:'none',border:'1.5px solid #e8e4db',borderRadius:10,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Sign out</button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* CANCEL SUBSCRIPTION MODAL */}
+      {showCancel&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget&&cancelStep!=='cancelling'){setShowCancel(false);setCancelErr('')}}}>
+          <div style={{background:'#fff',borderRadius:20,padding:32,maxWidth:420,width:'100%'}}>
+
+            {cancelStep==='intent'&&(
+              <>
+                <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:'0 0 10px'}}>We're sorry to see you go.</h2>
+                <p style={{fontFamily:'sans-serif',fontSize:13.5,color:'#7a7a85',margin:'0 0 20px',lineHeight:1.6}}>
+                  Your Pro membership gives you unlimited job matching, AI cover letters, and priority access to new features. Are you sure you'd like to cancel?
+                </p>
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  <button onClick={()=>{setShowCancel(false);setCancelErr('')}} style={{width:'100%',padding:'13px 16px',background:'#1a1a1f',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:14,fontWeight:600,cursor:'pointer'}}>Keep my subscription</button>
+                  <button onClick={proceedToOffer} style={{width:'100%',padding:'11px 16px',background:'none',border:'1.5px solid #e8e4db',borderRadius:12,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Yes, proceed →</button>
+                </div>
+              </>
+            )}
+
+            {cancelStep==='checking'&&(
+              <div style={{textAlign:'center',padding:'24px 0'}}>
+                <div style={{fontSize:22,marginBottom:10}}>·  ·  ·</div>
+                <div style={{fontFamily:'sans-serif',fontSize:14,color:'#7a7a85'}}>Checking your account…</div>
+              </div>
+            )}
+
+            {cancelStep==='offer'&&cancelOffer&&(
+              <>
+                <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:'0 0 8px'}}>Before you go…</h2>
+                <p style={{fontFamily:'sans-serif',fontSize:13.5,color:'#7a7a85',margin:'0 0 20px',lineHeight:1.6}}>We'd love to keep you. As a one-time offer, we'll give you:</p>
+                <div style={{background:'#2f3e5c',borderRadius:14,padding:'20px 22px',marginBottom:22,textAlign:'center'}}>
+                  <div style={{fontFamily:'Georgia, serif',fontSize:30,color:'#fff',fontWeight:700,marginBottom:4}}>{cancelOffer.percent}% off</div>
+                  <div style={{fontFamily:'sans-serif',fontSize:13,color:'rgba(255,255,255,.75)'}}>your next month — auto-applied, no code needed</div>
+                </div>
+                {cancelErr&&<p style={{fontFamily:'sans-serif',fontSize:12.5,color:'#e85d3a',marginBottom:12,textAlign:'center'}}>{cancelErr}</p>}
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  <button onClick={applyOffer} style={{width:'100%',padding:'13px 16px',background:'#1a7a4a',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:14,fontWeight:600,cursor:'pointer'}}>Yes, apply {cancelOffer.percent}% off →</button>
+                  <button onClick={()=>{setCancelErr('');setCancelStep('confirm')}} style={{width:'100%',padding:'11px 16px',background:'none',border:'1.5px solid #e8e4db',borderRadius:12,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>No thanks, cancel anyway</button>
+                </div>
+              </>
+            )}
+
+            {cancelStep==='confirm'&&(
+              <>
+                <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:'0 0 8px'}}>Cancel Pro?</h2>
+                <p style={{fontFamily:'sans-serif',fontSize:13.5,color:'#7a7a85',margin:'0 0 20px',lineHeight:1.6}}>
+                  You'll keep full Pro access until{' '}
+                  <strong style={{color:'#1a1a1f'}}>{formatEndDate(profile?.current_period_end)}</strong>.
+                  After that your account returns to the free plan.
+                </p>
+                {cancelErr&&<p style={{fontFamily:'sans-serif',fontSize:12.5,color:'#e85d3a',marginBottom:12,textAlign:'center'}}>{cancelErr}</p>}
+                <div style={{display:'flex',gap:10}}>
+                  <button onClick={()=>{setShowCancel(false);setCancelErr('')}} style={{flex:1,padding:'11px 14px',background:'none',border:'1.5px solid #e8e4db',borderRadius:12,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Never mind</button>
+                  <button onClick={confirmCancel} style={{flex:1,padding:'11px 14px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:13,fontWeight:600,cursor:'pointer'}}>Yes, cancel</button>
+                </div>
+              </>
+            )}
+
+            {cancelStep==='cancelling'&&(
+              <div style={{textAlign:'center',padding:'24px 0'}}>
+                <div style={{fontSize:22,marginBottom:10}}>·  ·  ·</div>
+                <div style={{fontFamily:'sans-serif',fontSize:14,color:'#7a7a85'}}>Just a moment…</div>
+              </div>
+            )}
+
           </div>
         </div>
       )}

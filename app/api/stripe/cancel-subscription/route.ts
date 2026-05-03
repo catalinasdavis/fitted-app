@@ -17,13 +17,16 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-03-25.dahlia',
 })
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_URL       = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON_KEY  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-async function getUser(token: string) {
+async function getUserFromCookie(request: NextRequest) {
+  const token = request.cookies.get('fitted-token')?.value
+  if (!token) return null
   const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: {
-      'apikey': SUPABASE_SERVICE_KEY,
+      'apikey': SUPABASE_ANON_KEY,
       'Authorization': `Bearer ${token}`,
     },
   })
@@ -63,14 +66,9 @@ async function updateProfile(userId: string, updates: Record<string, any>) {
 }
 
 export async function POST(request: NextRequest) {
-  const token = request.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
-
-  const user = await getUser(token)
+  const user = await getUserFromCookie(request)
   if (!user?.id) {
-    return NextResponse.json({ error: 'Invalid auth' }, { status: 401 })
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
   const profile = await getProfile(user.id)
@@ -78,19 +76,41 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
 
-  if (profile.plan !== 'pro' || !profile.stripe_subscription_id) {
+  if (profile.plan !== 'pro') {
     return NextResponse.json({ error: 'No active Pro subscription' }, { status: 400 })
+  }
+
+  // Resolve subscription ID — look up by customer if not cached
+  let subscriptionId: string | null = profile.stripe_subscription_id || null
+  if (!subscriptionId && profile.stripe_customer_id) {
+    try {
+      const subs = await stripe.subscriptions.list({
+        customer: profile.stripe_customer_id,
+        status: 'active',
+        limit: 1,
+      })
+      if (subs.data[0]) {
+        subscriptionId = subs.data[0].id
+        await updateProfile(user.id, { stripe_subscription_id: subscriptionId })
+      }
+    } catch (err) {
+      console.error('Cancel: failed to look up subscription by customer:', err)
+    }
+  }
+
+  if (!subscriptionId) {
+    return NextResponse.json({ error: 'No active subscription found' }, { status: 400 })
   }
 
   try {
     // Fetch current subscription state to detect monthly vs annual
-    const subBefore = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
+    const subBefore = await stripe.subscriptions.retrieve(subscriptionId)
     const firstItemBefore = subBefore.items.data[0]
     const isMonthly = firstItemBefore?.price?.recurring?.interval === 'month'
 
     // Cancel at period end (user keeps Pro through what they paid for)
     const subscription = await stripe.subscriptions.update(
-      profile.stripe_subscription_id,
+      subscriptionId,
       { cancel_at_period_end: true }
     )
 

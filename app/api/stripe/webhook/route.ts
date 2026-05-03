@@ -122,13 +122,40 @@ export async function POST(request: NextRequest) {
         subscription_status: 'active',
         current_period_end: periodEnd,
         cancelled_at: null,
+        grace_period_ends_at: null,
+        stripe_subscription_id: invoice.subscription as string,
       }).eq('id', profile.id)
       console.log('[Webhook] payment succeeded, renewed profile:', profile.id)
+    }
+
+    else if (event.type === 'invoice.payment_failed') {
+      const invoice = event.data.object as any
+      const customerId = invoice.customer as string
+
+      // Only act on subscription invoices (not one-time charges)
+      if (!invoice.subscription) return NextResponse.json({ received: true })
+
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('id')
+        .eq('stripe_customer_id', customerId)
+        .single()
+
+      if (!profile) return NextResponse.json({ received: true })
+
+      const graceEnd = new Date(Date.now() + 3 * 86400000).toISOString()
+      await admin.from('profiles').update({
+        subscription_status: 'past_due',
+        grace_period_ends_at: graceEnd,
+      }).eq('id', profile.id)
+      console.log('[Webhook] payment failed, grace period set for profile:', profile.id)
     }
 
     return NextResponse.json({ received: true })
   } catch (err: any) {
     console.error('[Webhook] handler error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    // Return 200 to prevent Stripe from retrying on permanent failures.
+    // The error is logged above for alerting.
+    return NextResponse.json({ received: true, error: err.message })
   }
 }
