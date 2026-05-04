@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAllJobs, getJobsForField, Job } from '../lib/jobs'
+import type { Job } from '../lib/jobs'
 
 interface User    { email: string; id: string }
 interface Profile {
@@ -124,6 +124,9 @@ export default function Home() {
   const [liked,    setLiked]    = useState<Set<string>>(new Set())
   const [pasted,   setPasted]   = useState<Job[]>([])
 
+  const [jobs,     setJobs]     = useState<Job[]>([])
+  const [jobsLoad, setJobsLoad] = useState(true)
+
   const [dislikes, setDislikes] = useState<DislikedJob[]>([])
   const [dTarget,  setDTarget]  = useState<Job | null>(null)
   const [dReason,  setDReason]  = useState('')
@@ -185,9 +188,15 @@ export default function Home() {
     fetch('/api/me').then(r => r.json()).then(async d => {
       setUser(d.user || null)
       if (d.user) {
-        const [p, r, t] = await Promise.all([fetch('/api/profile').then(r=>r.json()), fetch('/api/resumes').then(r=>r.json()), fetch('/api/tracker').then(r=>r.json())])
+        const [p, r, t, j] = await Promise.all([
+          fetch('/api/profile').then(r=>r.json()),
+          fetch('/api/resumes').then(r=>r.json()),
+          fetch('/api/tracker').then(r=>r.json()),
+          fetch('/api/jobs').then(r=>r.json()).catch(() => ({ jobs: [] })),
+        ])
         const pr = p.profile || null
         setProfile(pr); setResumes(r.resumes || []); setTracker(t.entries || [])
+        setJobs(j.jobs || []); setJobsLoad(false)
         if (pr) { setAboutMe(pr.about_me||''); setLocs(pr.locations||[]); setPayTgt(pr.pay_target||''); setPfFiles(pr.portfolio_files||[]) }
       }
       setLoading(false)
@@ -376,9 +385,8 @@ export default function Home() {
     else { setCancelErr(data.error||'Something went wrong'); setCancelStep('confirm') }
   }
 
-  // ── JOB FEED — career_field drives filtering ───────────────────────────────
-  const fieldJobs   = profile?.career_field ? getJobsForField(profile.career_field) : getAllJobs()
-  const baseJobs    = [...pasted, ...fieldJobs]
+  // ── JOB FEED — live jobs from /api/jobs (Adzuna + scoring), pasted jobs prepended ──
+  const baseJobs    = [...pasted, ...jobs]
   const visible     = baseJobs.filter(j => !dlIds.has(j.id))
   const searched    = isPro && cSearch.trim() ? visible.filter(j => j.company.toLowerCase().includes(cSearch.toLowerCase())) : visible
   const FILTERS     = ['all','remote','hybrid','on-site']
@@ -511,8 +519,11 @@ export default function Home() {
         <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{border:'1px solid rgba(0,0,0,.12)',borderRadius:6,padding:'4px 8px',fontFamily:'sans-serif',fontSize:12,color:'#3d3d45',background:'#fff',cursor:'pointer',outline:'none'}}><option value="match">Best match</option><option value="pay">Pay ↑</option></select>
       </div>
       <div style={{fontSize:12,color:'#b8750a',background:'#fdf3e3',borderRadius:8,padding:'6px 12px',marginBottom:14,display:'inline-flex',alignItems:'center',gap:6}}>✦ Curated for your field</div>
-      {sorted.length===0?<div style={{textAlign:'center',padding:'48px 20px',color:'#7a7a85'}}><div style={{fontFamily:'Georgia, serif',fontSize:18,color:'#3d3d45',marginBottom:8}}>No jobs match this filter</div><button onClick={()=>setFilter('all')} style={{background:'none',border:'none',color:'#2d5be3',cursor:'pointer',fontSize:14,fontFamily:'sans-serif'}}>Show all jobs</button></div>
-      : sorted.map(job=><JC key={job.id} job={job}/>)}
+      {jobsLoad
+        ? <div style={{textAlign:'center',padding:'48px 20px',color:'#b8a99a',fontSize:13}}>Finding jobs for you…</div>
+        : sorted.length===0
+          ? <div style={{textAlign:'center',padding:'48px 20px',color:'#7a7a85'}}><div style={{fontFamily:'Georgia, serif',fontSize:18,color:'#3d3d45',marginBottom:8}}>No jobs match this filter</div><button onClick={()=>setFilter('all')} style={{background:'none',border:'none',color:'#2d5be3',cursor:'pointer',fontSize:14,fontFamily:'sans-serif'}}>Show all jobs</button></div>
+          : sorted.map(job=><JC key={job.id} job={job}/>)}
     </div>
   )
 

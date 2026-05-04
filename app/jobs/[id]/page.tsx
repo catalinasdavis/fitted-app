@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { getJob, getSimilarJobs, Job } from '../../../lib/jobs'
+import type { Job } from '../../../lib/jobs'
 
 interface Profile { plan: string; about_me: string | null; career_field: string | null; pay_target: string | null; subscription_status?: string | null; current_period_end?: string | null }
 interface Resume { id: string; name: string; resume_text: string; is_active: boolean }
@@ -71,13 +71,13 @@ export default function JobDetail() {
   const [prepLoading,  setPrepLoading]  = useState<Record<number,boolean>>({})
 
   useEffect(() => {
-    const j = getJob(jobId)
-    setJob(j || null)
     Promise.all([
+      fetch(`/api/jobs/${jobId}`).then(r => r.json()).catch(() => ({})),
       fetch('/api/me').then(r => r.json()).catch(() => ({})),
       fetch('/api/profile').then(r => r.json()).catch(() => ({})),
       fetch('/api/resumes').then(r => r.json()).catch(() => ({})),
-    ]).then(([me, p, r]) => {
+    ]).then(([jd, me, p, r]) => {
+      setJob(jd?.job ?? null)
       if (me?.user)   setUser(me.user)
       if (p?.profile) setProfile(p.profile)
       if (r?.resumes) setResumes(r.resumes)
@@ -307,7 +307,7 @@ Their answer: "${answer}"`
     </div>
   )
 
-  const similar = getSimilarJobs(job)
+  const similar: Job[] = [] // similar jobs wired up in Day 2 once live feed is validated
   const br      = bestResume(resumes)
   const isPro = profile?.plan === 'pro'; const isCancelled = isPro && profile?.subscription_status === 'cancelled'
   const score   = job.match
