@@ -150,5 +150,68 @@ Every decision is measured against four lenses:
 
 *(New entries added at end of each day via Claude Code ritual)*
 
-**Last updated**: May 2, 2026  
-**Next checkpoint**: Friday, May 8 (Week 2 checkpoint)
+**May 3, 2026** — Week 2 Day 1
+
+**Adzuna integration + caching layer**
+- `lib/adzuna.ts` — API client with field→category mapping, salary parsing, deterministic logo generation, job normalization to fitted. `Job` shape
+- `lib/score.ts` — Pure TS match scoring engine: field affinity (0–20) + keyword overlap (0–45) + pay fit (0–15) + seniority (0–10) + location (0–5) = 42–95 range; user-specific, computed fresh per request
+- `lib/static-jobs.ts` — 30-job server-safe fallback, no `'use client'`, all 10 fields × 3 jobs, LinkedIn fallback URLs
+- Supabase `job_cache` table — `(field, country)` primary key, 2-hour TTL, stores raw Adzuna jobs (scores excluded — user-specific)
+- `/api/jobs` — full pipeline: Supabase cache → Adzuna fetch → static fallback; parallel resume + cache fetch; scores injected at response time
+- `/api/jobs/[id]` — cache scan → static fallback → 404
+- ⏳ **Adzuna key activation**: Code complete — waiting on API key activation (retry tomorrow, May 4)
+
+**Job feed UI improvements**
+- Skeleton loading cards (5 animated shimmer cards matching JC layout — replaces plain "Finding jobs…" text)
+- Differentiated empty states: "No jobs loaded yet" with profile CTA vs. "No jobs match this filter" with job count + clear button
+- Keyword search bar (free, all users) — live-filters title / company / location / tags with × clear
+- Seniority filter pills — Any level / Entry / Mid / Senior, title-based detection, purple accent
+- Match ring tooltip — native `title` attribute: "74% match — Strong fit / Good fit / Fair fit / Low fit"
+
+**Job detail page**
+- Apply Now button in nav, header, and sidebar — opens `job.url` in new tab; graceful fallback text when URL absent
+- Save / Unsave toggle — ☆ Save → ★ Saved (amber) in nav; writes to Supabase `tracker` via `/api/tracker`; reflects saved state on page load; unsave soft-deletes entry
+- Feed star toggle — ★/☆ on feed cards now toggles (was add-only — clicking a saved job now removes it)
+
+**Cancel / Save offer flow** (completed alongside Week 2 Day 1 work)
+- Cancel modal fully implemented: Intent → Checking → Offer (50% off) → Confirm → Cancelling
+- Animated dot spinner, × close button on all non-loading steps, calm non-desperate tone
+- "Manage subscription" and "Cancel subscription" removed from nav — consolidated into Account Settings modal only
+- Optimistic Pro badge update on cancel: `subscription_status: 'canceling'` reflected immediately
+
+---
+
+**May 4, 2026** — Week 2 Day 2
+
+**Job detail page — live scoring + similar jobs**
+- `/api/jobs/[id]` now fetches user profile + active resume in parallel and runs `scoreJob()` before returning — job detail pages show real match % instead of 0%
+- Similar jobs sidebar wired: fetches `/api/jobs` in parallel on page load, shows top 3 matches excluding current job
+- Apply tracking: Apply Now buttons converted from `<a>` tags to buttons — clicking a saved job auto-moves tracker entry to "Applied" column via PATCH
+
+**Profile panel — career field + stage selectors**
+- New "Career" section at top of profile panel (above About me)
+- Career field dropdown: 10 options (Marketing, Sales, Tech, Creative, Healthcare, Legal, Engineering, Finance, HR, Nonprofit)
+- Career stage dropdown: 7 options (college, recent, working, senior, executive, changing, returning)
+- Field change triggers immediate job feed refresh; both fields update profile state optimistically for instant badge update
+- Feed header badge shows human-friendly field name ("Technology" not "tech")
+
+**Scoring engine improvements**
+- Added `senior` and `executive` career stages → senior seniority bucket (fixes 10-year professionals scoring as mid-level)
+- Consistent `career_stage` default (`'working'`) across both job routes
+
+**Security (Day 2 audit pass)**
+- ✅ M-2 fixed: `job_id` in tracker POST now `encodeURIComponent`-encoded in PostgREST filter
+- ✅ Tracker PATCH, resumes PATCH/DELETE: `id` params encoded for defense-in-depth
+- ✅ M-3 fixed: `resume_text` bounded at 20,000 chars at upload; `name` validated ≤ 200 chars
+- ✅ Profile fields bounded at write time: `about_me` ≤ 2,000, `pay_target` ≤ 100, `locations` ≤ 10 × 100 chars
+- ⚠️ M-4 (JWT not revoked on sign-out) — deferred; requires Upstash Redis or Supabase token blacklist
+- ⚠️ TOCTOU promo race — still low risk at current traffic; Supabase RPC fix deferred to Week 5
+
+**Status**
+- ⏳ Adzuna key still at placeholder — retry with actual keys tomorrow (May 5)
+- Week 2 code tasks are functionally complete; pending live data validation with Adzuna
+
+---
+
+**Last updated**: May 4, 2026  
+**Next checkpoint**: Friday, May 15 (Week 2 checkpoint)
