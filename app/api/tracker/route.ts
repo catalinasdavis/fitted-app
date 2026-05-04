@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
   // Check if entry already exists — restore if trashed
   const existing = await fetch(
-    `${SUPABASE_URL}/rest/v1/tracker?user_id=eq.${user.id}&job_id=eq.${job_id}`,
+    `${SUPABASE_URL}/rest/v1/tracker?user_id=eq.${user.id}&job_id=eq.${encodeURIComponent(job_id)}`,
     { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` } }
   )
   const existingRows = await existing.json()
