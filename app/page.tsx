@@ -32,6 +32,13 @@ interface DislikedJob {
   reason: string; dislikedAt: string
 }
 
+const FIELD_LABELS: Record<string, string> = {
+  marketing:'Marketing & Comms', business:'Business & Sales', tech:'Technology',
+  creative:'Creative & Design', healthcare:'Healthcare', legal:'Legal',
+  engineering:'Engineering', finance:'Finance & Accounting', hr:'Human Resources',
+  nonprofit:'Nonprofit & Education',
+}
+
 function mc(n: number) {
   if (n >= 74) return '#1a7a4a'
   if (n >= 62) return '#2d5be3'
@@ -621,7 +628,7 @@ export default function Home() {
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <span style={{fontFamily:'Georgia, serif',fontSize:19}}>Matched for you</span>
           <span style={{fontSize:12,color:'#7a7a85'}}>{sorted.length} roles</span>
-          {profile?.career_field&&<span style={{fontSize:11,color:'#2d5be3',background:'#eaeffe',padding:'2px 8px',borderRadius:20,fontWeight:500}}>{profile.career_field}</span>}
+          {profile?.career_field&&<span style={{fontSize:11,color:'#2d5be3',background:'#eaeffe',padding:'2px 8px',borderRadius:20,fontWeight:500}}>{FIELD_LABELS[profile.career_field]||profile.career_field}</span>}
         </div>
         <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{border:'1px solid rgba(0,0,0,.12)',borderRadius:6,padding:'4px 8px',fontFamily:'sans-serif',fontSize:12,color:'#3d3d45',background:'#fff',cursor:'pointer',outline:'none'}}><option value="match">Best match</option><option value="pay">Pay ↑</option></select>
       </div>
