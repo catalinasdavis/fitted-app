@@ -171,11 +171,14 @@ export async function fetchAdzunaJobs(opts: FetchJobsOptions): Promise<Job[]> {
   try {
     const res = await fetch(url, { next: { revalidate: 0 } })
     if (!res.ok) {
-      console.error(`[Adzuna] HTTP ${res.status} for field=${field}`)
+      const body = await res.text().catch(() => '')
+      console.error(`[Adzuna] HTTP ${res.status} field=${field} — ${body.substring(0, 200)}`)
+      if (res.status === 401) console.error('[Adzuna] 401: key not yet activated or invalid. Check developer.adzuna.com → your app → API Access Details.')
       return []
     }
     const data = await res.json()
     const results: AdzunaResult[] = data.results ?? []
+    console.log(`[Adzuna] fetched field=${field} count=${results.length}`)
     return results.map(r => normalizeJob(r, field))
   } catch (err) {
     console.error('[Adzuna] fetch error:', err)
