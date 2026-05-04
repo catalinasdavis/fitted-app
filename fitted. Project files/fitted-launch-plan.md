@@ -213,5 +213,39 @@ Every decision is measured against four lenses:
 
 ---
 
-**Last updated**: May 4, 2026  
+---
+
+**May 5, 2026** — Week 2 Day 3
+
+**Data source transparency**
+- `/api/jobs` now returns `source: 'adzuna' | 'cache' | 'static'` (was always `'fresh'` on fallback — couldn't distinguish)
+- Feed header banner is source-aware: green "✦ Live jobs" for Adzuna/cache, muted grey "Sample jobs…" for static fallback
+
+**Pasted job scoring**
+- Pasted jobs now use real `scoreJob()` engine with user's active resume + profile context
+- `pasteText` passed as `description` (1200 chars) for meaningful keyword overlap — no more hardcoded 75%
+- Imported `scoreJob` from `lib/score` client-side (pure TS, no server env vars needed)
+
+**UX: setup nudge for new users**
+- Amber banner above feed when career_field or active resume is missing
+- Inline links: "Set your career field →" (opens Profile tab on mobile) and "upload a resume →" (triggers file input)
+- Hides automatically once both are set
+
+**Performance: lazy-load similar jobs on detail page**
+- Critical path (job + user/profile/resumes/tracker) stays at 5 parallel fetches — page renders immediately
+- `/api/jobs` fires as a 6th independent fetch and populates Similar roles sidebar when it resolves
+- Prevents Adzuna latency (up to ~2s) from blocking the entire detail page display
+
+**Adzuna error logging**
+- 401 response now logs activation hint + body snippet to server console
+- Successful fetch logs field + result count at the point of fetch
+
+**Status**
+- ⏳ Adzuna keys still at placeholder (`your_app_id_here`) — need real keys from developer.adzuna.com
+- All Week 2 code is complete and tested with static fallback
+- Ready for live validation once keys activate
+
+---
+
+**Last updated**: May 5, 2026  
 **Next checkpoint**: Friday, May 15 (Week 2 checkpoint)
