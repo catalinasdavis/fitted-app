@@ -629,6 +629,19 @@ export default function Home() {
         {(['all','entry','mid','senior'] as const).map(s=><button key={s} onClick={()=>setSeniority(s)} style={{padding:'5px 12px',border:`1px solid ${seniority===s?'#6d28d9':'rgba(0,0,0,.12)'}`,borderRadius:20,fontSize:12,color:seniority===s?'#6d28d9':'#7a7a85',background:seniority===s?'#ede9fe':'#fff',cursor:'pointer',fontFamily:'sans-serif',fontWeight:seniority===s?500:400}}>{s==='all'?'Any level':s.charAt(0).toUpperCase()+s.slice(1)}</button>)}
       </div>
       {isPro&&cSearch.trim()&&<div style={{background:'#eaeffe',border:'1px solid #2d5be3',borderRadius:8,padding:'10px 14px',marginBottom:12,fontSize:12.5,color:'#2d5be3',display:'flex',alignItems:'center',gap:8}}><span>Showing jobs at <strong>{cSearch}</strong></span><button onClick={()=>setCSearch('')} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'#7a7a85',fontSize:13}}>✕</button></div>}
+      {!jobsLoad && (!profile?.career_field || activeR.length === 0) && (
+        <div style={{background:'#fdf3e3',border:'1px solid rgba(184,117,10,.2)',borderRadius:10,padding:'10px 14px',marginBottom:14,display:'flex',gap:10,alignItems:'flex-start'}}>
+          <span style={{fontSize:18,lineHeight:1}}>✦</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:500,color:'#1a1a1f',marginBottom:3}}>Get accurate match scores</div>
+            <div style={{fontSize:12,color:'#7a7a85',lineHeight:1.5}}>
+              {!profile?.career_field && <span>Set your <button onClick={()=>setMobileTab('profile')} style={{background:'none',border:'none',padding:0,color:'#b8750a',cursor:'pointer',fontFamily:'sans-serif',fontSize:12,fontWeight:500,textDecoration:'underline'}}>career field</button>{activeR.length===0?' and ':' '}</span>}
+              {activeR.length===0 && <span>upload a <button onClick={()=>fRef.current?.click()} style={{background:'none',border:'none',padding:0,color:'#b8750a',cursor:'pointer',fontFamily:'sans-serif',fontSize:12,fontWeight:500,textDecoration:'underline'}}>resume</button> </span>}
+              to see your real match scores.
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <span style={{fontFamily:'Georgia, serif',fontSize:19}}>Matched for you</span>
