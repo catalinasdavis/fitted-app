@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Job } from '../lib/jobs'
+import { scoreJob } from '../lib/score'
 
 interface User    { email: string; id: string }
 interface Profile {
@@ -146,8 +147,9 @@ export default function Home() {
   const [liked,    setLiked]    = useState<Set<string>>(new Set())
   const [pasted,   setPasted]   = useState<Job[]>([])
 
-  const [jobs,     setJobs]     = useState<Job[]>([])
-  const [jobsLoad, setJobsLoad] = useState(true)
+  const [jobs,       setJobs]       = useState<Job[]>([])
+  const [jobsLoad,   setJobsLoad]   = useState(true)
+  const [jobsSource, setJobsSource] = useState<'adzuna'|'cache'|'static'|''>('')
 
   const [dislikes, setDislikes] = useState<DislikedJob[]>([])
   const [dTarget,  setDTarget]  = useState<Job | null>(null)
@@ -220,7 +222,7 @@ export default function Home() {
         ])
         const pr = p.profile || null
         setProfile(pr); setResumes(r.resumes || []); setTracker(t.entries || [])
-        setJobs(j.jobs || []); setJobsLoad(false)
+        setJobs(j.jobs || []); setJobsSource(j.source || ''); setJobsLoad(false)
         if (pr) { setCareerField(pr.career_field||''); setCareerStage(pr.career_stage||''); setAboutMe(pr.about_me||''); setLocs(pr.locations||[]); setPayTgt(pr.pay_target||''); setPfFiles(pr.portfolio_files||[]) }
       }
       setLoading(false)
@@ -275,7 +277,7 @@ export default function Home() {
     setJobsLoad(true)
     const res = await fetch('/api/jobs').catch(() => null)
     const data = res ? await res.json() : {}
-    setJobs(data.jobs || []); setJobsLoad(false)
+    setJobs(data.jobs || []); setJobsSource(data.source || ''); setJobsLoad(false)
   }
 
   function onAbout(v: string) { setAboutMe(v); if (stRef.current) clearTimeout(stRef.current); stRef.current = setTimeout(() => savePr({about_me: v}), 800) }
@@ -307,7 +309,10 @@ export default function Home() {
       const data = await res.json()
       let parsed: any = null
       try { parsed = JSON.parse(data.text.replace(/```json|```/g,'').trim()) } catch { setPasteHint('Could not parse. Try pasting more of the description.'); setParsing(false); return }
-      const j: Job = { id: `pasted-${Date.now()}`, title: parsed.title||'Pasted Job', company: parsed.company||'Unknown', location: parsed.location||'Unknown', type: (['Remote','Hybrid','On-site'].includes(parsed.type) ? parsed.type : 'On-site') as any, pay: parsed.pay||'Not listed', payNum: typeof parsed.payNum==='number' ? parsed.payNum : 0, match: 75, logo: (parsed.company||'JB').replace(/[^A-Za-z]/g,'').substring(0,2).toUpperCase()||'JB', logoBg:'#eaeffe', logoColor:'#2d5be3', tags:['pasted'], posted:'Just now', isNew:true, url:'', description: parsed.description||pasteText.substring(0,200), skills: Array.isArray(parsed.skills) ? parsed.skills : [] }
+      const jBase: Job = { id: `pasted-${Date.now()}`, title: parsed.title||'Pasted Job', company: parsed.company||'Unknown', location: parsed.location||'Unknown', type: (['Remote','Hybrid','On-site'].includes(parsed.type) ? parsed.type : 'On-site') as any, pay: parsed.pay||'Not listed', payNum: typeof parsed.payNum==='number' ? parsed.payNum : 0, match: 0, logo: (parsed.company||'JB').replace(/[^A-Za-z]/g,'').substring(0,2).toUpperCase()||'JB', logoBg:'#eaeffe', logoColor:'#2d5be3', tags:['pasted'], posted:'Just now', isNew:true, url:'', description: pasteText.substring(0, 1200), skills: Array.isArray(parsed.skills) ? parsed.skills : [] }
+      const resumeText = resumes.filter(r=>r.is_active).map(r=>r.resume_text).join(' ').substring(0, 4000)
+      const pastedScore = scoreJob(jBase, { resumeText, aboutMe: profile?.about_me||'', careerField: profile?.career_field||'', careerStage: profile?.career_stage||'working', payTarget: profile?.pay_target||'', locations: profile?.locations||[] })
+      const j: Job = { ...jBase, match: pastedScore }
       setPasted(prev => [j, ...prev]); setShowPaste(false); setPasteText(''); setPasteHint('')
     } catch { setPasteHint('Something went wrong. Please try again.') }
     setParsing(false)
@@ -632,7 +637,14 @@ export default function Home() {
         </div>
         <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{border:'1px solid rgba(0,0,0,.12)',borderRadius:6,padding:'4px 8px',fontFamily:'sans-serif',fontSize:12,color:'#3d3d45',background:'#fff',cursor:'pointer',outline:'none'}}><option value="match">Best match</option><option value="pay">Pay ↑</option></select>
       </div>
-      <div style={{fontSize:12,color:'#b8750a',background:'#fdf3e3',borderRadius:8,padding:'6px 12px',marginBottom:14,display:'inline-flex',alignItems:'center',gap:6}}>✦ Curated for your field</div>
+      {jobsSource==='static'
+        ? <div style={{fontSize:12,color:'#7a7a85',background:'#f4f2ed',border:'1px solid rgba(0,0,0,.08)',borderRadius:8,padding:'6px 12px',marginBottom:14,display:'inline-flex',alignItems:'center',gap:6}}>Sample jobs — real listings load once your API key activates</div>
+        : jobsSource==='adzuna'
+          ? <div style={{fontSize:12,color:'#1a7a4a',background:'#e6f5ed',borderRadius:8,padding:'6px 12px',marginBottom:14,display:'inline-flex',alignItems:'center',gap:6}}>✦ Live jobs · Matched for your field</div>
+          : jobsSource==='cache'
+            ? <div style={{fontSize:12,color:'#1a7a4a',background:'#e6f5ed',borderRadius:8,padding:'6px 12px',marginBottom:14,display:'inline-flex',alignItems:'center',gap:6}}>✦ Live jobs · Curated for your field</div>
+            : <div style={{fontSize:12,color:'#b8750a',background:'#fdf3e3',borderRadius:8,padding:'6px 12px',marginBottom:14,display:'inline-flex',alignItems:'center',gap:6}}>✦ Curated for your field</div>
+      }
       {jobsLoad
         ? <>{[0,1,2,3,4].map(i=><SkeletonCard key={i}/>)}</>
         : sorted.length===0

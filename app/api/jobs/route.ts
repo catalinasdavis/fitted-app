@@ -116,16 +116,19 @@ export async function GET(request: NextRequest) {
       await writeCache(field, country, fresh)
       jobs = fresh.map(j => ({ ...j, match: scoreJob(j, ctx) }))
       console.log(`[Jobs] Adzuna fetch field=${field} count=${jobs.length}`)
+      jobs.sort((a, b) => b.match - a.match)
+      return NextResponse.json({ jobs, field, source: 'adzuna' })
     } else {
       // Fallback to static jobs — Adzuna key missing or API error
       const staticJobs = field ? getJobsForField(field) : getAllJobs()
       jobs = staticJobs.map(j => ({ ...j, match: scoreJob(j, ctx) }))
       console.log(`[Jobs] fallback to static field=${field} count=${jobs.length}`)
+      jobs.sort((a, b) => b.match - a.match)
+      return NextResponse.json({ jobs, field, source: 'static' })
     }
   }
 
-  // Sort by match score descending
+  // Cache hit path
   jobs.sort((a, b) => b.match - a.match)
-
-  return NextResponse.json({ jobs, field, source: cached ? 'cache' : 'fresh' })
+  return NextResponse.json({ jobs, field, source: 'cache' })
 }
