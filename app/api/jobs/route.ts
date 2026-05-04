@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchAdzunaJobs } from '../../../lib/adzuna'
 import { scoreJob, ScoringContext } from '../../../lib/score'
-import { getAllJobs, getJobsForField } from '../../../lib/jobs'
+import { getAllJobs, getJobsForField } from '../../../lib/static-jobs'
 import type { Job } from '../../../lib/jobs'
 
 const SUPABASE_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL!

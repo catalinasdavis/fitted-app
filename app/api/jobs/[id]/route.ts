@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getJob, getAllJobs } from '../../../../lib/jobs'
+import { getJob, getAllJobs } from '../../../../lib/static-jobs'
 import type { Job } from '../../../../lib/jobs'
 
 const SUPABASE_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL!
