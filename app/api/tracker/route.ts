@@ -85,7 +85,7 @@ export async function PATCH(request: NextRequest) {
   if (deleted_at !== undefined) payload.deleted_at  = deleted_at
   if (restore)                  payload.deleted_at  = null
 
-  await fetch(`${SUPABASE_URL}/rest/v1/tracker?id=eq.${id}&user_id=eq.${user.id}`, {
+  await fetch(`${SUPABASE_URL}/rest/v1/tracker?id=eq.${encodeURIComponent(id)}&user_id=eq.${user.id}`, {
     method: 'PATCH',
     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
     body: JSON.stringify(payload),

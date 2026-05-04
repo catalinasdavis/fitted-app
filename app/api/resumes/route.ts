@@ -71,7 +71,7 @@ export async function PATCH(request: NextRequest) {
   if (name !== undefined) payload.name = name
   if (is_active !== undefined) payload.is_active = is_active
 
-  await fetch(`${SUPABASE_URL}/rest/v1/resumes?id=eq.${id}&user_id=eq.${user.id}`, {
+  await fetch(`${SUPABASE_URL}/rest/v1/resumes?id=eq.${encodeURIComponent(id)}&user_id=eq.${user.id}`, {
     method: 'PATCH',
     headers: {
       'apikey': SUPABASE_KEY,
@@ -93,7 +93,7 @@ export async function DELETE(request: NextRequest) {
   const { id } = await request.json()
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
-  await fetch(`${SUPABASE_URL}/rest/v1/resumes?id=eq.${id}&user_id=eq.${user.id}`, {
+  await fetch(`${SUPABASE_URL}/rest/v1/resumes?id=eq.${encodeURIComponent(id)}&user_id=eq.${user.id}`, {
     method: 'DELETE',
     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` },
   })
