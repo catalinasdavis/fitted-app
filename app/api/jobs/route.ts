@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
     resumeText,
     aboutMe:     profile?.about_me     ?? '',
     careerField: profile?.career_field ?? '',
-    careerStage: profile?.career_stage ?? 'recent',
+    careerStage: profile?.career_stage ?? 'working',
     payTarget:   profile?.pay_target   ?? '',
     locations:   profile?.locations    ?? [],
   }

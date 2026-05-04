@@ -479,14 +479,14 @@ export default function Home() {
         </div>
         <div style={{marginBottom:8}}>
           <label style={{display:'block',fontSize:11,color:'#7a7a85',marginBottom:4}}>Field</label>
-          <select value={careerField} onChange={async e => { const v=e.target.value; setCareerField(v); await savePr({career_field:v}); refreshJobs() }} style={selStyle}>
+          <select value={careerField} onChange={async e => { const v=e.target.value; setCareerField(v); setProfile(pr=>pr?{...pr,career_field:v}:pr); await savePr({career_field:v}); refreshJobs() }} style={selStyle}>
             <option value="">Select a field…</option>
             {CAREER_FIELDS.map(f=><option key={f.value} value={f.value}>{f.label}</option>)}
           </select>
         </div>
         <div>
           <label style={{display:'block',fontSize:11,color:'#7a7a85',marginBottom:4}}>Career stage</label>
-          <select value={careerStage} onChange={e => { const v=e.target.value; setCareerStage(v); savePr({career_stage:v}) }} style={selStyle}>
+          <select value={careerStage} onChange={e => { const v=e.target.value; setCareerStage(v); setProfile(pr=>pr?{...pr,career_stage:v}:pr); savePr({career_stage:v}) }} style={selStyle}>
             <option value="">Select a stage…</option>
             {CAREER_STAGES.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
