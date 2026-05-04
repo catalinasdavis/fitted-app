@@ -34,6 +34,9 @@ export async function POST(request: NextRequest) {
   const allowed = ['career_field', 'career_stage', 'priority', 'about_me', 'locations', 'pay_target', 'portfolio_files']
   const payload: any = {}
   allowed.forEach(f => { if (body[f] !== undefined) payload[f] = body[f] })
+  if (typeof payload.about_me   === 'string') payload.about_me   = payload.about_me.substring(0, 2000)
+  if (typeof payload.pay_target === 'string') payload.pay_target = payload.pay_target.substring(0, 100)
+  if (Array.isArray(payload.locations))       payload.locations  = payload.locations.slice(0, 10).map((l: unknown) => typeof l === 'string' ? l.substring(0, 100) : '')
 
   const existing = await fetch(
     `${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}`,
