@@ -10,7 +10,7 @@ import type { Job } from '../lib/jobs'
 
 interface User    { email: string; id: string }
 interface Profile {
-  plan: string; career_field: string | null; about_me: string | null
+  plan: string; career_field: string | null; career_stage: string | null; about_me: string | null
   locations: string[] | null; pay_target: string | null
   portfolio_files: any[] | null; extra_resume_slot?: boolean
   stripe_customer_id?: string | null
@@ -38,6 +38,19 @@ function mc(n: number) {
   if (n >= 50) return '#b8750a'
   return '#7a7a85'
 }
+function mcLabel(n: number) {
+  if (n >= 74) return 'Strong fit'
+  if (n >= 62) return 'Good fit'
+  if (n >= 50) return 'Fair fit'
+  return 'Low fit'
+}
+function seniorityOf(title: string): 'entry' | 'mid' | 'senior' {
+  const t = title.toLowerCase()
+  if (/\b(vp|vice president|director|head of|chief|executive|principal|staff)\b/.test(t)) return 'senior'
+  if (/\b(senior|sr\b|lead|manager)\b/.test(t)) return 'senior'
+  if (/\b(junior|jr\b|entry.level|associate|coordinator|intern|assistant)\b/.test(t)) return 'entry'
+  return 'mid'
+}
 function typeTag(t: string) {
   if (t === 'Remote') return { bg: '#e6f5ed', color: '#1a7a4a' }
   if (t === 'Hybrid') return { bg: '#fdf3e3', color: '#b8750a' }
@@ -47,7 +60,7 @@ function MatchRing({ pct, size = 52, stroke = 4 }: { pct: number; size?: number;
   const r = (size - stroke * 2) / 2; const circ = 2 * Math.PI * r
   const fill = (pct / 100) * circ; const color = mc(pct); const cx = size / 2
   return (
-    <div style={{ position: 'relative', width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+    <div title={`${pct}% match — ${mcLabel(pct)}`} style={{ position: 'relative', width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
       <svg width={size} height={size} style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }}>
         <circle cx={cx} cy={cx} r={r} fill="none" stroke="#e8e4db" strokeWidth={stroke} />
         <circle cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={`${fill.toFixed(1)} ${circ.toFixed(1)}`} strokeLinecap="round" />
@@ -118,9 +131,11 @@ export default function Home() {
   const [view,      setView]      = useState<'browse'|'tracker'|'disliked'>('browse')
   const [mobileTab, setMobileTab] = useState<'browse'|'tracker'|'profile'>('browse')
 
-  const [filter,   setFilter]   = useState('all')
-  const [sortBy,   setSortBy]   = useState('match')
-  const [cSearch,  setCSearch]  = useState('')
+  const [filter,    setFilter]    = useState('all')
+  const [sortBy,    setSortBy]    = useState('match')
+  const [cSearch,   setCSearch]   = useState('')
+  const [kwSearch,  setKwSearch]  = useState('')
+  const [seniority, setSeniority] = useState('all')
   const [liked,    setLiked]    = useState<Set<string>>(new Set())
   const [pasted,   setPasted]   = useState<Job[]>([])
 
@@ -131,6 +146,8 @@ export default function Home() {
   const [dTarget,  setDTarget]  = useState<Job | null>(null)
   const [dReason,  setDReason]  = useState('')
 
+  const [careerField, setCareerField] = useState('')
+  const [careerStage, setCareerStage] = useState('')
   const [aboutMe,   setAboutMe]   = useState('')
   const [locs,      setLocs]      = useState<string[]>([])
   const [locIn,     setLocIn]     = useState('')
@@ -197,7 +214,7 @@ export default function Home() {
         const pr = p.profile || null
         setProfile(pr); setResumes(r.resumes || []); setTracker(t.entries || [])
         setJobs(j.jobs || []); setJobsLoad(false)
-        if (pr) { setAboutMe(pr.about_me||''); setLocs(pr.locations||[]); setPayTgt(pr.pay_target||''); setPfFiles(pr.portfolio_files||[]) }
+        if (pr) { setCareerField(pr.career_field||''); setCareerStage(pr.career_stage||''); setAboutMe(pr.about_me||''); setLocs(pr.locations||[]); setPayTgt(pr.pay_target||''); setPfFiles(pr.portfolio_files||[]) }
       }
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -246,6 +263,13 @@ export default function Home() {
     await fetch('/api/profile', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(fields) })
     setSaveInd('Saved ✓'); setTimeout(() => setSaveInd(''), 2000)
   }, [])
+
+  async function refreshJobs() {
+    setJobsLoad(true)
+    const res = await fetch('/api/jobs').catch(() => null)
+    const data = res ? await res.json() : {}
+    setJobs(data.jobs || []); setJobsLoad(false)
+  }
 
   function onAbout(v: string) { setAboutMe(v); if (stRef.current) clearTimeout(stRef.current); stRef.current = setTimeout(() => savePr({about_me: v}), 800) }
   function addLoc() { const l = locIn.trim(); if (!l || locs.includes(l)) return; const n = [...locs, l]; setLocs(n); setLocIn(''); savePr({locations: n}) }
@@ -317,9 +341,16 @@ export default function Home() {
   }
 
   async function addTracker(job: Job) {
-    const br = bestR(job)
-    await fetch('/api/tracker', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({job_id:job.id, job_title:job.title, job_company:job.company, job_logo:job.logo, job_logo_bg:job.logoBg, job_logo_color:job.logoColor, job_pay:job.pay, job_url:job.url, column_id:'saved', resume_name: br?.name||null})})
-    const t = await fetch('/api/tracker').then(r=>r.json()); setTracker(t.entries||[])
+    const existing = tracker.find(e => e.job_id === job.id && !e.deleted_at)
+    if (existing) {
+      const now = new Date().toISOString()
+      await fetch('/api/tracker', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: existing.id, deleted_at: now})})
+      setTracker(prev => prev.map(e => e.id===existing.id ? {...e, deleted_at:now} : e))
+    } else {
+      const br = bestR(job)
+      await fetch('/api/tracker', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({job_id:job.id, job_title:job.title, job_company:job.company, job_logo:job.logo, job_logo_bg:job.logoBg, job_logo_color:job.logoColor, job_pay:job.pay, job_url:job.url, column_id:'saved', resume_name: br?.name||null})})
+      const t = await fetch('/api/tracker').then(r=>r.json()); setTracker(t.entries||[])
+    }
   }
   async function moveEntry(id: string, col: string) {
     await fetch('/api/tracker', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, column_id:col})})
@@ -386,12 +417,22 @@ export default function Home() {
   }
 
   // ── JOB FEED — live jobs from /api/jobs (Adzuna + scoring), pasted jobs prepended ──
-  const baseJobs    = [...pasted, ...jobs]
-  const visible     = baseJobs.filter(j => !dlIds.has(j.id))
-  const searched    = isPro && cSearch.trim() ? visible.filter(j => j.company.toLowerCase().includes(cSearch.toLowerCase())) : visible
-  const FILTERS     = ['all','remote','hybrid','on-site']
-  const filtered    = filter === 'all' ? searched : searched.filter(j => j.type.toLowerCase() === filter)
-  const sorted      = [...filtered].sort((a,b) => sortBy==='pay' ? b.payNum-a.payNum : b.match-a.match)
+  const baseJobs  = [...pasted, ...jobs]
+  const visible   = baseJobs.filter(j => !dlIds.has(j.id))
+  const kwed      = kwSearch.trim()
+    ? visible.filter(j => {
+        const q = kwSearch.toLowerCase()
+        return j.title.toLowerCase().includes(q)
+          || j.company.toLowerCase().includes(q)
+          || j.location.toLowerCase().includes(q)
+          || j.tags.some(t => t.toLowerCase().includes(q))
+      })
+    : visible
+  const searched  = isPro && cSearch.trim() ? kwed.filter(j => j.company.toLowerCase().includes(cSearch.toLowerCase())) : kwed
+  const FILTERS   = ['all','remote','hybrid','on-site']
+  const typeFiltered  = filter === 'all' ? searched : searched.filter(j => j.type.toLowerCase() === filter)
+  const filtered      = seniority === 'all' ? typeFiltered : typeFiltered.filter(j => seniorityOf(j.title) === seniority)
+  const sorted        = [...filtered].sort((a,b) => sortBy==='pay' ? b.payNum-a.payNum : b.match-a.match)
   const activeE     = tracker.filter(e => !e.deleted_at)
   const trashedE    = tracker.filter(e => e.deleted_at)
 
@@ -408,12 +449,52 @@ export default function Home() {
     </div>
   )
 
+  const CAREER_FIELDS = [
+    { value: 'marketing',   label: 'Marketing & Comms' },
+    { value: 'business',    label: 'Business & Sales' },
+    { value: 'tech',        label: 'Technology' },
+    { value: 'creative',    label: 'Creative & Design' },
+    { value: 'healthcare',  label: 'Healthcare' },
+    { value: 'legal',       label: 'Legal' },
+    { value: 'engineering', label: 'Engineering' },
+    { value: 'finance',     label: 'Finance & Accounting' },
+    { value: 'hr',          label: 'Human Resources' },
+    { value: 'nonprofit',   label: 'Nonprofit & Education' },
+  ]
+  const CAREER_STAGES = [
+    { value: 'college',  label: 'Still in school' },
+    { value: 'recent',   label: 'New to my field (0–2 yrs)' },
+    { value: 'working',  label: 'Currently working (2+ yrs)' },
+    { value: 'changing', label: 'Changing careers' },
+    { value: 'returning',label: 'Returning from a break' },
+  ]
+  const selStyle = {width:'100%',padding:'6px 9px',border:'1px solid rgba(0,0,0,.13)',borderRadius:6,fontFamily:'sans-serif',fontSize:12.5,color:'#1a1a1f',background:'#f4f2ed',outline:'none',boxSizing:'border-box' as const,cursor:'pointer'}
+
   const RP = ({ mob = false }: { mob?: boolean }) => (
     <div style={{padding:'18px 16px',display:'flex',flexDirection:'column',overflowY:'auto',height:'100%',boxSizing:'border-box' as const}}>
       <div style={{paddingBottom:18,marginBottom:18,borderBottom:'1px solid rgba(0,0,0,.07)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-          <span style={{fontFamily:'Georgia, serif',fontSize:16}}>About me</span>
+          <span style={{fontFamily:'Georgia, serif',fontSize:16}}>Career</span>
           {saveInd && <span style={{fontSize:11,color:saveInd.includes('✓')?'#1a7a4a':'#b0b0b8'}}>{saveInd}</span>}
+        </div>
+        <div style={{marginBottom:8}}>
+          <label style={{display:'block',fontSize:11,color:'#7a7a85',marginBottom:4}}>Field</label>
+          <select value={careerField} onChange={async e => { const v=e.target.value; setCareerField(v); await savePr({career_field:v}); refreshJobs() }} style={selStyle}>
+            <option value="">Select a field…</option>
+            {CAREER_FIELDS.map(f=><option key={f.value} value={f.value}>{f.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{display:'block',fontSize:11,color:'#7a7a85',marginBottom:4}}>Career stage</label>
+          <select value={careerStage} onChange={e => { const v=e.target.value; setCareerStage(v); savePr({career_stage:v}) }} style={selStyle}>
+            <option value="">Select a stage…</option>
+            {CAREER_STAGES.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+        </div>
+      </div>
+      <div style={{paddingBottom:18,marginBottom:18,borderBottom:'1px solid rgba(0,0,0,.07)'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+          <span style={{fontFamily:'Georgia, serif',fontSize:16}}>About me</span>
         </div>
         <textarea value={aboutMe} onChange={e=>onAbout(e.target.value)} placeholder="Tell us about yourself — your experience, dream companies, what kind of role you want…"
           style={{width:'100%',minHeight:88,padding:8,border:'1px solid rgba(0,0,0,.13)',borderRadius:6,fontFamily:'sans-serif',fontSize:12.5,color:'#1a1a1f',background:'#f4f2ed',resize:'vertical',outline:'none',lineHeight:1.55,boxSizing:'border-box' as const}} />
@@ -473,6 +554,21 @@ export default function Home() {
     </div>
   )
 
+  const SkeletonCard = () => (
+    <div style={{background:'#fff',border:'1px solid rgba(0,0,0,.07)',borderRadius:14,padding:'15px 16px',marginBottom:10,display:'grid',gridTemplateColumns:'40px 1fr 52px',gap:'0 12px',alignItems:'start'}}>
+      <div style={{width:40,height:40,borderRadius:9,background:'#ede9e0',animation:'sk 1.5s ease-in-out infinite'}}/>
+      <div>
+        <div style={{height:14,borderRadius:20,background:'#ede9e0',width:'60%',marginBottom:9,animation:'sk 1.5s ease-in-out .1s infinite'}}/>
+        <div style={{height:12,borderRadius:20,background:'#ede9e0',width:'78%',marginBottom:10,animation:'sk 1.5s ease-in-out .15s infinite'}}/>
+        <div style={{display:'flex',gap:6}}>
+          <div style={{height:20,borderRadius:20,background:'#ede9e0',width:55,animation:'sk 1.5s ease-in-out .2s infinite'}}/>
+          <div style={{height:20,borderRadius:20,background:'#ede9e0',width:85,animation:'sk 1.5s ease-in-out .25s infinite'}}/>
+        </div>
+      </div>
+      <div style={{width:52,height:52,borderRadius:'50%',background:'#ede9e0',animation:'sk 1.5s ease-in-out infinite'}}/>
+    </div>
+  )
+
   const JC = ({ job }: { job: Job }) => {
     const tt = typeTag(job.type); const isl = liked.has(job.id); const ist = activeE.some(e=>e.job_id===job.id); const br = bestR(job); const isp = job.tags.includes('pasted')
     const bt = !!(payTgt && job.payNum > 0 && (() => { const n = parseFloat(payTgt.replace(/[^0-9.]/g,'')); if(!n) return false; return job.payNum*1000 < (payTgt.toLowerCase().includes('hr') ? n*2080 : n) })())
@@ -506,10 +602,19 @@ export default function Home() {
 
   const Feed = () => (
     <div>
-      <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:16}}>
-        {FILTERS.map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'5px 12px',border:`1px solid ${filter===f?'#2d5be3':'rgba(0,0,0,.12)'}`,borderRadius:20,fontSize:12,color:filter===f?'#2d5be3':'#7a7a85',background:filter===f?'#eaeffe':'#fff',cursor:'pointer',fontFamily:'sans-serif',fontWeight:filter===f?500:400}}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>)}
+      {/* Search bar */}
+      <div style={{position:'relative',marginBottom:10}}>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'#b0b0b8',pointerEvents:'none'}}><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.4"/><path d="M9 9L12.5 12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+        <input value={kwSearch} onChange={e=>setKwSearch(e.target.value)} placeholder="Search by title, company, skill, or location…" style={{width:'100%',padding:'8px 32px 8px 32px',border:'1px solid rgba(0,0,0,.12)',borderRadius:10,fontFamily:'sans-serif',fontSize:13,background:'#fff',color:'#1a1a1f',outline:'none',boxSizing:'border-box' as const}}/>
+        {kwSearch&&<button onClick={()=>setKwSearch('')} style={{position:'absolute',right:9,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:16,lineHeight:1,padding:2}}>×</button>}
       </div>
-      {isPro&&cSearch.trim()&&<div style={{background:'#eaeffe',border:'1px solid #2d5be3',borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:12.5,color:'#2d5be3',display:'flex',alignItems:'center',gap:8}}><span>Showing jobs at <strong>{cSearch}</strong></span><button onClick={()=>setCSearch('')} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'#7a7a85',fontSize:13}}>✕</button></div>}
+      {/* Filter row: type + seniority */}
+      <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:14}}>
+        {FILTERS.map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'5px 12px',border:`1px solid ${filter===f?'#2d5be3':'rgba(0,0,0,.12)'}`,borderRadius:20,fontSize:12,color:filter===f?'#2d5be3':'#7a7a85',background:filter===f?'#eaeffe':'#fff',cursor:'pointer',fontFamily:'sans-serif',fontWeight:filter===f?500:400}}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>)}
+        <div style={{width:1,background:'rgba(0,0,0,.1)',margin:'2px 2px'}}/>
+        {(['all','entry','mid','senior'] as const).map(s=><button key={s} onClick={()=>setSeniority(s)} style={{padding:'5px 12px',border:`1px solid ${seniority===s?'#6d28d9':'rgba(0,0,0,.12)'}`,borderRadius:20,fontSize:12,color:seniority===s?'#6d28d9':'#7a7a85',background:seniority===s?'#ede9fe':'#fff',cursor:'pointer',fontFamily:'sans-serif',fontWeight:seniority===s?500:400}}>{s==='all'?'Any level':s.charAt(0).toUpperCase()+s.slice(1)}</button>)}
+      </div>
+      {isPro&&cSearch.trim()&&<div style={{background:'#eaeffe',border:'1px solid #2d5be3',borderRadius:8,padding:'10px 14px',marginBottom:12,fontSize:12.5,color:'#2d5be3',display:'flex',alignItems:'center',gap:8}}><span>Showing jobs at <strong>{cSearch}</strong></span><button onClick={()=>setCSearch('')} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'#7a7a85',fontSize:13}}>✕</button></div>}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <span style={{fontFamily:'Georgia, serif',fontSize:19}}>Matched for you</span>
@@ -520,9 +625,19 @@ export default function Home() {
       </div>
       <div style={{fontSize:12,color:'#b8750a',background:'#fdf3e3',borderRadius:8,padding:'6px 12px',marginBottom:14,display:'inline-flex',alignItems:'center',gap:6}}>✦ Curated for your field</div>
       {jobsLoad
-        ? <div style={{textAlign:'center',padding:'48px 20px',color:'#b8a99a',fontSize:13}}>Finding jobs for you…</div>
+        ? <>{[0,1,2,3,4].map(i=><SkeletonCard key={i}/>)}</>
         : sorted.length===0
-          ? <div style={{textAlign:'center',padding:'48px 20px',color:'#7a7a85'}}><div style={{fontFamily:'Georgia, serif',fontSize:18,color:'#3d3d45',marginBottom:8}}>No jobs match this filter</div><button onClick={()=>setFilter('all')} style={{background:'none',border:'none',color:'#2d5be3',cursor:'pointer',fontSize:14,fontFamily:'sans-serif'}}>Show all jobs</button></div>
+          ? jobs.length===0 && pasted.length===0
+            ? <div style={{textAlign:'center',padding:'52px 20px',color:'#7a7a85'}}>
+                <div style={{fontFamily:'Georgia, serif',fontSize:18,color:'#3d3d45',marginBottom:10}}>No jobs loaded yet</div>
+                <p style={{fontSize:13,color:'#b0b0b8',lineHeight:1.6,maxWidth:260,margin:'0 auto 18px'}}>Set your career field and location in the Profile tab to start seeing matched roles.</p>
+                <button onClick={()=>setMobileTab('profile')} style={{background:'#2d5be3',color:'#fff',border:'none',borderRadius:8,padding:'8px 20px',fontSize:13,fontWeight:500,cursor:'pointer',fontFamily:'sans-serif'}}>Update profile →</button>
+              </div>
+            : <div style={{textAlign:'center',padding:'52px 20px',color:'#7a7a85'}}>
+                <div style={{fontFamily:'Georgia, serif',fontSize:18,color:'#3d3d45',marginBottom:8}}>No jobs match this filter</div>
+                <p style={{fontSize:12,color:'#b0b0b8',marginBottom:16}}>Try a different filter, or show all {jobs.length+pasted.length} roles.</p>
+                <button onClick={()=>setFilter('all')} style={{background:'none',border:'none',color:'#2d5be3',cursor:'pointer',fontSize:14,fontFamily:'sans-serif'}}>Show all jobs</button>
+              </div>
           : sorted.map(job=><JC key={job.id} job={job}/>)}
     </div>
   )
@@ -635,16 +750,10 @@ export default function Home() {
           </a>
           {!isPro ? (
             <button onClick={()=>setShowUp(true)} style={{padding:'7px 13px',background:'#b8750a',color:'#fff',border:'none',borderRadius:8,fontFamily:'sans-serif',fontSize:13,fontWeight:500,cursor:'pointer'}}>Upgrade</button>
+          ) : isCancelled ? (
+            <span style={{background:'rgba(26, 122, 74, 0.45)',color:'#fff',fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:20,whiteSpace:'nowrap'}}>✦ Pro · {daysUntil(profile?.current_period_end)}d left</span>
           ) : (
-            <>
-              {isCancelled ? (
-                <span style={{background:'rgba(26, 122, 74, 0.45)',color:'#fff',fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:20,whiteSpace:'nowrap'}}>✦ Pro · {daysUntil(profile?.current_period_end)}d left</span>
-              ) : (
-                <span style={{background:'#1a7a4a',color:'#fff',fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:20}}>✦ Pro</span>
-              )}
-              <button onClick={()=>checkout('portal')} disabled={stripeL==='portal'} className="hide-mobile" style={{padding:'6px 12px',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,background:'none',fontFamily:'sans-serif',fontSize:12,color:'#7a7a85',cursor:'pointer'}}>{stripeL==='portal'?'…':'Manage subscription'}</button>
-              {!isCancelled&&<button onClick={startCancelFlow} className="hide-mobile" style={{padding:0,background:'none',border:'none',fontFamily:'sans-serif',fontSize:12,color:'#b0b0b8',cursor:'pointer',textDecoration:'underline'}}>Cancel subscription</button>}
-            </>
+            <span style={{background:'#1a7a4a',color:'#fff',fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:20}}>✦ Pro</span>
           )}
           <button onClick={openAccount} className="hide-mobile" style={{padding:'6px 12px',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,background:'none',fontFamily:'sans-serif',fontSize:12,color:'#7a7a85',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}>
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M1.5 11.5c0-2.2 2.2-4 5-4s5 1.8 5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
@@ -1049,40 +1158,54 @@ export default function Home() {
 
       {/* CANCEL SUBSCRIPTION MODAL */}
       {showCancel&&(
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget&&cancelStep!=='cancelling'){setShowCancel(false);setCancelErr('')}}}>
-          <div style={{background:'#fff',borderRadius:20,padding:32,maxWidth:420,width:'100%'}}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={e=>{if(e.target===e.currentTarget&&cancelStep!=='checking'&&cancelStep!=='cancelling'){setShowCancel(false);setCancelErr('')}}}>
+          <div style={{background:'#fff',borderRadius:20,padding:'28px 28px 30px',maxWidth:'min(420px, 92vw)',width:'100%',boxSizing:'border-box' as const}}>
 
             {cancelStep==='intent'&&(
               <>
-                <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:'0 0 10px'}}>We're sorry to see you go.</h2>
-                <p style={{fontFamily:'sans-serif',fontSize:13.5,color:'#7a7a85',margin:'0 0 20px',lineHeight:1.6}}>
-                  Your Pro membership gives you unlimited job matching, AI cover letters, and priority access to new features. Are you sure you'd like to cancel?
+                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14}}>
+                  <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:0,lineHeight:1.25}}>Before you cancel</h2>
+                  <button onClick={()=>{setShowCancel(false);setCancelErr('')}} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:22,lineHeight:1,padding:'0 0 0 12px',flexShrink:0,marginTop:-2}}>×</button>
+                </div>
+                <p style={{fontFamily:'sans-serif',fontSize:13.5,color:'#7a7a85',margin:'0 0 26px',lineHeight:1.7}}>
+                  We'll check your account for any available offers before we proceed.
                 </p>
                 <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                  <button onClick={()=>{setShowCancel(false);setCancelErr('')}} style={{width:'100%',padding:'13px 16px',background:'#1a1a1f',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:14,fontWeight:600,cursor:'pointer'}}>Keep my subscription</button>
-                  <button onClick={proceedToOffer} style={{width:'100%',padding:'11px 16px',background:'none',border:'1.5px solid #e8e4db',borderRadius:12,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Yes, proceed →</button>
+                  <button onClick={()=>{setShowCancel(false);setCancelErr('')}} style={{width:'100%',padding:'13px 16px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:14,fontWeight:600,cursor:'pointer'}}>Keep Pro</button>
+                  <button onClick={proceedToOffer} style={{width:'100%',padding:'11px 16px',background:'none',border:'1.5px solid #e8e4db',borderRadius:12,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Check my options →</button>
                 </div>
               </>
             )}
 
-            {cancelStep==='checking'&&(
-              <div style={{textAlign:'center',padding:'24px 0'}}>
-                <div style={{fontSize:22,marginBottom:10}}>·  ·  ·</div>
-                <div style={{fontFamily:'sans-serif',fontSize:14,color:'#7a7a85'}}>Checking your account…</div>
+            {(cancelStep==='checking'||cancelStep==='cancelling')&&(
+              <div style={{textAlign:'center',padding:'36px 0 32px'}}>
+                <div style={{display:'inline-flex',gap:7,alignItems:'center',marginBottom:18}}>
+                  <span style={{width:8,height:8,borderRadius:'50%',background:'#2f3e5c',display:'inline-block',animation:'fitted-dot 1.2s ease-in-out infinite'}}/>
+                  <span style={{width:8,height:8,borderRadius:'50%',background:'#2f3e5c',display:'inline-block',animation:'fitted-dot 1.2s ease-in-out .25s infinite'}}/>
+                  <span style={{width:8,height:8,borderRadius:'50%',background:'#2f3e5c',display:'inline-block',animation:'fitted-dot 1.2s ease-in-out .5s infinite'}}/>
+                </div>
+                <div style={{fontFamily:'sans-serif',fontSize:13.5,color:'#7a7a85'}}>
+                  {cancelStep==='checking'?'Checking your account…':'One moment…'}
+                </div>
               </div>
             )}
 
             {cancelStep==='offer'&&cancelOffer&&(
               <>
-                <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:'0 0 8px'}}>Before you go…</h2>
-                <p style={{fontFamily:'sans-serif',fontSize:13.5,color:'#7a7a85',margin:'0 0 20px',lineHeight:1.6}}>We'd love to keep you. As a one-time offer, we'll give you:</p>
-                <div style={{background:'#2f3e5c',borderRadius:14,padding:'20px 22px',marginBottom:22,textAlign:'center'}}>
-                  <div style={{fontFamily:'Georgia, serif',fontSize:30,color:'#fff',fontWeight:700,marginBottom:4}}>{cancelOffer.percent}% off</div>
-                  <div style={{fontFamily:'sans-serif',fontSize:13,color:'rgba(255,255,255,.75)'}}>your next month — auto-applied, no code needed</div>
+                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:12}}>
+                  <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:0,lineHeight:1.25}}>A one-time offer</h2>
+                  <button onClick={()=>{setShowCancel(false);setCancelErr('')}} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:22,lineHeight:1,padding:'0 0 0 12px',flexShrink:0,marginTop:-2}}>×</button>
+                </div>
+                <p style={{fontFamily:'sans-serif',fontSize:13.5,color:'#7a7a85',margin:'0 0 20px',lineHeight:1.7}}>
+                  You're eligible for a discount on your next month. Applied automatically — no code needed.
+                </p>
+                <div style={{background:'#2f3e5c',borderRadius:14,padding:'24px 24px 20px',marginBottom:22,textAlign:'center'}}>
+                  <div style={{fontFamily:'Georgia, serif',fontSize:42,color:'#fff',letterSpacing:'-.03em',lineHeight:1,marginBottom:8}}>{cancelOffer.percent}%<span style={{fontSize:24,opacity:.7}}> off</span></div>
+                  <div style={{fontFamily:'sans-serif',fontSize:12.5,color:'rgba(255,255,255,.6)',letterSpacing:'.02em'}}>your next month</div>
                 </div>
                 {cancelErr&&<p style={{fontFamily:'sans-serif',fontSize:12.5,color:'#e85d3a',marginBottom:12,textAlign:'center'}}>{cancelErr}</p>}
                 <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                  <button onClick={applyOffer} style={{width:'100%',padding:'13px 16px',background:'#1a7a4a',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:14,fontWeight:600,cursor:'pointer'}}>Yes, apply {cancelOffer.percent}% off →</button>
+                  <button onClick={applyOffer} style={{width:'100%',padding:'13px 16px',background:'#1a7a4a',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:14,fontWeight:600,cursor:'pointer'}}>Apply {cancelOffer.percent}% off →</button>
                   <button onClick={()=>{setCancelErr('');setCancelStep('confirm')}} style={{width:'100%',padding:'11px 16px',background:'none',border:'1.5px solid #e8e4db',borderRadius:12,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>No thanks, cancel anyway</button>
                 </div>
               </>
@@ -1090,25 +1213,23 @@ export default function Home() {
 
             {cancelStep==='confirm'&&(
               <>
-                <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:'0 0 8px'}}>Cancel Pro?</h2>
-                <p style={{fontFamily:'sans-serif',fontSize:13.5,color:'#7a7a85',margin:'0 0 20px',lineHeight:1.6}}>
+                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:12}}>
+                  <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:0,lineHeight:1.25}}>Confirm cancellation</h2>
+                  <button onClick={()=>{setShowCancel(false);setCancelErr('')}} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:22,lineHeight:1,padding:'0 0 0 12px',flexShrink:0,marginTop:-2}}>×</button>
+                </div>
+                <p style={{fontFamily:'sans-serif',fontSize:13.5,color:'#3d3d45',margin:'0 0 6px',lineHeight:1.7}}>
                   You'll keep full Pro access until{' '}
-                  <strong style={{color:'#1a1a1f'}}>{formatEndDate(profile?.current_period_end)}</strong>.
-                  After that your account returns to the free plan.
+                  <strong style={{color:'#1a1a1f',fontWeight:600}}>{formatEndDate(profile?.current_period_end) || 'your billing period ends'}</strong>.
+                </p>
+                <p style={{fontFamily:'sans-serif',fontSize:13,color:'#b0b0b8',margin:'0 0 24px',lineHeight:1.65}}>
+                  After that your account moves to the free plan. You can resubscribe any time.
                 </p>
                 {cancelErr&&<p style={{fontFamily:'sans-serif',fontSize:12.5,color:'#e85d3a',marginBottom:12,textAlign:'center'}}>{cancelErr}</p>}
                 <div style={{display:'flex',gap:10}}>
-                  <button onClick={()=>{setShowCancel(false);setCancelErr('')}} style={{flex:1,padding:'11px 14px',background:'none',border:'1.5px solid #e8e4db',borderRadius:12,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Never mind</button>
-                  <button onClick={confirmCancel} style={{flex:1,padding:'11px 14px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:13,fontWeight:600,cursor:'pointer'}}>Yes, cancel</button>
+                  <button onClick={()=>{setShowCancel(false);setCancelErr('')}} style={{flex:1,padding:'12px 14px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:13,fontWeight:600,cursor:'pointer'}}>Never mind</button>
+                  <button onClick={confirmCancel} style={{flex:1,padding:'12px 14px',background:'none',border:'1.5px solid #e8e4db',borderRadius:12,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Yes, cancel</button>
                 </div>
               </>
-            )}
-
-            {cancelStep==='cancelling'&&(
-              <div style={{textAlign:'center',padding:'24px 0'}}>
-                <div style={{fontSize:22,marginBottom:10}}>·  ·  ·</div>
-                <div style={{fontFamily:'sans-serif',fontSize:14,color:'#7a7a85'}}>Just a moment…</div>
-              </div>
             )}
 
           </div>
@@ -1122,6 +1243,8 @@ export default function Home() {
         @media (max-width: 768px) {
           .dashboard-grid{grid-template-columns:1fr !important}.desktop-only{display:none !important}.desktop-view{display:none !important}.mobile-view{display:block !important}.mobile-bottom-nav{display:flex !important}.main-feed{padding-bottom:80px !important}.hide-mobile{display:none !important}
         }
+        @keyframes fitted-dot{0%,100%{opacity:.25;transform:scale(.75)}50%{opacity:1;transform:scale(1)}}
+        @keyframes sk{0%,100%{opacity:.45}50%{opacity:.9}}
       `}</style>
     </div>
   )
