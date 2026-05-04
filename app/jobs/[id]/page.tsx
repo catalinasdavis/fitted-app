@@ -74,21 +74,24 @@ export default function JobDetail() {
   const [allJobs,        setAllJobs]        = useState<Job[]>([])
 
   useEffect(() => {
+    // Critical path: job + user context. Render as soon as these 5 resolve.
     Promise.all([
       fetch(`/api/jobs/${jobId}`).then(r => r.json()).catch(() => ({})),
       fetch('/api/me').then(r => r.json()).catch(() => ({})),
       fetch('/api/profile').then(r => r.json()).catch(() => ({})),
       fetch('/api/resumes').then(r => r.json()).catch(() => ({})),
       fetch('/api/tracker').then(r => r.json()).catch(() => ({})),
-      fetch('/api/jobs').then(r => r.json()).catch(() => ({})),
-    ]).then(([jd, me, p, r, t, jl]) => {
+    ]).then(([jd, me, p, r, t]) => {
       setJob(jd?.job ?? null)
       if (me?.user)    setUser(me.user)
       if (p?.profile)  setProfile(p.profile)
       if (r?.resumes)  setResumes(r.resumes)
       if (t?.entries)  setTrackerEntries(t.entries)
-      if (jl?.jobs)    setAllJobs(jl.jobs)
       setDataReady(true)
+    })
+    // Secondary: similar jobs sidebar — loads after page is already visible
+    fetch('/api/jobs').then(r => r.json()).catch(() => ({})).then(jl => {
+      if (jl?.jobs) setAllJobs(jl.jobs)
     })
   }, [jobId])
 
