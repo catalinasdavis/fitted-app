@@ -6,6 +6,7 @@ import type { Job } from '../../../lib/jobs'
 interface Profile { plan: string; about_me: string | null; career_field: string | null; pay_target: string | null; subscription_status?: string | null; current_period_end?: string | null }
 interface Resume { id: string; name: string; resume_text: string; is_active: boolean }
 interface User { email: string; id: string }
+interface TrackerEntry { id: string; job_id: string; column_id: string; deleted_at: string | null }
 
 function mc(n: number) {
   if (n >= 74) return '#1a7a4a'
@@ -65,10 +66,12 @@ export default function JobDetail() {
   const [coverLoading,    setCoverLoading]    = useState(false)
   const [showCover,       setShowCover]       = useState(false)
 
-  const [emailType,    setEmailType]    = useState<'apply'|'followup'|'thankyou'|'checkin'>('apply')
-  const [prepAnswers,  setPrepAnswers]  = useState<Record<number,string>>({})
-  const [prepFeedback, setPrepFeedback] = useState<Record<number,string>>({})
-  const [prepLoading,  setPrepLoading]  = useState<Record<number,boolean>>({})
+  const [emailType,      setEmailType]      = useState<'apply'|'followup'|'thankyou'|'checkin'>('apply')
+  const [prepAnswers,    setPrepAnswers]    = useState<Record<number,string>>({})
+  const [prepFeedback,   setPrepFeedback]   = useState<Record<number,string>>({})
+  const [prepLoading,    setPrepLoading]    = useState<Record<number,boolean>>({})
+  const [trackerEntries, setTrackerEntries] = useState<TrackerEntry[]>([])
+  const [allJobs,        setAllJobs]        = useState<Job[]>([])
 
   useEffect(() => {
     Promise.all([
@@ -76,11 +79,15 @@ export default function JobDetail() {
       fetch('/api/me').then(r => r.json()).catch(() => ({})),
       fetch('/api/profile').then(r => r.json()).catch(() => ({})),
       fetch('/api/resumes').then(r => r.json()).catch(() => ({})),
-    ]).then(([jd, me, p, r]) => {
+      fetch('/api/tracker').then(r => r.json()).catch(() => ({})),
+      fetch('/api/jobs').then(r => r.json()).catch(() => ({})),
+    ]).then(([jd, me, p, r, t, jl]) => {
       setJob(jd?.job ?? null)
-      if (me?.user)   setUser(me.user)
-      if (p?.profile) setProfile(p.profile)
-      if (r?.resumes) setResumes(r.resumes)
+      if (me?.user)    setUser(me.user)
+      if (p?.profile)  setProfile(p.profile)
+      if (r?.resumes)  setResumes(r.resumes)
+      if (t?.entries)  setTrackerEntries(t.entries)
+      if (jl?.jobs)    setAllJobs(jl.jobs)
       setDataReady(true)
     })
   }, [jobId])
@@ -276,6 +283,30 @@ Their answer: "${answer}"`
     URL.revokeObjectURL(url)
   }
 
+  async function toggleSave() {
+    if (!job) return
+    const existing = trackerEntries.find(e => e.job_id === jobId && !e.deleted_at)
+    if (existing) {
+      const now = new Date().toISOString()
+      await fetch('/api/tracker', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: existing.id, deleted_at: now }) })
+      setTrackerEntries(prev => prev.map(e => e.id === existing.id ? { ...e, deleted_at: now } : e))
+    } else {
+      await fetch('/api/tracker', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job_id: job.id, job_title: job.title, job_company: job.company, job_logo: job.logo, job_logo_bg: job.logoBg, job_logo_color: job.logoColor, job_pay: job.pay, job_url: job.url || '', column_id: 'saved', resume_name: bestResume(resumes)?.name || null }) })
+      const t = await fetch('/api/tracker').then(r => r.json())
+      if (t?.entries) setTrackerEntries(t.entries)
+    }
+  }
+
+  async function applyToJob() {
+    if (!job?.url) return
+    window.open(job.url, '_blank', 'noopener,noreferrer')
+    const existing = trackerEntries.find(e => e.job_id === jobId && !e.deleted_at)
+    if (existing && (existing as any).column_id === 'saved') {
+      await fetch('/api/tracker', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: existing.id, column_id: 'applied' }) })
+      setTrackerEntries(prev => prev.map(e => e.id === existing.id ? { ...e, column_id: 'applied' } : e))
+    }
+  }
+
   async function startCheckout(plan: 'monthly' | 'annual' | 'extraSlot' = 'monthly') {
     if (!user) return
     try {
@@ -307,10 +338,15 @@ Their answer: "${answer}"`
     </div>
   )
 
-  const similar: Job[] = [] // similar jobs wired up in Day 2 once live feed is validated
-  const br      = bestResume(resumes)
-  const isPro = profile?.plan === 'pro'; const isCancelled = isPro && profile?.subscription_status === 'cancelled'
-  const score   = job.match
+  const similar = allJobs
+    .filter(j => j.id !== jobId && j.match > 0)
+    .sort((a, b) => b.match - a.match)
+    .slice(0, 3)
+  const br       = bestResume(resumes)
+  const isPro    = profile?.plan === 'pro'
+  const isCancelled = isPro && profile?.subscription_status === 'cancelled'
+  const score    = job.match
+  const isSaved  = trackerEntries.some(e => e.job_id === jobId && !e.deleted_at)
 
   const TABS = [
     { id: 'match',    label: 'Match Details' },
@@ -379,11 +415,15 @@ Their answer: "${answer}"`
           <div style={{ fontSize: 11, color: '#b8a99a', fontWeight: 300, marginTop: 2 }}>get a career tailor-made for you</div>
         </div>
         <div style={{ flex: 1 }} />
+        <button onClick={toggleSave}
+          style={{ background: isSaved ? '#fdf3e3' : 'none', color: isSaved ? '#b8750a' : '#7a7a85', border: `1px solid ${isSaved ? 'rgba(184,117,10,.3)' : 'rgba(0,0,0,.12)'}`, borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'sans-serif', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          {isSaved ? '★ Saved' : '☆ Save'}
+        </button>
         {job.url && (
-          <a href={job.url} target="_blank" rel="noopener noreferrer"
-            style={{ background: '#2d5be3', color: '#fff', padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+          <button onClick={applyToJob}
+            style={{ background: '#2d5be3', color: '#fff', padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'sans-serif' }}>
             Apply Now →
-          </a>
+          </button>
         )}
         <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
           <button onClick={() => setShowMenu(m => !m)}
@@ -412,14 +452,21 @@ Their answer: "${answer}"`
               <p style={{ fontSize: 13, color: '#7a7a85', margin: 0 }}><strong style={{ color: '#3d3d45', fontWeight: 500 }}>{job.company}</strong> · {job.location} · {job.pay}</p>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 14 }}>
             <span style={{ background: job.type === 'Remote' ? '#e6f5ed' : '#fdf3e3', color: job.type === 'Remote' ? '#1a7a4a' : '#b8750a', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>{job.type}</span>
             <span style={{ background: '#eaeffe', color: '#185fa5', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>{score}% Resume Match</span>
             {br && <span style={{ background: '#e6f5ed', color: '#1a7a4a', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>Using: {br.name}</span>}
             {isPro && (isCancelled ? <span style={{ background: 'rgba(26, 122, 74, 0.45)', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>✦ Pro · ends soon</span> : <span style={{ background: '#1a7a4a', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>✦ Pro</span>)}
-            <span style={{ background: '#f4f2ed', color: '#7a7a85', padding: '3px 10px', borderRadius: 20, fontSize: 11 }}>
-              {isPro ? "Powered by fitted.'s advanced AI" : "Powered by fitted.'s fast AI"}
-            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid rgba(0,0,0,.07)' }}>
+            <span style={{ fontSize: 12, color: '#b0b0b8' }}>Posted {job.posted}</span>
+            {job.url
+              ? <button onClick={applyToJob}
+                  style={{ background: '#2f3e5c', color: '#fff', padding: '9px 20px', borderRadius: 9, fontSize: 13.5, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'sans-serif', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  Apply Now →
+                </button>
+              : <span style={{ fontSize: 12, color: '#b0b0b8', fontStyle: 'italic' }}>Application link unavailable</span>
+            }
           </div>
         </div>
         <div style={{ display: 'flex', overflowX: 'auto', padding: '0 8px', borderTop: '1px solid rgba(0,0,0,.07)' }}>
@@ -784,7 +831,13 @@ Their answer: "${answer}"`
                 <span style={{ fontSize: 12, fontWeight: 500, color: (row as any).color || ((row as any).green ? '#1a7a4a' : '#3d3d45') }}>{row.v}</span>
               </div>
             ))}
-            {job.url && <a href={job.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#2d5be3', textDecoration: 'none', display: 'block', marginTop: 8 }}>View original listing →</a>}
+            {job.url
+              ? <button onClick={applyToJob}
+                  style={{ display: 'block', width: '100%', marginTop: 10, background: '#2f3e5c', color: '#fff', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'sans-serif', textAlign: 'center' as const }}>
+                  Apply Now →
+                </button>
+              : <div style={{ marginTop: 10, fontSize: 11.5, color: '#b0b0b8', fontStyle: 'italic', textAlign: 'center' as const }}>No application link</div>
+            }
           </div>
           {similar.length > 0 && (
             <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,.07)' }}>
