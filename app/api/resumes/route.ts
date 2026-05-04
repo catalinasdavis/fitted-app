@@ -30,10 +30,14 @@ export async function POST(request: NextRequest) {
   const user = await getUser(token)
   if (!user?.id) return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
 
-  const { name, filename, resume_text } = await request.json()
-  if (!name || !filename || !resume_text) {
+  const { name, filename, resume_text: rawText } = await request.json()
+  if (!name || !filename || !rawText) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
+  if (typeof name !== 'string' || name.length > 200) {
+    return NextResponse.json({ error: 'Invalid name' }, { status: 400 })
+  }
+  const resume_text = String(rawText).substring(0, 20000)
 
   // First resume is auto-set active
   const existing = await fetch(
