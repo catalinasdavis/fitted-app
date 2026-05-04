@@ -462,11 +462,13 @@ export default function Home() {
     { value: 'nonprofit',   label: 'Nonprofit & Education' },
   ]
   const CAREER_STAGES = [
-    { value: 'college',  label: 'Still in school' },
-    { value: 'recent',   label: 'New to my field (0–2 yrs)' },
-    { value: 'working',  label: 'Currently working (2+ yrs)' },
-    { value: 'changing', label: 'Changing careers' },
-    { value: 'returning',label: 'Returning from a break' },
+    { value: 'college',   label: 'Still in school' },
+    { value: 'recent',    label: 'New to my field (0–2 yrs)' },
+    { value: 'working',   label: 'Mid-level professional (2–7 yrs)' },
+    { value: 'senior',    label: 'Senior professional (7+ yrs)' },
+    { value: 'executive', label: 'Executive / Director level' },
+    { value: 'changing',  label: 'Changing careers' },
+    { value: 'returning', label: 'Returning from a break' },
   ]
   const selStyle = {width:'100%',padding:'6px 9px',border:'1px solid rgba(0,0,0,.13)',borderRadius:6,fontFamily:'sans-serif',fontSize:12.5,color:'#1a1a1f',background:'#f4f2ed',outline:'none',boxSizing:'border-box' as const,cursor:'pointer'}
 

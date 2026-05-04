@@ -9,7 +9,7 @@ export interface ScoringContext {
   resumeText:  string   // concatenated active resume text
   aboutMe:     string
   careerField: string   // e.g. 'marketing'
-  careerStage: string   // 'college' | 'recent' | 'working' | 'changing' | 'returning'
+  careerStage: string   // 'college' | 'recent' | 'working' | 'senior' | 'executive' | 'changing' | 'returning'
   payTarget:   string   // e.g. '$55,000/yr' or '$26/hr' — freeform
   locations:   string[] // e.g. ['New York', 'Remote']
 }
@@ -58,9 +58,9 @@ function seniorityOfTitle(title: string): 'senior' | 'mid' | 'entry' {
 
 function seniorityFromStage(stage: string): 'senior' | 'mid' | 'entry' {
   if (stage === 'college' || stage === 'recent') return 'entry'
-  if (stage === 'working' || stage === 'changing') return 'mid'
   if (stage === 'returning') return 'entry'
-  return 'mid'
+  if (stage === 'senior' || stage === 'executive') return 'senior'
+  return 'mid' // 'working' | 'changing' | unknown
 }
 
 // ── Main scoring function ─────────────────────────────────────────────────────
