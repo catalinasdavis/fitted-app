@@ -388,7 +388,16 @@ Their answer: "${answer}"`
   const isPro    = profile?.plan === 'pro'
   const isCancelled = isPro && (profile?.subscription_status === 'cancelled' || profile?.subscription_status === 'canceling')
   const score    = job.match
-  const isSaved  = trackerEntries.some(e => e.job_id === jobId && !e.deleted_at)
+  const isSaved      = trackerEntries.some(e => e.job_id === jobId && !e.deleted_at)
+  const trackerEntry = trackerEntries.find(e => e.job_id === jobId && !e.deleted_at)
+  const COL_META: Record<string, [string, string, string]> = {
+    saved:     ['Saved',         '#fdf3e3', '#b8750a'],
+    applied:   ['Applied',       '#eaeffe', '#185fa5'],
+    phone:     ['Phone Screen',  '#f0e8fe', '#6d28d9'],
+    interview: ['Interview',     '#e6f5ed', '#1a7a4a'],
+    offer:     ['Offer',         '#e6f5ed', '#0d5c34'],
+    rejected:  ['Rejected',      '#fdecea', '#a32d2d'],
+  }
 
   const TABS = [
     { id: 'match',    label: 'Match Details' },
@@ -502,6 +511,11 @@ Their answer: "${answer}"`
             <span style={{ background: '#eaeffe', color: '#185fa5', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>{score}% Resume Match</span>
             {br && <span style={{ background: '#e6f5ed', color: '#1a7a4a', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>Using: {br.name}</span>}
             {isPro && (isCancelled ? <span style={{ background: 'rgba(26, 122, 74, 0.45)', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>✦ Pro · ends soon</span> : <span style={{ background: '#1a7a4a', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>✦ Pro</span>)}
+            {trackerEntry && COL_META[trackerEntry.column_id] && (
+              <span style={{ background: COL_META[trackerEntry.column_id][1], color: COL_META[trackerEntry.column_id][2], padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500 }}>
+                {COL_META[trackerEntry.column_id][0]}
+              </span>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid rgba(0,0,0,.07)' }}>
             <span style={{ fontSize: 12, color: '#b0b0b8' }}>Posted {job.posted}</span>
@@ -531,16 +545,27 @@ Their answer: "${answer}"`
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 18 }}>
                 {[
-                  { label: 'Resume Match', value: score,                                            note: 'Based on your best resume' },
+                  { label: 'Resume Match', value: score,                                               note: 'Based on your best resume' },
                   { label: 'Personal Fit', value: (job as any).personalFit || Math.max(50, score - 5), note: 'Based on About Me & profile' },
                   { label: 'Likeliness',   value: (job as any).likeliness  || Math.max(45, score - 8), note: 'Likelihood of progressing' },
-                ].map(s => (
-                  <div key={s.label} style={{ background: '#f4f2ed', borderRadius: 10, padding: 14, textAlign: 'center' }}>
-                    <div style={{ fontSize: 26, fontWeight: 700, color: mc(s.value), letterSpacing: -1, lineHeight: 1 }}>{s.value}%</div>
-                    <div style={{ fontSize: 10, color: '#b0b0b8', textTransform: 'uppercase' as const, letterSpacing: '.06em', marginTop: 4 }}>{s.label}</div>
-                    <div style={{ fontSize: 10, color: '#b0b0b8', marginTop: 2 }}>{s.note}</div>
-                  </div>
-                ))}
+                ].map(s => {
+                  const r = 24; const circ = 2 * Math.PI * r
+                  const dash = (s.value / 100) * circ
+                  return (
+                    <div key={s.label} style={{ background: '#f4f2ed', borderRadius: 10, padding: '12px 10px 10px', textAlign: 'center' }}>
+                      <div style={{ position: 'relative', width: 60, height: 60, margin: '0 auto 8px' }}>
+                        <svg width="60" height="60" viewBox="0 0 60 60" style={{ transform: 'rotate(-90deg)' }}>
+                          <circle cx="30" cy="30" r={r} fill="none" stroke="rgba(0,0,0,.07)" strokeWidth="5" />
+                          <circle cx="30" cy="30" r={r} fill="none" stroke={mc(s.value)} strokeWidth="5"
+                            strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />
+                        </svg>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: mc(s.value), letterSpacing: -.5 }}>{s.value}%</div>
+                      </div>
+                      <div style={{ fontSize: 10, color: '#7a7a85', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '.06em' }}>{s.label}</div>
+                      <div style={{ fontSize: 10, color: '#b0b0b8', marginTop: 2 }}>{s.note}</div>
+                    </div>
+                  )
+                })}
               </div>
               <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderLeft: '3px solid #2d5be3', borderRadius: '0 10px 10px 0', padding: '18px 20px', marginBottom: 16 }}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.1em', textTransform: 'uppercase' as const, marginBottom: 4 }}>✦ fitted. coach analysis</div>
@@ -884,22 +909,39 @@ Their answer: "${answer}"`
               : <div style={{ marginTop: 10, fontSize: 11.5, color: '#b0b0b8', fontStyle: 'italic', textAlign: 'center' as const }}>No application link</div>
             }
           </div>
-          {similar.length > 0 && (
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,.07)' }}>
-              <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase' as const, color: '#b0b0b8', marginBottom: 10 }}>Similar roles</div>
-              {similar.map(sj => (
-                <div key={sj.id} onClick={() => router.push(`/jobs/${sj.id}`)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,.05)' }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 6, background: sj.logoBg, color: sj.logoColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Georgia,serif', fontSize: 10, flexShrink: 0 }}>{sj.logo}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 500, color: '#1a1a1f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sj.title}</div>
-                    <div style={{ fontSize: 11, color: '#7a7a85' }}>{sj.company}</div>
+          {allJobs.length === 0
+            ? (
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,.07)' }}>
+                <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase' as const, color: '#b0b0b8', marginBottom: 10 }}>Similar roles</div>
+                <style>{`@keyframes shimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}`}</style>
+                {[1, 2, 3].map(i => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid rgba(0,0,0,.05)' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 6, background: 'linear-gradient(90deg,#f0eee9 25%,#e6e3de 50%,#f0eee9 75%)', backgroundSize: '400px 100%', animation: 'shimmer 1.4s infinite', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ height: 11, width: '75%', borderRadius: 4, background: 'linear-gradient(90deg,#f0eee9 25%,#e6e3de 50%,#f0eee9 75%)', backgroundSize: '400px 100%', animation: 'shimmer 1.4s infinite', marginBottom: 5 }} />
+                      <div style={{ height: 9, width: '50%', borderRadius: 4, background: 'linear-gradient(90deg,#f0eee9 25%,#e6e3de 50%,#f0eee9 75%)', backgroundSize: '400px 100%', animation: 'shimmer 1.4s infinite' }} />
+                    </div>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: mc(sj.match), flexShrink: 0 }}>{sj.match}%</span>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )
+            : similar.length > 0 && (
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,.07)' }}>
+                <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase' as const, color: '#b0b0b8', marginBottom: 10 }}>Similar roles</div>
+                {similar.map(sj => (
+                  <div key={sj.id} onClick={() => router.push(`/jobs/${sj.id}`)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,.05)' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 6, background: sj.logoBg, color: sj.logoColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Georgia,serif', fontSize: 10, flexShrink: 0 }}>{sj.logo}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: '#1a1a1f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sj.title}</div>
+                      <div style={{ fontSize: 11, color: '#7a7a85' }}>{sj.company}</div>
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: mc(sj.match), flexShrink: 0 }}>{sj.match}%</span>
+                  </div>
+                ))}
+              </div>
+            )
+          }
           <div style={{ flex: 1, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase' as const, color: '#b0b0b8', marginBottom: 4 }}>Ask fitted.</div>
             <div style={{ background: '#f4f2ed', borderRadius: 8, padding: '8px 10px', fontSize: 12, color: '#7a7a85' }}>Quick questions about this role:</div>

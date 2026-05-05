@@ -584,7 +584,7 @@ export default function Home() {
   )
 
   const JC = ({ job }: { job: Job }) => {
-    const tt = typeTag(job.type); const isl = liked.has(job.id); const ist = activeE.some(e=>e.job_id===job.id); const br = bestR(job); const isp = job.tags.includes('pasted')
+    const tt = typeTag(job.type); const isl = liked.has(job.id); const tEntry = activeE.find(e=>e.job_id===job.id); const ist = !!tEntry; const br = bestR(job); const isp = job.tags.includes('pasted')
     const bt = !!(payTgt && job.payNum > 0 && (() => { const n = parseFloat(payTgt.replace(/[^0-9.]/g,'')); if(!n) return false; return job.payNum*1000 < (payTgt.toLowerCase().includes('hr') ? n*2080 : n) })())
     return (
       <div onClick={()=>!isp&&router.push(`/jobs/${job.id}`)} style={{background:'#fff',border:`1px solid ${isp?'#2d5be3':bt?'#f5c6c6':'rgba(0,0,0,.07)'}`,borderLeft:isp?'3px solid #2d5be3':undefined,borderRadius:14,padding:'15px 16px',cursor:isp?'default':'pointer',display:'grid',gridTemplateColumns:'40px 1fr auto',gap:'0 12px',alignItems:'start',marginBottom:10}}>
@@ -605,6 +605,7 @@ export default function Home() {
             <button onClick={()=>{const n=new Set(liked);isl?n.delete(job.id):n.add(job.id);setLiked(n)}} style={{background:'none',border:'none',cursor:'pointer',color:isl?'#1a7a4a':'#b0b0b8',fontSize:14,padding:'2px 4px'}}>👍</button>
             <button onClick={e=>openDL(job,e)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:14,padding:'2px 4px'}}>👎</button>
             <button onClick={()=>addTracker(job)} style={{background:'none',border:'none',cursor:'pointer',color:ist?'#b8750a':'#b0b0b8',fontSize:14,padding:'2px 4px'}}>{ist?'★':'☆'}</button>
+            {tEntry && tEntry.column_id !== 'saved' && (()=>{const col=TCOLS.find(c=>c.id===tEntry.column_id);return col?<span style={{background:col.bg,color:col.color,fontSize:10,fontWeight:600,padding:'2px 8px',borderRadius:20}}>{col.label}</span>:null})()}
             <span style={{fontSize:10.5,color:'#b0b0b8',marginLeft:4}}>{job.posted}</span>
             {isp&&<button onClick={()=>setPasted(p=>p.filter(j=>j.id!==job.id))} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:11,fontFamily:'sans-serif'}}>Remove</button>}
           </div>
@@ -714,6 +715,14 @@ export default function Home() {
 
   const TView = () => {
     const [trash, setTrash] = useState(false); const [drag, setDrag] = useState<string|null>(null)
+    const NEXT: Record<string, string[]> = {
+      saved: ['applied', 'phone'], applied: ['phone', 'interview'],
+      phone: ['interview', 'offer'], interview: ['offer', 'rejected'],
+      offer: [], rejected: ['applied'],
+    }
+    function fmtAdded(iso: string) {
+      try { return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(iso)) } catch { return '' }
+    }
     return (
       <div>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
@@ -733,32 +742,52 @@ export default function Home() {
             </div>
           )})}
         </div>}
-        <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:16}}>
-          {TCOLS.map(col=>{const ce=activeE.filter(e=>e.column_id===col.id);return(
-            <div key={col.id} style={{flexShrink:0,width:220}} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(drag)moveEntry(drag,col.id)}}>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:col.bg,borderRadius:8,padding:'8px 12px',marginBottom:8}}>
-                <span style={{fontSize:11.5,fontWeight:600,color:col.color,textTransform:'uppercase' as const,letterSpacing:'.06em'}}>{col.label}</span>
-                <span style={{fontSize:11,fontWeight:600,color:col.color,background:'rgba(255,255,255,.7)',padding:'1px 7px',borderRadius:20}}>{ce.length}</span>
-              </div>
-              <div style={{minHeight:80,borderRadius:10,padding:4,display:'flex',flexDirection:'column',gap:8}}>
-                {ce.length===0?<div style={{textAlign:'center',padding:'20px 10px',fontSize:12,color:'#b0b0b8',fontStyle:'italic'}}>Drop jobs here</div>
-                :ce.map(e=>(
-                  <div key={e.id} draggable onDragStart={()=>setDrag(e.id)} onDragEnd={()=>setDrag(null)} onClick={()=>router.push(`/jobs/${e.job_id}`)} style={{background:'#fff',border:'1px solid rgba(0,0,0,.07)',borderRadius:10,padding:'12px 14px',cursor:'grab'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-                      <div style={{width:28,height:28,borderRadius:6,background:e.job_logo_bg,color:e.job_logo_color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontFamily:'Georgia, serif',flexShrink:0}}>{e.job_logo}</div>
-                      <div style={{flex:1,minWidth:0}}><div style={{fontSize:12.5,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.job_title}</div><div style={{fontSize:11,color:'#7a7a85'}}>{e.job_company}</div></div>
-                    </div>
-                    {e.resume_name&&<div style={{fontSize:10.5,color:'#2d5be3',background:'#eaeffe',padding:'2px 7px',borderRadius:20,display:'inline-block',marginBottom:6}}>{e.resume_name}</div>}
-                    <div style={{display:'flex',gap:4,marginTop:6}} onClick={ev=>ev.stopPropagation()}>
-                      {TCOLS.filter(c=>c.id!==col.id).slice(0,2).map(c=><button key={c.id} onClick={()=>moveEntry(e.id,c.id)} style={{flex:1,padding:'4px',border:'1px solid rgba(0,0,0,.1)',borderRadius:6,fontSize:10,fontFamily:'sans-serif',cursor:'pointer',background:'#fff',color:'#7a7a85',textAlign:'center' as const}}>→ {c.label.split(' ')[0]}</button>)}
-                      <button onClick={()=>softDel(e.id)} style={{padding:'4px 8px',border:'1px solid rgba(0,0,0,.1)',borderRadius:6,fontSize:10,cursor:'pointer',background:'#fff',color:'#c0392b'}}>🗑</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        {activeE.length === 0 && !trash
+          ? <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:280,gap:10,textAlign:'center'}}>
+              <div style={{fontSize:38,lineHeight:1,marginBottom:4}}>📋</div>
+              <h3 style={{fontFamily:'Georgia,serif',fontSize:18,color:'#1a1a1f',fontWeight:400,margin:0}}>Nothing tracked yet</h3>
+              <p style={{fontSize:13,color:'#7a7a85',maxWidth:260,lineHeight:1.6,margin:0}}>Save jobs from the Browse tab and they'll appear here — track every stage of your search in one place.</p>
+              <button onClick={()=>setView('browse')} style={{background:'#2f3e5c',color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif',marginTop:4}}>Browse jobs →</button>
             </div>
-          )})}
-        </div>
+          : <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:16}}>
+              {TCOLS.map(col=>{const ce=activeE.filter(e=>e.column_id===col.id);const nextIds=NEXT[col.id]??[];return(
+                <div key={col.id} style={{flexShrink:0,width:220}} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(drag)moveEntry(drag,col.id)}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:col.bg,borderRadius:8,padding:'8px 12px',marginBottom:8}}>
+                    <span style={{fontSize:11.5,fontWeight:600,color:col.color,textTransform:'uppercase' as const,letterSpacing:'.06em'}}>{col.label}</span>
+                    <span style={{fontSize:11,fontWeight:600,color:col.color,background:'rgba(255,255,255,.7)',padding:'1px 7px',borderRadius:20}}>{ce.length}</span>
+                  </div>
+                  <div style={{minHeight:80,borderRadius:10,padding:4,display:'flex',flexDirection:'column',gap:8}}>
+                    {ce.length===0
+                      ? <div style={{textAlign:'center',padding:'20px 10px',fontSize:12,color:'#b0b0b8',fontStyle:'italic'}}>Drop jobs here</div>
+                      : ce.map(e=>{
+                          const added = fmtAdded(e.added_at)
+                          const nextCols = nextIds.map(id=>TCOLS.find(c=>c.id===id)).filter(Boolean) as typeof TCOLS
+                          return (
+                            <div key={e.id} draggable onDragStart={()=>setDrag(e.id)} onDragEnd={()=>setDrag(null)} onClick={()=>router.push(`/jobs/${e.job_id}`)} style={{background:'#fff',border:'1px solid rgba(0,0,0,.07)',borderRadius:10,padding:'12px 14px',cursor:'grab'}}>
+                              <div style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:6}}>
+                                <div style={{width:28,height:28,borderRadius:6,background:e.job_logo_bg,color:e.job_logo_color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontFamily:'Georgia, serif',flexShrink:0}}>{e.job_logo}</div>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:12.5,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.job_title}</div>
+                                  <div style={{fontSize:11,color:'#7a7a85'}}>{e.job_company}</div>
+                                </div>
+                                {e.notes&&<span title="Has notes" style={{fontSize:11,color:'#b0b0b8',flexShrink:0,marginTop:1}}>📝</span>}
+                              </div>
+                              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6,flexWrap:'wrap' as const}}>
+                                {e.resume_name&&<div style={{fontSize:10.5,color:'#2d5be3',background:'#eaeffe',padding:'2px 7px',borderRadius:20}}>{e.resume_name}</div>}
+                                {added&&<div style={{fontSize:10.5,color:'#b0b0b8'}}>{added}</div>}
+                              </div>
+                              <div style={{display:'flex',gap:4,marginTop:4}} onClick={ev=>ev.stopPropagation()}>
+                                {nextCols.map(c=><button key={c.id} onClick={()=>moveEntry(e.id,c.id)} style={{flex:1,padding:'4px',border:'1px solid rgba(0,0,0,.1)',borderRadius:6,fontSize:10,fontFamily:'sans-serif',cursor:'pointer',background:'#fff',color:'#7a7a85',textAlign:'center' as const}}>→ {c.label.split(' ')[0]}</button>)}
+                                <button onClick={()=>softDel(e.id)} style={{padding:'4px 8px',border:'1px solid rgba(0,0,0,.1)',borderRadius:6,fontSize:10,cursor:'pointer',background:'#fff',color:'#c0392b'}}>🗑</button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                  </div>
+                </div>
+              )})}
+            </div>
+        }
       </div>
     )
   }
