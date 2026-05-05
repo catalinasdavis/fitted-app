@@ -6,7 +6,7 @@ import type { Job } from '../../../lib/jobs'
 interface Profile { plan: string; about_me: string | null; career_field: string | null; pay_target: string | null; subscription_status?: string | null; current_period_end?: string | null }
 interface Resume { id: string; name: string; resume_text: string; is_active: boolean }
 interface User { email: string; id: string }
-interface TrackerEntry { id: string; job_id: string; column_id: string; deleted_at: string | null }
+interface TrackerEntry { id: string; job_id: string; column_id: string; notes: string; deleted_at: string | null }
 
 function mc(n: number) {
   if (n >= 74) return '#1a7a4a'
@@ -72,6 +72,9 @@ export default function JobDetail() {
   const [prepLoading,    setPrepLoading]    = useState<Record<number,boolean>>({})
   const [trackerEntries, setTrackerEntries] = useState<TrackerEntry[]>([])
   const [allJobs,        setAllJobs]        = useState<Job[]>([])
+  const [notesSaveInd,   setNotesSaveInd]   = useState('')
+  const [applyDone,      setApplyDone]      = useState(false)
+  const notesRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     // Critical path: job + user context. Render as soon as these 5 resolve.
@@ -86,7 +89,11 @@ export default function JobDetail() {
       if (me?.user)    setUser(me.user)
       if (p?.profile)  setProfile(p.profile)
       if (r?.resumes)  setResumes(r.resumes)
-      if (t?.entries)  setTrackerEntries(t.entries)
+      if (t?.entries) {
+        setTrackerEntries(t.entries)
+        const entry = (t.entries as TrackerEntry[]).find((e: TrackerEntry) => e.job_id === jobId && !e.deleted_at)
+        if (entry?.notes) setNotes(entry.notes)
+      }
       setDataReady(true)
     })
     // Secondary: similar jobs sidebar — loads after page is already visible
@@ -304,10 +311,42 @@ Their answer: "${answer}"`
     if (!job?.url) return
     window.open(job.url, '_blank', 'noopener,noreferrer')
     const existing = trackerEntries.find(e => e.job_id === jobId && !e.deleted_at)
-    if (existing && (existing as any).column_id === 'saved') {
+    if (existing && existing.column_id === 'saved') {
       await fetch('/api/tracker', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: existing.id, column_id: 'applied' }) })
       setTrackerEntries(prev => prev.map(e => e.id === existing.id ? { ...e, column_id: 'applied' } : e))
     }
+    setApplyDone(true)
+    setTimeout(() => setApplyDone(false), 2500)
+  }
+
+  async function ensureTrackerEntry(): Promise<string | null> {
+    const existing = trackerEntries.find(e => e.job_id === jobId && !e.deleted_at)
+    if (existing) return existing.id
+    if (!job) return null
+    await fetch('/api/tracker', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job_id: job.id, job_title: job.title, job_company: job.company, job_logo: job.logo, job_logo_bg: job.logoBg, job_logo_color: job.logoColor, job_pay: job.pay, job_url: job.url || '', column_id: 'saved', resume_name: bestResume(resumes)?.name || null }) })
+    const t = await fetch('/api/tracker').then(r => r.json())
+    if (t?.entries) {
+      setTrackerEntries(t.entries)
+      const fresh = (t.entries as TrackerEntry[]).find((e: TrackerEntry) => e.job_id === jobId && !e.deleted_at)
+      return fresh?.id ?? null
+    }
+    return null
+  }
+
+  function onNotesChange(val: string) {
+    setNotes(val)
+    if (notesRef.current) clearTimeout(notesRef.current)
+    notesRef.current = setTimeout(async () => {
+      setNotesSaveInd('Saving…')
+      const id = await ensureTrackerEntry()
+      if (id) {
+        await fetch('/api/tracker', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, notes: val }) })
+        setNotesSaveInd('Saved ✓')
+        setTimeout(() => setNotesSaveInd(''), 2000)
+      } else {
+        setNotesSaveInd('')
+      }
+    }, 800)
   }
 
   async function startCheckout(plan: 'monthly' | 'annual' | 'extraSlot' = 'monthly') {
@@ -347,7 +386,7 @@ Their answer: "${answer}"`
     .slice(0, 3)
   const br       = bestResume(resumes)
   const isPro    = profile?.plan === 'pro'
-  const isCancelled = isPro && profile?.subscription_status === 'cancelled'
+  const isCancelled = isPro && (profile?.subscription_status === 'cancelled' || profile?.subscription_status === 'canceling')
   const score    = job.match
   const isSaved  = trackerEntries.some(e => e.job_id === jobId && !e.deleted_at)
 
@@ -381,12 +420,15 @@ Their answer: "${answer}"`
     },
   }
 
+  const topSkills = ((job as any).skills as { name: string }[] | undefined)?.slice(0, 2).map(s => s.name) ?? job.tags.slice(0, 2)
   const prepQuestions = [
-    { q: `Tell me about a time you represented a brand or organization in a high-stakes situation.` },
-    { q: `How do you maintain consistency across multiple channels or stakeholders?` },
-    { q: `Why ${job.company} specifically — what draws you to this organization?` },
-    { q: `Walk me through a project where you communicated complex information clearly.` },
-    { q: `Where do you see yourself in three years?` },
+    { q: `Tell me about a specific project or experience that prepared you for the ${job.title} role.` },
+    { q: topSkills.length >= 2
+        ? `Walk me through how you've used ${topSkills[0]} and ${topSkills[1]} in a real work situation.`
+        : `What does your strongest relevant experience look like for this type of role?` },
+    { q: `Why ${job.company} specifically — what about this organization stands out to you?` },
+    { q: `How do you prioritize competing deadlines or stakeholder requests under pressure?` },
+    { q: `Where do you see yourself in three years, and how does this role fit that path?` },
   ]
 
   const priorityColor: Record<string, [string, string]> = {
@@ -424,8 +466,8 @@ Their answer: "${answer}"`
         </button>
         {job.url && (
           <button onClick={applyToJob}
-            style={{ background: '#2d5be3', color: '#fff', padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'sans-serif' }}>
-            Apply Now →
+            style={{ background: applyDone ? '#1a7a4a' : '#2d5be3', color: '#fff', padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'sans-serif', transition: 'background .2s' }}>
+            {applyDone ? 'Applied ✓' : 'Apply Now →'}
           </button>
         )}
         <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
@@ -465,8 +507,8 @@ Their answer: "${answer}"`
             <span style={{ fontSize: 12, color: '#b0b0b8' }}>Posted {job.posted}</span>
             {job.url
               ? <button onClick={applyToJob}
-                  style={{ background: '#2f3e5c', color: '#fff', padding: '9px 20px', borderRadius: 9, fontSize: 13.5, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'sans-serif', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  Apply Now →
+                  style={{ background: applyDone ? '#1a7a4a' : '#2f3e5c', color: '#fff', padding: '9px 20px', borderRadius: 9, fontSize: 13.5, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'sans-serif', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'background .2s' }}>
+                  {applyDone ? 'Applied ✓' : 'Apply Now →'}
                 </button>
               : <span style={{ fontSize: 12, color: '#b0b0b8', fontStyle: 'italic' }}>Application link unavailable</span>
             }
@@ -765,10 +807,10 @@ Their answer: "${answer}"`
 
           {tab === 'notes' && (
             <div>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)}
+              <textarea value={notes} onChange={e => onNotesChange(e.target.value)}
                 placeholder="Your thoughts — questions to ask, things to research, why this feels right or wrong…"
                 style={{ width: '100%', minHeight: 280, padding: 14, border: '1px solid rgba(0,0,0,.1)', borderRadius: 10, fontFamily: 'sans-serif', fontSize: 13.5, color: '#1a1a1f', background: '#fff', resize: 'vertical', outline: 'none', lineHeight: 1.7, boxSizing: 'border-box' as const }} />
-              <p style={{ fontSize: 12, color: '#b0b0b8', marginTop: 6 }}>Notes save locally in this session.</p>
+              <p style={{ fontSize: 12, color: notesSaveInd ? '#1a7a4a' : '#b0b0b8', marginTop: 6, minHeight: 18 }}>{notesSaveInd || 'Notes are saved to your tracker.'}</p>
             </div>
           )}
 
@@ -836,8 +878,8 @@ Their answer: "${answer}"`
             ))}
             {job.url
               ? <button onClick={applyToJob}
-                  style={{ display: 'block', width: '100%', marginTop: 10, background: '#2f3e5c', color: '#fff', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'sans-serif', textAlign: 'center' as const }}>
-                  Apply Now →
+                  style={{ display: 'block', width: '100%', marginTop: 10, background: applyDone ? '#1a7a4a' : '#2f3e5c', color: '#fff', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'sans-serif', textAlign: 'center' as const, transition: 'background .2s' }}>
+                  {applyDone ? 'Applied ✓' : 'Apply Now →'}
                 </button>
               : <div style={{ marginTop: 10, fontSize: 11.5, color: '#b0b0b8', fontStyle: 'italic', textAlign: 'center' as const }}>No application link</div>
             }
