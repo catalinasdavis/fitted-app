@@ -32,6 +32,13 @@ interface DislikedJob {
   jobLogo: string; jobLogoBg: string; jobLogoColor: string
   reason: string; dislikedAt: string
 }
+interface NLFilters {
+  include:         string[]
+  exclude:         string[]
+  remote:          boolean | null
+  seniority:       'entry' | 'mid' | 'senior' | null
+  roleSuggestions: string[]
+}
 
 const FIELD_LABELS: Record<string, string> = {
   marketing:'Marketing & Comms', business:'Business & Sales', tech:'Technology',
@@ -144,6 +151,8 @@ export default function Home() {
   const [cSearch,   setCSearch]   = useState('')
   const [kwSearch,  setKwSearch]  = useState('')
   const [seniority, setSeniority] = useState('all')
+  const [nlFilters, setNlFilters] = useState<NLFilters | null>(null)
+  const [nlLoading, setNlLoading] = useState(false)
   const [liked,    setLiked]    = useState<Set<string>>(new Set())
   const [pasted,   setPasted]   = useState<Job[]>([])
 
@@ -428,22 +437,80 @@ export default function Home() {
     else { setCancelErr(data.error||'Something went wrong'); setCancelStep('confirm') }
   }
 
+  async function parseNLQuery(q: string) {
+    if (!q.trim()) { setNlFilters(null); return }
+    setNlLoading(true)
+    const prompt = `Parse this job search query into structured filters for a career platform.
+
+Query: "${q}"
+Career field: ${profile?.career_field || 'not specified'}
+Career stage: ${profile?.career_stage || 'not specified'}
+
+Return JSON only — no other text:
+{
+  "include": ["concrete role or skill keywords to look for — max 4 short terms"],
+  "exclude": ["terms to avoid from negative phrases like 'no X', 'not Y', 'less Z' — max 4"],
+  "remote": true or false or null,
+  "seniority": "entry" or "mid" or "senior" or null,
+  "roleSuggestions": ["2-3 adjacent job titles this person might be strong for based on their query"]
+}`
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, type: 'nlsearch' }),
+      })
+      const data = await res.json()
+      const raw = (data.text || '').replace(/```json|```/g, '').trim()
+      const s = raw.indexOf('{'); const e = raw.lastIndexOf('}')
+      if (s !== -1 && e !== -1) {
+        const p = JSON.parse(raw.substring(s, e + 1))
+        setNlFilters({
+          include:         Array.isArray(p.include) ? p.include.slice(0, 4) : [],
+          exclude:         Array.isArray(p.exclude) ? p.exclude.slice(0, 4) : [],
+          remote:          typeof p.remote === 'boolean' ? p.remote : null,
+          seniority:       ['entry','mid','senior'].includes(p.seniority) ? p.seniority : null,
+          roleSuggestions: Array.isArray(p.roleSuggestions) ? p.roleSuggestions.slice(0, 3) : [],
+        })
+      }
+    } catch { /* silently fall back to keyword search */ }
+    setNlLoading(false)
+  }
+
   // ── JOB FEED — live jobs from /api/jobs (Adzuna + scoring), pasted jobs prepended ──
   const baseJobs  = [...pasted, ...jobs]
   const visible   = baseJobs.filter(j => !dlIds.has(j.id))
-  const kwed      = kwSearch.trim()
-    ? visible.filter(j => {
+
+  // NL filters: hard-exclude negatives, apply remote filter, boost on include terms
+  const nlFiltered = nlFilters
+    ? visible
+        .filter(j => {
+          const text = `${j.title} ${j.company} ${j.description} ${j.tags.join(' ')}`.toLowerCase()
+          if (nlFilters.exclude.some(ex => text.includes(ex.toLowerCase()))) return false
+          if (nlFilters.remote === true && j.type !== 'Remote') return false
+          return true
+        })
+        .map(j => {
+          const text = `${j.title} ${j.company} ${j.description} ${j.tags.join(' ')}`.toLowerCase()
+          const boost = nlFilters.include.filter(inc => text.includes(inc.toLowerCase())).length * 6
+          return boost > 0 ? { ...j, match: Math.min(99, j.match + boost) } : j
+        })
+    : visible
+
+  // When NL is active, bypass keyword search (NL already subsumes it)
+  const kwed = (!nlFilters && kwSearch.trim())
+    ? nlFiltered.filter(j => {
         const q = kwSearch.toLowerCase()
         return j.title.toLowerCase().includes(q)
           || j.company.toLowerCase().includes(q)
           || j.location.toLowerCase().includes(q)
           || j.tags.some(t => t.toLowerCase().includes(q))
       })
-    : visible
+    : nlFiltered
   const searched  = isPro && cSearch.trim() ? kwed.filter(j => j.company.toLowerCase().includes(cSearch.toLowerCase())) : kwed
   const FILTERS   = ['all','remote','hybrid','on-site']
   const typeFiltered  = filter === 'all' ? searched : searched.filter(j => j.type.toLowerCase() === filter)
-  const filtered      = seniority === 'all' ? typeFiltered : typeFiltered.filter(j => seniorityOf(j.title) === seniority)
+  const activeSeniority = nlFilters?.seniority ?? (seniority !== 'all' ? seniority : null)
+  const filtered      = activeSeniority ? typeFiltered.filter(j => seniorityOf(j.title) === activeSeniority) : typeFiltered
   const sorted        = [...filtered].sort((a,b) => sortBy==='pay' ? b.payNum-a.payNum : b.match-a.match)
   const activeE     = tracker.filter(e => !e.deleted_at)
   const trashedE    = tracker.filter(e => e.deleted_at)
@@ -617,17 +684,60 @@ export default function Home() {
 
   const Feed = () => (
     <div>
-      {/* Search bar */}
+      {/* NL Search bar */}
       <div style={{position:'relative',marginBottom:10}}>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'#b0b0b8',pointerEvents:'none'}}><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.4"/><path d="M9 9L12.5 12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
-        <input value={kwSearch} onChange={e=>setKwSearch(e.target.value)} placeholder="Search by title, company, skill, or location…" style={{width:'100%',padding:'8px 32px 8px 32px',border:'1px solid rgba(0,0,0,.12)',borderRadius:10,fontFamily:'sans-serif',fontSize:13,background:'#fff',color:'#1a1a1f',outline:'none',boxSizing:'border-box' as const}}/>
-        {kwSearch&&<button onClick={()=>setKwSearch('')} style={{position:'absolute',right:9,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:16,lineHeight:1,padding:2}}>×</button>}
+        {nlLoading
+          ? <div style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',width:14,height:14,border:'2px solid #ede9fe',borderTop:'2px solid #6d28d9',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
+          : <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:nlFilters?'#6d28d9':'#b0b0b8',pointerEvents:'none'}}><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.4"/><path d="M9 9L12.5 12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+        }
+        <input
+          value={kwSearch}
+          onChange={e => { setKwSearch(e.target.value); if (nlFilters) setNlFilters(null) }}
+          onKeyDown={e => { if (e.key === 'Enter' && kwSearch.trim()) parseNLQuery(kwSearch) }}
+          placeholder="Try: 'remote PM roles, no startups' or 'less stressful than my last role'"
+          style={{width:'100%',padding:'8px 74px 8px 32px',border:`1px solid ${nlFilters?'rgba(109,40,217,.35)':'rgba(0,0,0,.12)'}`,borderRadius:10,fontFamily:'sans-serif',fontSize:13,background:nlFilters?'#faf8ff':'#fff',color:'#1a1a1f',outline:'none',boxSizing:'border-box' as const}}
+        />
+        <div style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',display:'flex',alignItems:'center',gap:4}}>
+          {!nlFilters && kwSearch.trim() && !nlLoading && (
+            <button onClick={()=>parseNLQuery(kwSearch)} title="Smart search with fitted. AI"
+              style={{background:'#6d28d9',color:'#fff',border:'none',borderRadius:6,padding:'3px 8px',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif',lineHeight:1.4}}>✦ Search</button>
+          )}
+          {(kwSearch || nlFilters) && (
+            <button onClick={()=>{ setKwSearch(''); setNlFilters(null) }}
+              style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:17,lineHeight:1,padding:2}}>×</button>
+          )}
+        </div>
+        <style>{`@keyframes spin{to{transform:translateY(-50%) rotate(360deg)}}`}</style>
       </div>
+      {/* NL filter summary banner */}
+      {nlFilters && (
+        <div style={{background:'#faf8ff',border:'1px solid rgba(109,40,217,.2)',borderRadius:10,padding:'10px 14px',marginBottom:10}}>
+          <div style={{fontSize:11.5,fontWeight:600,color:'#6d28d9',marginBottom:7,display:'flex',alignItems:'center',gap:6}}>
+            ✦ Smart search active
+            <button onClick={()=>{ setNlFilters(null) }} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:13,padding:0}}>✕ Clear</button>
+          </div>
+          <div style={{display:'flex',flexWrap:'wrap' as const,gap:5,marginBottom:nlFilters.roleSuggestions.length>0?8:0}}>
+            {nlFilters.include.map(t=><span key={t} style={{background:'#e6f5ed',color:'#1a7a4a',fontSize:11,padding:'2px 8px',borderRadius:20,fontWeight:500}}>+{t}</span>)}
+            {nlFilters.exclude.map(t=><span key={t} style={{background:'#fdecea',color:'#a32d2d',fontSize:11,padding:'2px 8px',borderRadius:20,fontWeight:500}}>−{t}</span>)}
+            {nlFilters.remote===true&&<span style={{background:'#e6f5ed',color:'#1a7a4a',fontSize:11,padding:'2px 8px',borderRadius:20}}>Remote only</span>}
+            {nlFilters.seniority&&<span style={{background:'#ede9fe',color:'#6d28d9',fontSize:11,padding:'2px 8px',borderRadius:20}}>{nlFilters.seniority}</span>}
+          </div>
+          {nlFilters.roleSuggestions.length>0&&(
+            <div style={{fontSize:11.5,color:'#7a7a85',lineHeight:1.5}}>
+              <span style={{color:'#6d28d9',fontWeight:500}}>You might also be strong for:</span>{' '}
+              {nlFilters.roleSuggestions.map((r,i)=><span key={r}>{i>0?<span style={{color:'#b0b0b8'}}> · </span>:null}<strong style={{color:'#3d3d45'}}>{r}</strong></span>)}
+            </div>
+          )}
+        </div>
+      )}
       {/* Filter row: type + seniority */}
       <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:14}}>
         {FILTERS.map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'5px 12px',border:`1px solid ${filter===f?'#2d5be3':'rgba(0,0,0,.12)'}`,borderRadius:20,fontSize:12,color:filter===f?'#2d5be3':'#7a7a85',background:filter===f?'#eaeffe':'#fff',cursor:'pointer',fontFamily:'sans-serif',fontWeight:filter===f?500:400}}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>)}
         <div style={{width:1,background:'rgba(0,0,0,.1)',margin:'2px 2px'}}/>
-        {(['all','entry','mid','senior'] as const).map(s=><button key={s} onClick={()=>setSeniority(s)} style={{padding:'5px 12px',border:`1px solid ${seniority===s?'#6d28d9':'rgba(0,0,0,.12)'}`,borderRadius:20,fontSize:12,color:seniority===s?'#6d28d9':'#7a7a85',background:seniority===s?'#ede9fe':'#fff',cursor:'pointer',fontFamily:'sans-serif',fontWeight:seniority===s?500:400}}>{s==='all'?'Any level':s.charAt(0).toUpperCase()+s.slice(1)}</button>)}
+        {(['all','entry','mid','senior'] as const).map(s=>{
+          const isActive = nlFilters?.seniority ? nlFilters.seniority===s : seniority===s
+          return <button key={s} onClick={()=>setSeniority(s)} style={{padding:'5px 12px',border:`1px solid ${isActive?'#6d28d9':'rgba(0,0,0,.12)'}`,borderRadius:20,fontSize:12,color:isActive?'#6d28d9':'#7a7a85',background:isActive?'#ede9fe':'#fff',cursor:'pointer',fontFamily:'sans-serif',fontWeight:isActive?500:400}}>{s==='all'?'Any level':s.charAt(0).toUpperCase()+s.slice(1)}</button>
+        })}
       </div>
       {isPro&&cSearch.trim()&&<div style={{background:'#eaeffe',border:'1px solid #2d5be3',borderRadius:8,padding:'10px 14px',marginBottom:12,fontSize:12.5,color:'#2d5be3',display:'flex',alignItems:'center',gap:8}}><span>Showing jobs at <strong>{cSearch}</strong></span><button onClick={()=>setCSearch('')} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'#7a7a85',fontSize:13}}>✕</button></div>}
       {!jobsLoad && (!profile?.career_field || activeR.length === 0) && (

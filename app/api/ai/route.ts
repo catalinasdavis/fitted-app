@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Prompt too long' }, { status: 400 })
     }
 
-    const isJson = type === 'tailor' || type === 'standout'
+    const isJson = type === 'tailor' || type === 'standout' || type === 'nlsearch'
     const systemPrompt = isJson ? JSON_SYSTEM : COACH_SYSTEM
 
     let finalPrompt = prompt
@@ -132,11 +132,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const model = isPro
-      ? 'claude-sonnet-4-20250514'
-      : 'claude-haiku-4-5-20251001'
+    // nlsearch always uses haiku — it's just JSON parsing, not analysis
+    const model = (type === 'nlsearch' || !isPro)
+      ? 'claude-haiku-4-5-20251001'
+      : 'claude-sonnet-4-20250514'
 
-    const maxTokens = isJson ? 1200 : type === 'match' ? 800 : 400
+    const maxTokens = type === 'nlsearch' ? 200 : isJson ? 1200 : type === 'match' ? 800 : 400
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
