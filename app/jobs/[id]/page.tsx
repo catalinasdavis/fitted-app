@@ -647,6 +647,13 @@ Their answer: "${answer}"`
                         <button style={{ flex: 1, background: '#2d5be3', color: '#fff', border: 'none', borderRadius: 8, padding: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>↓ Download tailored resume</button>
                         <button onClick={generateCoverLetter} style={{ flex: 1, background: '#f4f2ed', color: '#3d3d45', border: '1px solid rgba(0,0,0,.1)', borderRadius: 8, padding: 10, fontSize: 13, cursor: 'pointer', fontFamily: 'sans-serif' }}>✦ Generate cover letter</button>
                       </div>
+                      <div style={{ marginTop: 12, background: '#faf8ff', border: '1px solid rgba(109,40,217,.15)', borderRadius: 8, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                        <span style={{ fontSize: 12, color: '#6d28d9' }}>Want a full before/after optimization with keyword analysis?</span>
+                        <button onClick={() => router.push(`/optimize`)}
+                          style={{ background: '#6d28d9', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif', whiteSpace: 'nowrap' as const }}>
+                          Full optimization →
+                        </button>
+                      </div>
                     </>
                   : tailorDone.current
                     ? <div style={{ textAlign: 'center', padding: '48px 0', color: '#7a7a85' }}>

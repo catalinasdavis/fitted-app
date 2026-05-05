@@ -980,6 +980,7 @@ Return JSON only — no other text:
           <div style={{marginTop:'auto',paddingTop:12,display:'flex',flexDirection:'column',gap:6}}>
             <button onClick={()=>setView('browse')} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'9px 12px',background:'#2d5be3',color:'#fff',border:'none',borderRadius:8,fontFamily:'sans-serif',fontSize:13,fontWeight:500,cursor:'pointer',width:'100%'}}>Find Jobs</button>
             <button onClick={()=>setShowPaste(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'9px 12px',background:'#f4f2ed',color:'#2d5be3',border:'1px solid #2d5be3',borderRadius:8,fontFamily:'sans-serif',fontSize:13,cursor:'pointer',width:'100%'}}>Paste a Job</button>
+            <button onClick={()=>router.push('/optimize')} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'9px 12px',background:'#f4f2ed',color:'#3d3d45',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,fontFamily:'sans-serif',fontSize:13,cursor:'pointer',width:'100%'}}>✦ Optimize Resume</button>
           </div>
         </aside>
 
