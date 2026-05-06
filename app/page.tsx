@@ -969,7 +969,10 @@ Return JSON only — no other text:
                     <button onClick={()=>{setRenamingId(r.id);setRenameVal(r.name)}} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:12,padding:'0 2px'}}>✎</button>
                     <button onClick={()=>delResume(r.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:14,lineHeight:1}}>×</button>
                   </div>
-                  <div style={{fontSize:10.5,color:r.is_active?'#2d5be3':'#b0b0b8',paddingLeft:14,marginTop:2,opacity:.8}}>{r.is_active?'● Active':'○ Inactive'}</div>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingLeft:14,marginTop:2}}>
+                    <span style={{fontSize:10.5,color:r.is_active?'#2d5be3':'#b0b0b8',opacity:.8}}>{r.is_active?'● Active':'○ Inactive'}</span>
+                    <button onClick={()=>router.push(`/resume-health?r=${r.id}`)} style={{background:'none',border:'none',cursor:'pointer',fontSize:10.5,color:'#7c5cbf',fontFamily:'sans-serif',padding:0,opacity:.9}}>✦ Health Score</button>
+                  </div>
                 </>
               )}
             </div>
