@@ -75,8 +75,10 @@ async function extractText(file: File): Promise<string> {
     }
   }
 
-  // PDF and images — use Claude vision
-  if (mediaType === 'application/pdf' || mediaType.startsWith('image/')) {
+  // PDF — check both MIME and extension (some browsers send empty MIME for PDFs)
+  const isPdf = mediaType === 'application/pdf' || filename.endsWith('.pdf')
+  if (isPdf || mediaType.startsWith('image/')) {
+    const effectiveMime = isPdf ? 'application/pdf' : mediaType
     const base64 = Buffer.from(bytes).toString('base64')
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -91,16 +93,23 @@ async function extractText(file: File): Promise<string> {
         messages: [{
           role: 'user',
           content: [
-            mediaType === 'application/pdf'
-              ? { type: 'document', source: { type: 'base64', media_type: mediaType, data: base64 } }
-              : { type: 'image',    source: { type: 'base64', media_type: mediaType, data: base64 } },
+            isPdf
+              ? { type: 'document', source: { type: 'base64', media_type: effectiveMime, data: base64 } }
+              : { type: 'image',    source: { type: 'base64', media_type: mediaType,      data: base64 } },
             { type: 'text', text: 'Extract all text from this resume exactly as written. Preserve structure — name, contact, summary, experience, education, skills. Return only the extracted text, no commentary.' }
           ]
         }]
       }),
     })
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}))
+      console.error('[resume/extract] Claude API error', res.status, errBody)
+      throw new Error('Could not read this PDF. Try re-saving it or uploading as DOCX.')
+    }
     const data = await res.json()
-    return data.content?.[0]?.text || ''
+    const text = data.content?.[0]?.text || ''
+    if (!text) console.error('[resume/extract] Claude returned empty text. API response:', JSON.stringify(data).substring(0, 300))
+    return text
   }
 
   throw new Error('Unsupported file type. Please upload a PDF, DOCX, or TXT file.')
