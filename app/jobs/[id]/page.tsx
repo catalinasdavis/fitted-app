@@ -202,6 +202,7 @@ Return ONLY a valid JSON array. No markdown, no code fences, no explanation befo
       }
     } catch { setTailorAI([]) }
     setTailorLoading(false)
+    fetch('/api/coach', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({event:'tailor_run', data:{title: job?.title, company: job?.company}})}).catch(()=>{})
   }
 
   async function runStandout() {

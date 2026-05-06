@@ -96,6 +96,7 @@ export default function ResumeHealthPage() {
     const data = await res.json()
     if (!res.ok || data.error) { setError(data.error || 'Something went wrong.'); setStep('setup'); return }
     setResult(data); setStep('results')
+    fetch('/api/coach', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({event:'health_checked', data:{score: data.score, grade: data.grade, resumeName: data.resumeName}})}).catch(()=>{})
   }
 
   function copyWin(text: string, i: number) {

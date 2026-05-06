@@ -204,6 +204,7 @@ export default function Home() {
   const [showAccount, setShowAccount] = useState(false)
   const [acctInvoices, setAcctInvoices] = useState<Array<{id:string;amount:number;currency:string;date:number;description:string;url:string|null;pdf:string|null}>|null>(null)
   const [acctInvLoad, setAcctInvLoad] = useState(false)
+  const [coachNudge,  setCoachNudge]  = useState<string | null>(null)
 
   const stRef = useRef<NodeJS.Timeout | null>(null)
   const fRef  = useRef<HTMLInputElement>(null)
@@ -233,6 +234,8 @@ export default function Home() {
         setProfile(pr); setResumes(r.resumes || []); setTracker(t.entries || [])
         setJobs(j.jobs || []); setJobsSource(j.source || ''); setJobsLoad(false)
         if (pr) { setCareerField(pr.career_field||''); setCareerStage(pr.career_stage||''); setAboutMe(pr.about_me||''); setLocs(pr.locations||[]); setPayTgt(pr.pay_target||''); setPfFiles(pr.portfolio_files||[]) }
+        // Non-blocking: fetch coach nudge after main data is ready
+        fetch('/api/coach').then(c => c.json()).then(c => { if (c.nudge) setCoachNudge(c.nudge) }).catch(() => {})
       }
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -339,6 +342,10 @@ export default function Home() {
     }
     const r = await fetch('/api/resumes').then(r=>r.json()); setResumes(r.resumes||[]); setUploading(false)
   }
+  function dismissCoachNudge() {
+    setCoachNudge(null)
+    fetch('/api/coach', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'dismiss' }) }).catch(() => {})
+  }
   async function toggleActive(id: string) {
     const r = resumes.find(r => r.id === id); if (!r) return
     await fetch('/api/resumes', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, is_active: !r.is_active})})
@@ -371,11 +378,13 @@ export default function Home() {
       const br = bestR(job)
       await fetch('/api/tracker', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({job_id:job.id, job_title:job.title, job_company:job.company, job_logo:job.logo, job_logo_bg:job.logoBg, job_logo_color:job.logoColor, job_pay:job.pay, job_url:job.url, column_id:'saved', resume_name: br?.name||null})})
       const t = await fetch('/api/tracker').then(r=>r.json()); setTracker(t.entries||[])
+      fetch('/api/coach', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({event:'job_saved', data:{title:job.title, company:job.company}})}).catch(()=>{})
     }
   }
   async function moveEntry(id: string, col: string) {
     await fetch('/api/tracker', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, column_id:col})})
     setTracker(prev => prev.map(e => e.id===id ? {...e, column_id:col} : e))
+    if (col === 'applied') fetch('/api/coach', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({event:'job_applied', data:{id}})}).catch(()=>{})
   }
   async function softDel(id: string) {
     const now = new Date().toISOString()
@@ -1011,6 +1020,13 @@ Return JSON only — no other text:
                 {showExtendOffer&&<button onClick={()=>setShowExtend(true)} style={{background:'none',color:'#2d5be3',border:'1.5px solid rgba(45,91,227,.35)',borderRadius:8,padding:'6px 12px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif'}}>Extend again</button>}
                 <button onClick={()=>setShowUp(true)} style={{background:'#2d5be3',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif'}}>Upgrade</button>
               </div>
+            </div>
+          )}
+          {coachNudge && (
+            <div style={{background:'rgba(124,92,191,0.06)',border:'1px solid rgba(124,92,191,0.18)',borderLeft:'3px solid rgba(124,92,191,0.5)',borderRadius:'0 10px 10px 0',padding:'11px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:10,fontSize:13,color:'#2d1a4a',lineHeight:1.5}}>
+              <span style={{fontSize:12,opacity:.6,flexShrink:0}}>✦</span>
+              <span style={{flex:1}}>{coachNudge}</span>
+              <button onClick={dismissCoachNudge} style={{background:'none',border:'none',cursor:'pointer',color:'#b0a0c8',fontSize:17,lineHeight:1,padding:'0 2px',flexShrink:0}}>×</button>
             </div>
           )}
           <div className="desktop-view">
