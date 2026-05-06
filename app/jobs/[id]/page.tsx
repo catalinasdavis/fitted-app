@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import type { Job } from '../../../lib/jobs'
 
-interface Profile { plan: string; about_me: string | null; career_field: string | null; pay_target: string | null; subscription_status?: string | null; current_period_end?: string | null }
+interface Profile { plan: string; about_me: string | null; career_field: string | null; career_stage: string | null; pay_target: string | null; subscription_status?: string | null; current_period_end?: string | null }
 interface Resume { id: string; name: string; resume_text: string; is_active: boolean }
 interface User { email: string; id: string }
 interface TrackerEntry { id: string; job_id: string; column_id: string; notes: string; deleted_at: string | null }
@@ -70,6 +70,9 @@ export default function JobDetail() {
   const [prepAnswers,    setPrepAnswers]    = useState<Record<number,string>>({})
   const [prepFeedback,   setPrepFeedback]   = useState<Record<number,string>>({})
   const [prepLoading,    setPrepLoading]    = useState<Record<number,boolean>>({})
+  const [prepAI,         setPrepAI]         = useState<Array<{category:string;question:string;hint:string;highlight:string}>>([])
+  const [prepAILoading,  setPrepAILoading]  = useState(false)
+  const prepAIDone = useRef(false)
   const [trackerEntries, setTrackerEntries] = useState<TrackerEntry[]>([])
   const [allJobs,        setAllJobs]        = useState<Job[]>([])
   const [notesSaveInd,   setNotesSaveInd]   = useState('')
@@ -258,6 +261,48 @@ Return only the cover letter text. No subject line, no extra commentary.`
     const text = await callAI(prompt)
     setCoverLetter(text)
     setCoverLoading(false)
+  }
+
+  async function runInterviewPrep() {
+    if (!job) return
+    prepAIDone.current = true
+    setPrepAILoading(true)
+    const br = bestResume(resumes)
+    const count = isPro ? 8 : 4
+    const prompt = `You are a senior interviewer preparing ${count} targeted questions for a ${job.title} candidate at ${job.company}.
+
+Job title: ${job.title}
+Company: ${job.company}
+Job description: ${(job.description || '').substring(0, 1500)}
+Key skills required: ${topSkills.join(', ')}
+${profile?.career_field ? `Candidate career field: ${profile.career_field}` : ''}
+${profile?.career_stage ? `Candidate career stage: ${profile.career_stage}` : ''}
+${br ? `Candidate resume excerpt:\n${br.resume_text.substring(0, 2000)}` : ''}
+
+Return a JSON array of exactly ${count} questions:
+[
+  {
+    "category": "Role-Specific" | "Behavioral" | "Situational" | "Culture & Motivation",
+    "question": "<specific question tailored to this job and candidate>",
+    "hint": "<one-sentence tactical tip — what makes a strong answer to this specific question>",
+    "highlight": "<what this candidate should highlight from their background — cite something specific from their resume or field. Leave empty string if no resume context.>"
+  }
+]
+
+Spread across: ${isPro ? '3 Role-Specific, 2 Behavioral, 2 Situational, 1 Culture & Motivation' : '2 Role-Specific, 1 Behavioral, 1 Culture & Motivation'}. Be specific to this job — not generic questions.`
+
+    try {
+      const res = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, type: 'interview', isPro }) })
+      const data = await res.json()
+      const raw = (data.text || '').trim()
+      const s = raw.indexOf('['); const e = raw.lastIndexOf(']')
+      if (s !== -1 && e !== -1) {
+        const items = JSON.parse(raw.substring(s, e + 1))
+        setPrepAI(Array.isArray(items) ? items : [])
+      }
+    } catch { /* leave empty, static fallback shows */ }
+    setPrepAILoading(false)
+    fetch('/api/coach', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'tailor_run', data: { title: job.title, company: job.company } }) }).catch(() => {})
   }
 
   async function getPrepFeedback(idx: number, question: string) {
@@ -746,13 +791,80 @@ Their answer: "${answer}"`
 
           {tab === 'prep' && (
             <div>
-              <p style={{ fontSize: 13, color: '#7a7a85', marginBottom: 20, lineHeight: 1.6 }}>
-                Likely questions for this role — write your answer, then get feedback.{' '}
-                {!isPro && <span style={{ background: '#fdf3e3', color: '#b8750a', fontSize: 11, padding: '2px 8px', borderRadius: 20 }}>✦ Pro unlocks answer feedback</span>}
-              </p>
-              {prepQuestions.map((q, i) => (
+              {/* AI Interview Prep */}
+              {prepAI.length === 0 && !prepAILoading && (
+                <div style={{ marginBottom: 24 }}>
+                  <p style={{ fontSize: 13, color: '#7a7a85', marginBottom: 14, lineHeight: 1.6 }}>
+                    Generate {isPro ? '8' : '4'} targeted questions for this role — with suggested talking points based on your background.
+                  </p>
+                  <button onClick={runInterviewPrep}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#7c5cbf', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'sans-serif' }}>
+                    ✦ Generate Interview Prep
+                  </button>
+                  {!isPro && <p style={{ fontSize: 11.5, color: '#b0b0b8', marginTop: 8 }}>Pro unlocks 8 questions + personalized talking points</p>}
+                </div>
+              )}
+              {prepAILoading && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '24px 0', color: '#7a7a85', fontSize: 13 }}>
+                  <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid #e0d8f0', borderTopColor: '#7c5cbf', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  Preparing your questions…
+                </div>
+              )}
+              {prepAI.length > 0 && (
+                <>
+                  {prepAI.map((q, i) => {
+                    const catColor: Record<string, [string,string]> = {
+                      'Role-Specific':       ['#eaeffe', '#185fa5'],
+                      'Behavioral':          ['#e6f5ed', '#1a7a4a'],
+                      'Situational':         ['#fdf3e3', '#854f0b'],
+                      'Culture & Motivation':['#f4f0fb', '#6b3fa0'],
+                    }
+                    const [catBg, catFg] = catColor[q.category] ?? ['#f4f2ed', '#3d3d45']
+                    return (
+                      <div key={i} style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderRadius: 10, padding: 16, marginBottom: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                          <span style={{ background: catBg, color: catFg, fontSize: 10, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' as const, padding: '2px 8px', borderRadius: 20 }}>{q.category}</span>
+                          <span style={{ fontSize: 11, color: '#b0b0b8' }}>Q{i + 1} of {prepAI.length}</span>
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1f', marginBottom: 10, lineHeight: 1.4 }}>{q.question}</div>
+                        {q.hint && <div style={{ fontSize: 12, color: '#7a7a85', marginBottom: isPro && q.highlight ? 10 : 12, lineHeight: 1.5, fontStyle: 'italic' }}>💡 {q.hint}</div>}
+                        {isPro && q.highlight && (
+                          <div style={{ background: '#f4f0fb', borderLeft: '3px solid #7c5cbf', borderRadius: '0 8px 8px 0', padding: '8px 12px', marginBottom: 12 }}>
+                            <div style={{ fontSize: 10, fontWeight: 600, color: '#7c5cbf', letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 3 }}>fitted. thinks</div>
+                            <div style={{ fontSize: 12.5, color: '#3d1a6a', lineHeight: 1.55 }}>{q.highlight}</div>
+                          </div>
+                        )}
+                        {!isPro && i === 3 && (
+                          <div style={{ background: '#fdf3e3', border: '1px solid rgba(184,117,10,.2)', borderRadius: 8, padding: '10px 14px', marginBottom: 10, fontSize: 12.5, color: '#854f0b', lineHeight: 1.5 }}>
+                            ✦ Pro unlocks 4 more questions + personalized talking points for each.
+                          </div>
+                        )}
+                        <textarea value={prepAnswers[i] || ''} onChange={e => setPrepAnswers(p => ({ ...p, [i]: e.target.value }))}
+                          placeholder="Your answer — what specific story will you use?"
+                          style={{ width: '100%', minHeight: 80, padding: 10, border: '1px solid rgba(0,0,0,.1)', borderRadius: 8, fontFamily: 'sans-serif', fontSize: 13, color: '#1a1a1f', background: '#f4f2ed', resize: 'vertical', outline: 'none', lineHeight: 1.6, boxSizing: 'border-box' as const }} />
+                        {isPro
+                          ? <div style={{ marginTop: 6 }}>
+                              <button onClick={() => getPrepFeedback(i, q.question)} disabled={prepLoading[i]}
+                                style={{ background: 'none', border: '1px solid #2d5be3', borderRadius: 6, padding: '5px 12px', fontSize: 12, color: '#2d5be3', cursor: 'pointer', fontFamily: 'sans-serif', opacity: prepLoading[i] ? .6 : 1 }}>
+                                {prepLoading[i] ? 'Reviewing…' : 'Get feedback on my answer →'}
+                              </button>
+                              {prepFeedback[i] && <div style={{ marginTop: 8, background: '#f4f2ed', borderRadius: 6, padding: '8px 10px', fontSize: 12.5, color: '#3d3d45', lineHeight: 1.6 }}>{prepFeedback[i]}</div>}
+                            </div>
+                          : <div style={{ marginTop: 6 }}><span style={{ background: '#fdf3e3', color: '#b8750a', fontSize: 11, padding: '3px 10px', borderRadius: 20 }}>✦ Pro — get feedback on your answer</span></div>
+                        }
+                      </div>
+                    )
+                  })}
+                  <button onClick={() => { prepAIDone.current = false; setPrepAI([]); runInterviewPrep() }}
+                    style={{ background: 'none', border: '1px solid rgba(0,0,0,.1)', borderRadius: 7, padding: '6px 14px', fontSize: 12, color: '#7a7a85', cursor: 'pointer', fontFamily: 'sans-serif', marginBottom: 24 }}>
+                    ↺ Regenerate questions
+                  </button>
+                </>
+              )}
+              {/* Static practice questions — shown only before AI runs */}
+              {prepAI.length === 0 && !prepAILoading && prepQuestions.map((q, i) => (
                 <div key={i} style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderRadius: 10, padding: 16, marginBottom: 10 }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' as const, color: '#b0b0b8', marginBottom: 6 }}>Question {i + 1}</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' as const, color: '#b0b0b8', marginBottom: 6 }}>Practice Question {i + 1}</div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1f', marginBottom: 10, lineHeight: 1.4 }}>{q.q}</div>
                   <textarea value={prepAnswers[i] || ''} onChange={e => setPrepAnswers(p => ({ ...p, [i]: e.target.value }))}
                     placeholder="Write your answer — what specific story will you use?"
