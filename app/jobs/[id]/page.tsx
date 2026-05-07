@@ -73,6 +73,9 @@ export default function JobDetail() {
   const [prepAI,         setPrepAI]         = useState<Array<{category:string;question:string;hint:string;highlight:string}>>([])
   const [prepAILoading,  setPrepAILoading]  = useState(false)
   const prepAIDone = useRef(false)
+  const [negotiateResult,  setNegotiateResult]  = useState<{targetRange:{low:number;high:number;note:string};opening:string;talkingPoints:{point:string;script:string}[];pushbacks:{scenario:string;response:string}[];counterOffer?:{script:string;floorNote:string};emailTemplate?:string} | null>(null)
+  const [negotiateLoading, setNegotiateLoading] = useState(false)
+  const [negotiateCopied,  setNegotiatesCopied] = useState<Record<string,boolean>>({})
   const [trackerEntries, setTrackerEntries] = useState<TrackerEntry[]>([])
   const [allJobs,        setAllJobs]        = useState<Job[]>([])
   const [notesSaveInd,   setNotesSaveInd]   = useState('')
@@ -303,6 +306,51 @@ Spread across: ${isPro ? '3 Role-Specific, 2 Behavioral, 2 Situational, 1 Cultur
     } catch { /* leave empty, static fallback shows */ }
     setPrepAILoading(false)
     fetch('/api/coach', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'tailor_run', data: { title: job.title, company: job.company } }) }).catch(() => {})
+  }
+
+  async function runNegotiate() {
+    if (!job) return
+    setNegotiateLoading(true)
+    const br = bestResume(resumes)
+    const count = isPro ? 3 : 1
+    const prompt = `You are a salary negotiation expert coaching a candidate for ${job.title} at ${job.company}.
+
+Job details:
+- Title: ${job.title}
+- Company: ${job.company}
+- Posted salary range: ${job.pay || 'Not listed'}
+- Location: ${job.location || 'Not specified'}
+${profile?.career_field ? `- Career field: ${profile.career_field}` : ''}
+${profile?.career_stage ? `- Career stage: ${profile.career_stage}` : ''}
+${profile?.pay_target   ? `- Candidate's target salary: ${profile.pay_target}` : ''}
+${br ? `\nCandidate resume excerpt:\n${br.resume_text.substring(0, 1200)}` : ''}
+
+Generate a personalized negotiation guide. Use the actual company name, role, and salary range. Be specific — not generic advice. Sound like a trusted mentor.
+
+Return ONLY valid JSON:
+{
+  "targetRange": { "low": <integer, no commas>, "high": <integer, no commas>, "note": "<1-sentence rationale for this range>" },
+  "opening": "<exact 2-3 sentence script to say when they extend the offer — warm but firm>",
+  "talkingPoints": [${Array(count).fill('{ "point": "<strength label>", "script": "<exact words to say>" }').join(', ')}],
+  "pushbacks": [${Array(count).fill('{ "scenario": "<what they say>", "response": "<what you say>" }').join(', ')}]${isPro ? `,
+  "counterOffer": { "script": "<exact counter-offer language — specific dollar amount based on targetRange.high>", "floorNote": "<what to say if they still can't move — alternatives to base>" },
+  "emailTemplate": "<subject line on first line, then blank line, then full ~120-word follow-up email body confirming verbal negotiation, professional tone>"` : ''}
+}`
+
+    try {
+      const res = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, type: 'negotiate', isPro }) })
+      const data = await res.json()
+      const raw = (data.text || '').trim()
+      const s = raw.indexOf('{'); const e = raw.lastIndexOf('}')
+      if (s !== -1 && e !== -1) setNegotiateResult(JSON.parse(raw.substring(s, e + 1)))
+    } catch { /* keep null — static fallback remains */ }
+    setNegotiateLoading(false)
+  }
+
+  function copyNeg(key: string, text: string) {
+    navigator.clipboard.writeText(text).catch(() => {})
+    setNegotiatesCopied(p => ({ ...p, [key]: true }))
+    setTimeout(() => setNegotiatesCopied(p => ({ ...p, [key]: false })), 2000)
   }
 
   async function getPrepFeedback(idx: number, question: string) {
@@ -882,38 +930,109 @@ Their answer: "${answer}"`
                 </div>
               ))}
               <div style={{ marginTop: 28, paddingTop: 24, borderTop: '2px solid rgba(0,0,0,.07)' }}>
-                <h3 style={{ fontFamily: 'Georgia,serif', fontSize: 20, color: '#1a1a1f', margin: '0 0 8px', fontWeight: 400 }}>Salary negotiation ✦</h3>
-                {isPro
-                  ? <>
-                      <p style={{ fontSize: 13, color: '#7a7a85', marginBottom: 20, lineHeight: 1.6 }}>Scripts for negotiating at <strong style={{ color: '#3d3d45' }}>{job.company}</strong>.</p>
-                      {[
-                        { stage: 'When they ask your expectations', script: `"I'm open based on the full picture. Could you share the budgeted range?"`, note: `Don't name a number first. If they push: "I'd want to be in the range that reflects the scope of this role."` },
-                        { stage: 'When they give you a number', script: `"Based on my experience, I was thinking closer to [top third + 10%]. Is there flexibility?"`, note: `For ${job.pay}, aim for the high end. Never accept on the spot.` },
-                        { stage: 'If the range is firm', script: `"Is there flexibility on start date, title, remote days, or a 90-day review?"`, note: `PTO, title, and reviews are negotiable even when base pay isn't.` },
-                        { stage: 'Never say', script: `"I really need this job" or "I'll take whatever you're offering."`, note: `It transfers all the power. Stay warm, stay confident.`, danger: true },
-                      ].map((item, i) => (
-                        <div key={i} style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.06em', textTransform: 'uppercase' as const, marginBottom: 8 }}>{item.stage}</div>
-                          <div style={{ background: (item as any).danger ? '#fdecea' : '#eaeffe', color: (item as any).danger ? '#a32d2d' : '#185fa5', borderRadius: 6, padding: '10px 12px', fontSize: 13, fontStyle: 'italic', lineHeight: 1.6, marginBottom: 8 }}>{item.script}</div>
-                          <p style={{ fontSize: 12.5, color: '#7a7a85', margin: 0, lineHeight: 1.5 }}>{item.note}</p>
+                <h3 style={{ fontFamily: 'Georgia,serif', fontSize: 20, color: '#1a1a1f', margin: '0 0 4px', fontWeight: 400 }}>Salary negotiation ✦</h3>
+                <p style={{ fontSize: 13, color: '#7a7a85', marginBottom: 18, lineHeight: 1.6 }}>
+                  {isPro ? `Personalized scripts for negotiating at ${job.company}.` : 'Opening script + target range — upgrade for full playbook.'}
+                </p>
+                {!negotiateResult && !negotiateLoading && (
+                  <button onClick={runNegotiate}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1a3d2a', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'sans-serif', marginBottom: 6 }}>
+                    ✦ Prepare My Negotiation
+                  </button>
+                )}
+                {negotiateLoading && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '20px 0', color: '#7a7a85', fontSize: 13 }}>
+                    <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid #c8e6d4', borderTopColor: '#1a7a4a', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    Building your negotiation playbook…
+                  </div>
+                )}
+                {negotiateResult && (() => {
+                  const nr = negotiateResult
+                  const fmt = (n: number) => n >= 1000 ? `$${(n/1000).toFixed(0)}k` : `$${n}`
+                  return (
+                    <>
+                      {/* Target range */}
+                      <div style={{ background: '#e6f5ed', border: '1px solid rgba(26,122,74,.2)', borderRadius: 10, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: '#1a7a4a', letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 2 }}>Your target range</div>
+                          <div style={{ fontSize: 22, fontWeight: 700, color: '#1a3d2a', fontFamily: 'Georgia,serif' }}>{fmt(nr.targetRange.low)} – {fmt(nr.targetRange.high)}</div>
                         </div>
-                      ))}
+                        {nr.targetRange.note && <p style={{ fontSize: 12, color: '#2d6644', lineHeight: 1.5, margin: 0, flex: 1 }}>{nr.targetRange.note}</p>}
+                      </div>
+
+                      {/* Opening script */}
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 8 }}>Opening script</div>
+                        <div style={{ background: '#eaeffe', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#1a1a5a', lineHeight: 1.65, fontStyle: 'italic', marginBottom: 6 }}>"{nr.opening}"</div>
+                        <button onClick={() => copyNeg('opening', nr.opening)} style={{ background: 'none', border: '1px solid rgba(0,0,0,.1)', borderRadius: 6, padding: '4px 12px', fontSize: 11.5, color: '#7a7a85', cursor: 'pointer', fontFamily: 'sans-serif' }}>
+                          {negotiateCopied['opening'] ? '✓ Copied' : 'Copy'}
+                        </button>
+                      </div>
+
+                      {/* Talking points */}
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 8 }}>Key talking points</div>
+                        {nr.talkingPoints.map((tp, i) => (
+                          <div key={i} style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderRadius: 8, padding: '12px 14px', marginBottom: 8 }}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: '#1a7a4a', marginBottom: 4 }}>{tp.point}</div>
+                            <div style={{ fontSize: 13, color: '#1a1a5a', fontStyle: 'italic', lineHeight: 1.6 }}>"{tp.script}"</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Pushback responses */}
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 8 }}>When they push back</div>
+                        {nr.pushbacks.map((pb, i) => (
+                          <div key={i} style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderRadius: 8, padding: '12px 14px', marginBottom: 8 }}>
+                            <div style={{ fontSize: 11.5, color: '#7a7a85', marginBottom: 6 }}>They say: <em>"{pb.scenario}"</em></div>
+                            <div style={{ fontSize: 13, color: '#1a1a5a', fontStyle: 'italic', lineHeight: 1.6 }}>You: "{pb.response}"</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Counter-offer + email — Pro only */}
+                      {isPro && nr.counterOffer && (
+                        <div style={{ marginBottom: 12 }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 8 }}>Counter-offer script</div>
+                          <div style={{ background: '#f4f0fb', border: '1px solid rgba(124,92,191,.2)', borderRadius: 8, padding: '12px 14px', marginBottom: 6 }}>
+                            <div style={{ fontSize: 13, color: '#3d1a6a', fontStyle: 'italic', lineHeight: 1.65, marginBottom: 8 }}>"{nr.counterOffer.script}"</div>
+                            {nr.counterOffer.floorNote && <div style={{ fontSize: 12, color: '#7a7a85', lineHeight: 1.5, borderTop: '1px solid rgba(0,0,0,.07)', paddingTop: 8 }}>If they can't move: {nr.counterOffer.floorNote}</div>}
+                          </div>
+                          <button onClick={() => copyNeg('counter', nr.counterOffer!.script)} style={{ background: 'none', border: '1px solid rgba(0,0,0,.1)', borderRadius: 6, padding: '4px 12px', fontSize: 11.5, color: '#7a7a85', cursor: 'pointer', fontFamily: 'sans-serif' }}>
+                            {negotiateCopied['counter'] ? '✓ Copied' : 'Copy'}
+                          </button>
+                        </div>
+                      )}
+                      {isPro && nr.emailTemplate && (
+                        <div style={{ marginBottom: 12 }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 8 }}>Follow-up email</div>
+                          <pre style={{ background: '#f4f2ed', borderRadius: 8, padding: '12px 14px', fontSize: 12.5, color: '#3d3d45', lineHeight: 1.7, whiteSpace: 'pre-wrap', fontFamily: 'sans-serif', margin: '0 0 6px' }}>{nr.emailTemplate}</pre>
+                          <button onClick={() => copyNeg('email', nr.emailTemplate!)} style={{ background: 'none', border: '1px solid rgba(0,0,0,.1)', borderRadius: 6, padding: '4px 12px', fontSize: 11.5, color: '#7a7a85', cursor: 'pointer', fontFamily: 'sans-serif' }}>
+                            {negotiateCopied['email'] ? '✓ Copied' : 'Copy'}
+                          </button>
+                        </div>
+                      )}
+                      {!isPro && (
+                        <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', marginBottom: 8 }}>
+                          <div style={{ filter: 'blur(3px)', opacity: .4, pointerEvents: 'none', padding: 14, background: '#f4f2ed', borderRadius: 10 }}>
+                            <div style={{ fontSize: 11, color: '#b0b0b8', textTransform: 'uppercase' as const, marginBottom: 6 }}>Counter-offer script</div>
+                            <div style={{ fontSize: 13, fontStyle: 'italic', color: '#3d3d45' }}>"Based on my experience, I was hoping we could land closer to…"</div>
+                          </div>
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(248,246,241,.9)' }}>
+                            <div style={{ fontFamily: 'Georgia,serif', fontSize: 15, color: '#1a1a1f' }}>Counter-offer scripts + email templates</div>
+                            <div style={{ fontSize: 12, color: '#7a7a85', textAlign: 'center', maxWidth: 240, lineHeight: 1.5 }}>Pro unlocks 3 talking points, 3 pushback responses, counter-offer language, and a follow-up email.</div>
+                            <button onClick={() => startCheckout('monthly')} style={{ background: '#1a7a4a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>Unlock with Pro</button>
+                          </div>
+                        </div>
+                      )}
+                      <button onClick={() => { setNegotiateResult(null); runNegotiate() }}
+                        style={{ background: 'none', border: '1px solid rgba(0,0,0,.1)', borderRadius: 7, padding: '6px 14px', fontSize: 12, color: '#7a7a85', cursor: 'pointer', fontFamily: 'sans-serif', marginTop: 4 }}>
+                        ↺ Regenerate
+                      </button>
                     </>
-                  : <div style={{ position: 'relative', minHeight: 180, borderRadius: 10, overflow: 'hidden' }}>
-                      <div style={{ filter: 'blur(4px)', opacity: .4, pointerEvents: 'none', padding: 16 }}>
-                        <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderRadius: 10, padding: '14px 16px' }}>
-                          <div style={{ fontSize: 11, color: '#b0b0b8', marginBottom: 6, textTransform: 'uppercase' as const }}>When they ask your expectations</div>
-                          <div style={{ background: '#eaeffe', borderRadius: 6, padding: 8, fontSize: 12, fontStyle: 'italic' }}>Don't name a number first…</div>
-                        </div>
-                      </div>
-                      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(248,246,241,.88)' }}>
-                        <div style={{ fontSize: 20, color: '#b8750a' }}>✦</div>
-                        <div style={{ fontFamily: 'Georgia,serif', fontSize: 16, color: '#1a1a1f' }}>Pro feature</div>
-                        <div style={{ fontSize: 12, color: '#7a7a85', textAlign: 'center', maxWidth: 220, lineHeight: 1.5 }}>Exact scripts for every negotiation stage, tailored to this role and company.</div>
-                        <button onClick={() => startCheckout('monthly')} style={{ background: '#b8750a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>Unlock with Pro</button>
-                      </div>
-                    </div>
-                }
+                  )
+                })()}
               </div>
             </div>
           )}

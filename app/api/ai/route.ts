@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Prompt too long' }, { status: 400 })
     }
 
-    const isJson = type === 'tailor' || type === 'standout' || type === 'nlsearch' || type === 'interview'
+    const isJson = type === 'tailor' || type === 'standout' || type === 'nlsearch' || type === 'interview' || type === 'negotiate'
     const systemPrompt = isJson ? JSON_SYSTEM : COACH_SYSTEM
 
     let finalPrompt = prompt
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       ? 'claude-haiku-4-5-20251001'
       : 'claude-sonnet-4-20250514'
 
-    const maxTokens = type === 'nlsearch' ? 200 : type === 'interview' ? 2500 : isJson ? 1200 : type === 'match' ? 800 : 400
+    const maxTokens = type === 'nlsearch' ? 200 : type === 'interview' ? 2500 : type === 'negotiate' ? 2000 : isJson ? 1200 : type === 'match' ? 800 : 400
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
