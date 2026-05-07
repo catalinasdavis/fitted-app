@@ -553,28 +553,28 @@ Their answer: "${answer}"`
     <div style={{ minHeight: '100vh', background: '#f4f2ed', fontFamily: 'sans-serif' }}
       onClick={() => setShowMenu(false)}>
 
-      <nav style={{ height: 60, background: '#fff', borderBottom: '1px solid rgba(0,0,0,.07)', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 14 }}>
+      <nav className="jd-nav" style={{ height: 60, background: '#fff', borderBottom: '1px solid rgba(0,0,0,.07)', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
         <button onClick={() => router.push('/')}
-          style={{ background: 'none', border: 'none', color: '#7a7a85', cursor: 'pointer', fontSize: 13, fontFamily: 'sans-serif' }}>
+          style={{ background: 'none', border: 'none', color: '#7a7a85', cursor: 'pointer', fontSize: 13, fontFamily: 'sans-serif', flexShrink: 0 }}>
           ← Back
         </button>
-        <div style={{ width: 1, height: 32, background: 'rgba(0,0,0,.1)' }} />
-        <div style={{ lineHeight: 1 }}>
+        <div className="jd-nav-logo" style={{ width: 1, height: 32, background: 'rgba(0,0,0,.1)' }} />
+        <div className="jd-nav-logo" style={{ lineHeight: 1 }}>
           <div style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a1f', letterSpacing: '-.02em' }}>fitted<span style={{ color: '#2d5be3' }}>.</span></div>
           <div style={{ fontSize: 11, color: '#b8a99a', fontWeight: 300, marginTop: 2 }}>get a career tailor-made for you</div>
         </div>
         <div style={{ flex: 1 }} />
         <button onClick={toggleSave}
-          style={{ background: isSaved ? '#fdf3e3' : 'none', color: isSaved ? '#b8750a' : '#7a7a85', border: `1px solid ${isSaved ? 'rgba(184,117,10,.3)' : 'rgba(0,0,0,.12)'}`, borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'sans-serif', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          style={{ background: isSaved ? '#fdf3e3' : 'none', color: isSaved ? '#b8750a' : '#7a7a85', border: `1px solid ${isSaved ? 'rgba(184,117,10,.3)' : 'rgba(0,0,0,.12)'}`, borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer', fontFamily: 'sans-serif', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
           {isSaved ? '★ Saved' : '☆ Save'}
         </button>
         {job.url && (
           <button onClick={applyToJob}
-            style={{ background: applyDone ? '#1a7a4a' : '#2d5be3', color: '#fff', padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'sans-serif', transition: 'background .2s' }}>
-            {applyDone ? 'Applied ✓' : 'Apply Now →'}
+            style={{ background: applyDone ? '#1a7a4a' : '#2d5be3', color: '#fff', padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'sans-serif', transition: 'background .2s', flexShrink: 0 }}>
+            {applyDone ? 'Applied ✓' : 'Apply →'}
           </button>
         )}
-        <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+        <div className="jd-nav-account" style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
           <button onClick={() => setShowMenu(m => !m)}
             style={{ background: 'none', border: '1px solid rgba(0,0,0,.12)', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: '#7a7a85', cursor: 'pointer', fontFamily: 'sans-serif' }}>
             {user?.email || 'Account'} ▾
@@ -633,12 +633,12 @@ Their answer: "${answer}"`
         </div>
       </div>
 
-      <div style={{ display: 'flex', height: 'calc(100vh - 60px - 148px)', overflow: 'hidden' }}>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
+      <div className="jd-layout" style={{ display: 'flex', height: 'calc(100vh - 60px - 148px)', overflow: 'hidden' }}>
+        <div className="jd-content" style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
 
           {tab === 'match' && (
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 18 }}>
+              <div className="match-rings-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 18 }}>
                 {[
                   { label: 'Resume Match', value: score,                                               note: 'Based on your best resume' },
                   { label: 'Personal Fit', value: (job as any).personalFit || Math.max(50, score - 5), note: 'Based on About Me & profile' },
@@ -1127,7 +1127,7 @@ Their answer: "${answer}"`
 
         </div>
 
-        <div style={{ width: 240, flexShrink: 0, background: '#fff', borderLeft: '1px solid rgba(0,0,0,.07)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div className="jd-sidebar" style={{ width: 240, flexShrink: 0, background: '#fff', borderLeft: '1px solid rgba(0,0,0,.07)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,.07)' }}>
             <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase' as const, color: '#b0b0b8', marginBottom: 10 }}>Quick info</div>
             {[
@@ -1235,6 +1235,17 @@ Their answer: "${answer}"`
         </div>
       )}
 
+      <style>{`
+        @media (max-width: 768px) {
+          .jd-nav-logo { display: none !important }
+          .jd-nav-account { display: none !important }
+          .jd-layout { height: auto !important; min-height: calc(100vh - 60px) !important; flex-direction: column }
+          .jd-sidebar { display: none !important }
+          .jd-content { padding: 14px 14px !important; overflow-y: visible !important }
+          .match-rings-grid { grid-template-columns: repeat(3,1fr) !important; gap: 6px !important }
+        }
+        @keyframes shimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
+      `}</style>
     </div>
   )
 }

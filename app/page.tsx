@@ -672,8 +672,8 @@ Return JSON only — no other text:
     const tt = typeTag(job.type); const isl = liked.has(job.id); const tEntry = activeE.find(e=>e.job_id===job.id); const ist = !!tEntry; const br = bestR(job); const isp = job.tags.includes('pasted')
     const bt = !!(payTgt && job.payNum > 0 && (() => { const n = parseFloat(payTgt.replace(/[^0-9.]/g,'')); if(!n) return false; return job.payNum*1000 < (payTgt.toLowerCase().includes('hr') ? n*2080 : n) })())
     return (
-      <div onClick={()=>!isp&&router.push(`/jobs/${job.id}`)} style={{background:'#fff',border:`1px solid ${isp?'#2d5be3':bt?'#f5c6c6':'rgba(0,0,0,.07)'}`,borderLeft:isp?'3px solid #2d5be3':undefined,borderRadius:14,padding:'15px 16px',cursor:isp?'default':'pointer',display:'grid',gridTemplateColumns:'40px 1fr auto',gap:'0 12px',alignItems:'start',marginBottom:10}}>
-        <div style={{width:40,height:40,borderRadius:9,background:job.logoBg,color:job.logoColor,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Georgia, serif',fontSize:14,border:'1px solid rgba(0,0,0,.07)',flexShrink:0}}>{job.logo}</div>
+      <div onClick={()=>!isp&&router.push(`/jobs/${job.id}`)} className="job-card" style={{background:'#fff',border:`1px solid ${isp?'#2d5be3':bt?'#f5c6c6':'rgba(0,0,0,.07)'}`,borderLeft:isp?'3px solid #2d5be3':undefined,borderRadius:14,padding:'15px 16px',cursor:isp?'default':'pointer',display:'grid',gridTemplateColumns:'40px 1fr auto',gap:'0 12px',alignItems:'start',marginBottom:10}}>
+        <div className="jc-logo" style={{width:40,height:40,borderRadius:9,background:job.logoBg,color:job.logoColor,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Georgia, serif',fontSize:14,border:'1px solid rgba(0,0,0,.07)',flexShrink:0}}>{job.logo}</div>
         <div style={{minWidth:0}}>
           <div style={{display:'flex',alignItems:'flex-start',gap:6,flexWrap:'wrap',marginBottom:2}}>
             <span style={{fontSize:14,fontWeight:500,color:'#1a1a1f',lineHeight:1.3}}>{job.title}</span>
@@ -686,10 +686,10 @@ Return JSON only — no other text:
             <span style={{background:tt.bg,color:tt.color,padding:'2px 8px',borderRadius:20,fontSize:11}}>{job.type}</span>
             {br&&activeR.length>1&&<span style={{background:'#e6f5ed',color:'#1a7a4a',padding:'2px 8px',borderRadius:20,fontSize:10.5,fontWeight:500}}>Best: {br.name}</span>}
           </div>
-          <div style={{display:'flex',gap:2,marginTop:8,alignItems:'center'}} onClick={e=>e.stopPropagation()}>
-            <button onClick={()=>{const n=new Set(liked);isl?n.delete(job.id):n.add(job.id);setLiked(n)}} style={{background:'none',border:'none',cursor:'pointer',color:isl?'#1a7a4a':'#b0b0b8',fontSize:14,padding:'2px 4px'}}>👍</button>
-            <button onClick={e=>openDL(job,e)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:14,padding:'2px 4px'}}>👎</button>
-            <button onClick={()=>addTracker(job)} style={{background:'none',border:'none',cursor:'pointer',color:ist?'#b8750a':'#b0b0b8',fontSize:14,padding:'2px 4px'}}>{ist?'★':'☆'}</button>
+          <div className="jc-actions" style={{display:'flex',gap:2,marginTop:8,alignItems:'center'}} onClick={e=>e.stopPropagation()}>
+            <button onClick={()=>{const n=new Set(liked);isl?n.delete(job.id):n.add(job.id);setLiked(n)}} className="jc-action-btn" style={{background:'none',border:'none',cursor:'pointer',color:isl?'#1a7a4a':'#b0b0b8',fontSize:14,padding:'2px 4px'}}>👍</button>
+            <button onClick={e=>openDL(job,e)} className="jc-action-btn" style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:14,padding:'2px 4px'}}>👎</button>
+            <button onClick={()=>addTracker(job)} className="jc-action-btn" style={{background:'none',border:'none',cursor:'pointer',color:ist?'#b8750a':'#b0b0b8',fontSize:14,padding:'2px 4px'}}>{ist?'★':'☆'}</button>
             {tEntry && tEntry.column_id !== 'saved' && (()=>{const col=TCOLS.find(c=>c.id===tEntry.column_id);return col?<span style={{background:col.bg,color:col.color,fontSize:10,fontWeight:600,padding:'2px 8px',borderRadius:20}}>{col.label}</span>:null})()}
             <span style={{fontSize:10.5,color:'#b0b0b8',marginLeft:4}}>{job.posted}</span>
             {isp&&<button onClick={()=>setPasted(p=>p.filter(j=>j.id!==job.id))} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:11,fontFamily:'sans-serif'}}>Remove</button>}
@@ -705,14 +705,14 @@ Return JSON only — no other text:
       {/* NL Search bar */}
       <div style={{position:'relative',marginBottom:10}}>
         {nlLoading
-          ? <div style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',width:14,height:14,border:'2px solid #ede9fe',borderTop:'2px solid #6d28d9',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
+          ? <div style={{position:'absolute',left:10,top:'50%',marginTop:-7,width:14,height:14,border:'2px solid #ede9fe',borderTop:'2px solid #6d28d9',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
           : <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:nlFilters?'#6d28d9':'#b0b0b8',pointerEvents:'none'}}><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.4"/><path d="M9 9L12.5 12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
         }
         <input
           value={kwSearch}
           onChange={e => { setKwSearch(e.target.value); if (nlFilters) setNlFilters(null) }}
           onKeyDown={e => { if (e.key === 'Enter' && kwSearch.trim()) parseNLQuery(kwSearch) }}
-          placeholder="Try: 'remote PM roles, no startups' or 'less stressful than my last role'"
+          placeholder="Try: 'remote PM, no startups' or 'less stressful than my last role'"
           style={{width:'100%',padding:'8px 74px 8px 32px',border:`1px solid ${nlFilters?'rgba(109,40,217,.35)':'rgba(0,0,0,.12)'}`,borderRadius:10,fontFamily:'sans-serif',fontSize:13,background:nlFilters?'#faf8ff':'#fff',color:'#1a1a1f',outline:'none',boxSizing:'border-box' as const}}
         />
         <div style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',display:'flex',alignItems:'center',gap:4}}>
@@ -725,7 +725,6 @@ Return JSON only — no other text:
               style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:17,lineHeight:1,padding:2}}>×</button>
           )}
         </div>
-        <style>{`@keyframes spin{to{transform:translateY(-50%) rotate(360deg)}}`}</style>
       </div>
       {/* NL filter summary banner */}
       {nlFilters && (
@@ -749,7 +748,7 @@ Return JSON only — no other text:
         </div>
       )}
       {/* Filter row: type + seniority */}
-      <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:14}}>
+      <div className="feed-filters" style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:14}}>
         {FILTERS.map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'5px 12px',border:`1px solid ${filter===f?'#2d5be3':'rgba(0,0,0,.12)'}`,borderRadius:20,fontSize:12,color:filter===f?'#2d5be3':'#7a7a85',background:filter===f?'#eaeffe':'#fff',cursor:'pointer',fontFamily:'sans-serif',fontWeight:filter===f?500:400}}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>)}
         <div style={{width:1,background:'rgba(0,0,0,.1)',margin:'2px 2px'}}/>
         {(['all','entry','mid','senior'] as const).map(s=>{
@@ -771,7 +770,7 @@ Return JSON only — no other text:
           </div>
         </div>
       )}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+      <div className="feed-header-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <span style={{fontFamily:'Georgia, serif',fontSize:19}}>Matched for you</span>
           <span style={{fontSize:12,color:'#7a7a85'}}>{sorted.length} roles</span>
@@ -1488,8 +1487,22 @@ Return JSON only — no other text:
           .desktop-only{display:flex !important;flex-direction:column}.desktop-view{display:block !important}.mobile-view{display:none !important}.mobile-bottom-nav{display:none !important}.hide-mobile{display:inline-flex !important}
         }
         @media (max-width: 768px) {
-          .dashboard-grid{grid-template-columns:1fr !important}.desktop-only{display:none !important}.desktop-view{display:none !important}.mobile-view{display:block !important}.mobile-bottom-nav{display:flex !important}.main-feed{padding-bottom:80px !important}.hide-mobile{display:none !important}
+          /* Layout */
+          .dashboard-grid{grid-template-columns:1fr !important}.desktop-only{display:none !important}.desktop-view{display:none !important}.mobile-view{display:block !important}.mobile-bottom-nav{display:flex !important}.main-feed{padding:14px 14px 80px !important}.hide-mobile{display:none !important}
+
+          /* Job feed */
+          .feed-header-row{flex-wrap:wrap;gap:6px}
+          .feed-header-row select{font-size:12px}
+          .feed-filters{gap:4px !important}
+          .feed-filters button{padding:4px 10px !important;font-size:11px !important}
+
+          /* Job cards */
+          .job-card{padding:12px 12px !important;border-radius:12px !important}
+          .jc-logo{width:34px !important;height:34px !important;font-size:12px !important;border-radius:8px !important}
+          .jc-actions{gap:0 !important;margin-top:6px !important}
+          .jc-action-btn{min-width:36px !important;min-height:36px !important;display:inline-flex !important;align-items:center !important;justify-content:center !important;padding:6px 6px !important;font-size:16px !important}
         }
+        @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes fitted-dot{0%,100%{opacity:.25;transform:scale(.75)}50%{opacity:1;transform:scale(1)}}
         @keyframes sk{0%,100%{opacity:.45}50%{opacity:.9}}
       `}</style>
