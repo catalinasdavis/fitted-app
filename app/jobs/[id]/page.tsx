@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import type { Job } from '../../../lib/jobs'
 
-interface Profile { plan: string; about_me: string | null; career_field: string | null; career_stage: string | null; pay_target: string | null; subscription_status?: string | null; current_period_end?: string | null }
+interface Profile { plan: string; about_me: string | null; career_field: string | null; career_stage: string | null; pay_target: string | null; subscription_status?: string | null; current_period_end?: string | null; ai_prefs?: { autoMatch?: boolean; autoTailor?: boolean; autoStandout?: boolean; autoInterviewPrep?: boolean } | null }
 interface Resume { id: string; name: string; resume_text: string; is_active: boolean }
 interface User { email: string; id: string }
 interface TrackerEntry { id: string; job_id: string; column_id: string; notes: string; deleted_at: string | null }
@@ -109,7 +109,7 @@ export default function JobDetail() {
   }, [jobId])
 
   useEffect(() => {
-    if (dataReady && job && !matchDone.current && !matchLoading) runMatch()
+    if (dataReady && job && !matchDone.current && !matchLoading && profile?.ai_prefs?.autoMatch !== false) runMatch()
   }, [dataReady, job])
 
   function bestResume(list: Resume[]): Resume | null {
@@ -368,8 +368,9 @@ Their answer: "${answer}"`
 
   function handleTab(t: typeof tab) {
     setTab(t)
-    if (t === 'tailor'   && !tailorDone.current   && !tailorLoading)   runTailor()
-    if (t === 'standout' && !standoutDone.current && !standoutLoading) runStandout()
+    if (t === 'tailor'   && !tailorDone.current   && !tailorLoading   && profile?.ai_prefs?.autoTailor   !== false) runTailor()
+    if (t === 'standout' && !standoutDone.current && !standoutLoading && profile?.ai_prefs?.autoStandout !== false) runStandout()
+    if (t === 'prep'     && !prepAIDone.current   && !prepAILoading   && profile?.ai_prefs?.autoInterviewPrep === true) runInterviewPrep()
   }
 
   async function signOut() {

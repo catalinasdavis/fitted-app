@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   if (!user?.id) return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
 
   const body = await request.json()
-  const allowed = ['career_field', 'career_stage', 'priority', 'about_me', 'locations', 'pay_target', 'portfolio_files']
+  const allowed = ['career_field', 'career_stage', 'priority', 'about_me', 'locations', 'pay_target', 'portfolio_files', 'ai_prefs']
   const payload: any = {}
   allowed.forEach(f => { if (body[f] !== undefined) payload[f] = body[f] })
   if (typeof payload.about_me   === 'string') payload.about_me   = payload.about_me.substring(0, 2000)

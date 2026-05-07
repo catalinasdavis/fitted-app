@@ -19,6 +19,8 @@ interface Profile {
   current_period_end?: string | null
   cancelled_at?: string | null
   grace_period_ends_at?: string | null
+  ai_prefs?: { autoMatch?: boolean; autoTailor?: boolean; autoStandout?: boolean; autoFittedThinks?: boolean; autoInterviewPrep?: boolean; autoNegotiate?: boolean } | null
+  coach_memory?: { actionCount?: { saved: number; applied: number; tailored: number; healthChecked: number } } | null
 }
 interface Resume  { id: string; name: string; filename: string; is_active: boolean; resume_text: string; created_at: string }
 interface TrackerEntry {
@@ -205,6 +207,7 @@ export default function Home() {
   const [acctInvoices, setAcctInvoices] = useState<Array<{id:string;amount:number;currency:string;date:number;description:string;url:string|null;pdf:string|null}>|null>(null)
   const [acctInvLoad, setAcctInvLoad] = useState(false)
   const [coachNudge,  setCoachNudge]  = useState<string | null>(null)
+  const [aiPrefSave,  setAiPrefSave]  = useState('')
 
   const stRef = useRef<NodeJS.Timeout | null>(null)
   const fRef  = useRef<HTMLInputElement>(null)
@@ -341,6 +344,12 @@ export default function Home() {
       if (data.success) await fetch('/api/resumes', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: file.name.replace(/\.[^/.]+$/,''), filename: file.name, resume_text: data.resumeText})})
     }
     const r = await fetch('/api/resumes').then(r=>r.json()); setResumes(r.resumes||[]); setUploading(false)
+  }
+  async function updateAiPref(key: string, val: boolean) {
+    const merged = { ...(profile?.ai_prefs ?? {}), [key]: val }
+    setProfile(p => p ? { ...p, ai_prefs: merged } : p)
+    await fetch('/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ai_prefs: merged }) })
+    setAiPrefSave('Saved'); setTimeout(() => setAiPrefSave(''), 1500)
   }
   function dismissCoachNudge() {
     setCoachNudge(null)
@@ -1294,6 +1303,51 @@ Return JSON only — no other text:
                   </div>
                 </div>
               )}
+
+              {/* AI Preferences section */}
+              <div style={{padding:'20px 28px 0'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                  <div style={{fontSize:10.5,fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase' as const,color:'#b0b0b8'}}>AI Preferences</div>
+                  {aiPrefSave&&<span style={{fontSize:11,color:'#1a7a4a'}}>{aiPrefSave}</span>}
+                </div>
+                {isPro&&profile?.coach_memory?.actionCount&&(()=>{
+                  const c = profile.coach_memory!.actionCount!
+                  const total = (c.tailored||0)+(c.healthChecked||0)+(c.applied||0)
+                  return(
+                    <div style={{background:'#f4f0fb',borderRadius:10,padding:'10px 14px',marginBottom:14,display:'flex',alignItems:'center',gap:10}}>
+                      <span style={{fontSize:20,color:'#7c5cbf'}}>✦</span>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:500,color:'#3d1a6a'}}>{total} AI action{total!==1?'s':''} used</div>
+                        <div style={{fontSize:11.5,color:'#7a7a85'}}>Approximate activity — 30 included with Pro/month</div>
+                      </div>
+                    </div>
+                  )
+                })()}
+                <div style={{border:'1px solid rgba(0,0,0,.08)',borderRadius:12,overflow:'hidden'}}>
+                  {([
+                    {key:'autoMatch',        label:'Match Insights',         desc:'Auto-analyze fit when opening a job'},
+                    {key:'autoTailor',       label:'Tailor My Resume',       desc:'Auto-generate suggestions on the Tailor tab'},
+                    {key:'autoStandout',     label:'Help Me Stand Out',      desc:'Auto-generate on the Stand Out tab'},
+                    {key:'autoFittedThinks', label:'fitted. thinks insights',desc:'Candidate snapshot in Match tab'},
+                    {key:'autoInterviewPrep',label:'Interview Prep',         desc:'Auto-generate when opening Prep tab'},
+                    {key:'autoNegotiate',    label:'Salary Negotiation',     desc:'Show negotiate button on Prep tab'},
+                  ] as const).map(({key,label,desc},i,arr)=>{
+                    const on = (profile?.ai_prefs?.[key] ?? (key==='autoInterviewPrep'||key==='autoNegotiate'?false:true))
+                    return(
+                      <div key={key} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderTop:i===0?'none':'1px solid rgba(0,0,0,.06)',background:'#fff'}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:500,color:'#1a1a1f'}}>{label}</div>
+                          <div style={{fontSize:11.5,color:'#7a7a85',marginTop:1}}>{desc}</div>
+                        </div>
+                        <button onClick={()=>updateAiPref(key,!on)} style={{flexShrink:0,width:38,height:22,borderRadius:11,background:on?'#1a7a4a':'#d0d0d8',border:'none',cursor:'pointer',position:'relative' as const,transition:'background .15s'}}>
+                          <span style={{position:'absolute' as const,top:3,left:on?18:3,width:16,height:16,borderRadius:'50%',background:'#fff',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)',display:'block'}}/>
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+                <p style={{fontSize:11,color:'#b0b0b8',margin:'8px 2px 0',lineHeight:1.5}}>Turning off auto-generation saves AI actions — you can still run any feature manually.</p>
+              </div>
 
               {/* Receipts section */}
               <div style={{padding:'20px 28px 24px'}}>
