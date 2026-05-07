@@ -593,11 +593,11 @@ Their answer: "${answer}"`
       </nav>
 
       <div style={{ background: '#fff', borderBottom: '1px solid rgba(0,0,0,.07)' }}>
-        <div style={{ padding: '16px 20px 12px' }}>
+        <div className="jd-job-header" style={{ padding: '16px 20px 12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
             <div style={{ width: 52, height: 52, borderRadius: 12, background: job.logoBg, color: job.logoColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Georgia,serif', fontSize: 18, border: '1px solid rgba(0,0,0,.07)', flexShrink: 0 }}>{job.logo}</div>
             <div>
-              <h1 style={{ fontFamily: 'Georgia,serif', fontSize: 22, color: '#1a1a1f', margin: '0 0 3px', fontWeight: 400 }}>{job.title}</h1>
+              <h1 className="jd-job-title" style={{ fontFamily: 'Georgia,serif', fontSize: 22, color: '#1a1a1f', margin: '0 0 3px', fontWeight: 400 }}>{job.title}</h1>
               <p style={{ fontSize: 13, color: '#7a7a85', margin: 0 }}><strong style={{ color: '#3d3d45', fontWeight: 500 }}>{job.company}</strong> · {job.location} · {job.pay}</p>
             </div>
           </div>
@@ -615,7 +615,7 @@ Their answer: "${answer}"`
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid rgba(0,0,0,.07)' }}>
             <span style={{ fontSize: 12, color: '#b0b0b8' }}>Posted {job.posted}</span>
             {job.url
-              ? <button onClick={applyToJob}
+              ? <button onClick={applyToJob} className="jd-apply-btn"
                   style={{ background: applyDone ? '#1a7a4a' : '#2f3e5c', color: '#fff', padding: '9px 20px', borderRadius: 9, fontSize: 13.5, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'sans-serif', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'background .2s' }}>
                   {applyDone ? 'Applied ✓' : 'Apply Now →'}
                 </button>
@@ -1243,6 +1243,9 @@ Their answer: "${answer}"`
           .jd-sidebar { display: none !important }
           .jd-content { padding: 14px 14px !important; overflow-y: visible !important }
           .match-rings-grid { grid-template-columns: repeat(3,1fr) !important; gap: 6px !important }
+          .jd-job-header { padding: 12px 14px 10px !important }
+          .jd-job-title { font-size: 18px !important }
+          .jd-apply-btn { padding: 8px 16px !important; font-size: 13px !important }
         }
         @keyframes shimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
       `}</style>
