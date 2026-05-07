@@ -876,9 +876,9 @@ Return JSON only — no other text:
               <p style={{fontSize:13,color:'#7a7a85',maxWidth:260,lineHeight:1.6,margin:0}}>Save jobs from the Browse tab and they'll appear here — track every stage of your search in one place.</p>
               <button onClick={()=>setView('browse')} style={{background:'#2f3e5c',color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif',marginTop:4}}>Browse jobs →</button>
             </div>
-          : <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:16}}>
+          : <div className="tracker-board" style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:16}}>
               {TCOLS.map(col=>{const ce=activeE.filter(e=>e.column_id===col.id);const nextIds=NEXT[col.id]??[];return(
-                <div key={col.id} style={{flexShrink:0,width:220}} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(drag)moveEntry(drag,col.id)}}>
+                <div key={col.id} className={`tracker-col${ce.length===0?' tracker-col-empty':''}`} style={{flexShrink:0,width:220}} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(drag)moveEntry(drag,col.id)}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:col.bg,borderRadius:8,padding:'8px 12px',marginBottom:8}}>
                     <span style={{fontSize:11.5,fontWeight:600,color:col.color,textTransform:'uppercase' as const,letterSpacing:'.06em'}}>{col.label}</span>
                     <span style={{fontSize:11,fontWeight:600,color:col.color,background:'rgba(255,255,255,.7)',padding:'1px 7px',borderRadius:20}}>{ce.length}</span>
@@ -890,7 +890,7 @@ Return JSON only — no other text:
                           const added = fmtAdded(e.added_at)
                           const nextCols = nextIds.map(id=>TCOLS.find(c=>c.id===id)).filter(Boolean) as typeof TCOLS
                           return (
-                            <div key={e.id} draggable onDragStart={()=>setDrag(e.id)} onDragEnd={()=>setDrag(null)} onClick={()=>router.push(`/jobs/${e.job_id}`)} style={{background:'#fff',border:'1px solid rgba(0,0,0,.07)',borderRadius:10,padding:'12px 14px',cursor:'grab'}}>
+                            <div key={e.id} className="tracker-card" draggable onDragStart={()=>setDrag(e.id)} onDragEnd={()=>setDrag(null)} onClick={()=>router.push(`/jobs/${e.job_id}`)} style={{background:'#fff',border:'1px solid rgba(0,0,0,.07)',borderRadius:10,padding:'12px 14px',cursor:'grab'}}>
                               <div style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:6}}>
                                 <div style={{width:28,height:28,borderRadius:6,background:e.job_logo_bg,color:e.job_logo_color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontFamily:'Georgia, serif',flexShrink:0}}>{e.job_logo}</div>
                                 <div style={{flex:1,minWidth:0}}>
@@ -903,7 +903,7 @@ Return JSON only — no other text:
                                 {e.resume_name&&<div style={{fontSize:10.5,color:'#2d5be3',background:'#eaeffe',padding:'2px 7px',borderRadius:20}}>{e.resume_name}</div>}
                                 {added&&<div style={{fontSize:10.5,color:'#b0b0b8'}}>{added}</div>}
                               </div>
-                              <div style={{display:'flex',gap:4,marginTop:4}} onClick={ev=>ev.stopPropagation()}>
+                              <div className="tracker-card-actions" style={{display:'flex',gap:4,marginTop:4}} onClick={ev=>ev.stopPropagation()}>
                                 {nextCols.map(c=><button key={c.id} onClick={()=>moveEntry(e.id,c.id)} style={{flex:1,padding:'4px',border:'1px solid rgba(0,0,0,.1)',borderRadius:6,fontSize:10,fontFamily:'sans-serif',cursor:'pointer',background:'#fff',color:'#7a7a85',textAlign:'center' as const}}>→ {c.label.split(' ')[0]}</button>)}
                                 <button onClick={()=>softDel(e.id)} style={{padding:'4px 8px',border:'1px solid rgba(0,0,0,.1)',borderRadius:6,fontSize:10,cursor:'pointer',background:'#fff',color:'#c0392b'}}>🗑</button>
                               </div>
@@ -1237,11 +1237,11 @@ Return JSON only — no other text:
 
       {/* ACCOUNT SETTINGS MODAL */}
       {showAccount&&(
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget)setShowAccount(false)}}>
-          <div style={{background:'#fff',borderRadius:20,padding:0,maxWidth:480,width:'100%',maxHeight:'85vh',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        <div className="acct-overlay" style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget)setShowAccount(false)}}>
+          <div className="acct-modal" style={{background:'#fff',borderRadius:20,padding:0,maxWidth:480,width:'100%',maxHeight:'85vh',display:'flex',flexDirection:'column',overflow:'hidden'}}>
 
             {/* Header */}
-            <div style={{padding:'24px 28px 20px',borderBottom:'1px solid rgba(0,0,0,.07)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+            <div className="acct-header" style={{padding:'24px 28px 20px',borderBottom:'1px solid rgba(0,0,0,.07)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
               <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:0}}>Account Settings</h2>
               <button onClick={()=>setShowAccount(false)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:22,lineHeight:1,padding:4}}>×</button>
             </div>
@@ -1250,7 +1250,7 @@ Return JSON only — no other text:
             <div style={{overflowY:'auto',flex:1}}>
 
               {/* Profile section */}
-              <div style={{padding:'20px 28px 0'}}>
+              <div className="acct-section" style={{padding:'20px 28px 0'}}>
                 <div style={{fontSize:10.5,fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase' as const,color:'#b0b0b8',marginBottom:12}}>Profile</div>
                 <div style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:'#f9f8f5',borderRadius:12}}>
                   <div style={{width:38,height:38,borderRadius:'50%',background:'#2f3e5c',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Georgia, serif',fontSize:15,flexShrink:0}}>
@@ -1274,7 +1274,7 @@ Return JSON only — no other text:
 
               {/* Subscription section — Pro only */}
               {isPro&&(
-                <div style={{padding:'20px 28px 0'}}>
+                <div className="acct-section" style={{padding:'20px 28px 0'}}>
                   <div style={{fontSize:10.5,fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase' as const,color:'#b0b0b8',marginBottom:12}}>Subscription</div>
                   <div style={{border:'1px solid rgba(0,0,0,.08)',borderRadius:12,overflow:'hidden'}}>
                     <div style={{padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
@@ -1291,7 +1291,7 @@ Return JSON only — no other text:
                         : <span style={{fontSize:11,fontWeight:600,color:'#1a7a4a',background:'rgba(26,122,74,.1)',padding:'3px 9px',borderRadius:20}}>Active</span>
                       }
                     </div>
-                    <div style={{borderTop:'1px solid rgba(0,0,0,.06)',padding:'12px 16px',display:'flex',gap:10,background:'#fafaf8'}}>
+                    <div className="acct-sub-buttons" style={{borderTop:'1px solid rgba(0,0,0,.06)',padding:'12px 16px',display:'flex',gap:10,background:'#fafaf8'}}>
                       <button onClick={()=>{setShowAccount(false);checkout('portal')}} disabled={stripeL==='portal'} style={{flex:1,padding:'9px 12px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:10,fontFamily:'sans-serif',fontSize:13,fontWeight:500,cursor:'pointer',opacity:stripeL==='portal'?.6:1}}>
                         {stripeL==='portal'?'Redirecting…':'Manage subscription'}
                       </button>
@@ -1304,7 +1304,7 @@ Return JSON only — no other text:
               )}
 
               {/* AI Preferences section */}
-              <div style={{padding:'20px 28px 0'}}>
+              <div className="acct-section" style={{padding:'20px 28px 0'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
                   <div style={{fontSize:10.5,fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase' as const,color:'#b0b0b8'}}>AI Preferences</div>
                   {aiPrefSave&&<span style={{fontSize:11,color:'#1a7a4a'}}>{aiPrefSave}</span>}
@@ -1349,7 +1349,7 @@ Return JSON only — no other text:
               </div>
 
               {/* Receipts section */}
-              <div style={{padding:'20px 28px 24px'}}>
+              <div className="acct-section" style={{padding:'20px 28px 24px'}}>
                 <div style={{fontSize:10.5,fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase' as const,color:'#b0b0b8',marginBottom:12}}>Receipts</div>
 
                 {acctInvLoad&&(
@@ -1501,6 +1501,21 @@ Return JSON only — no other text:
           .jc-logo{width:34px !important;height:34px !important;font-size:12px !important;border-radius:8px !important}
           .jc-actions{gap:0 !important;margin-top:6px !important}
           .jc-action-btn{min-width:36px !important;min-height:36px !important;display:inline-flex !important;align-items:center !important;justify-content:center !important;padding:6px 6px !important;font-size:16px !important}
+
+          /* Tracker — vertical stack on mobile */
+          .tracker-board{flex-direction:column !important;overflow-x:visible !important;gap:8px !important}
+          .tracker-col{width:100% !important;flex-shrink:1 !important}
+          .tracker-col-empty{display:none !important}
+          .tracker-card{cursor:pointer !important}
+          .tracker-card-actions button{min-height:36px !important;font-size:12px !important}
+
+          /* Account modal — bottom sheet on mobile */
+          .acct-overlay{padding:0 !important;align-items:flex-end !important}
+          .acct-modal{max-height:92vh !important;border-radius:20px 20px 0 0 !important;width:100% !important;max-width:100% !important}
+          .acct-header{padding:18px 18px 14px !important}
+          .acct-section{padding-left:18px !important;padding-right:18px !important}
+          .acct-sub-buttons{flex-direction:column !important}
+          .acct-sub-buttons button{width:100% !important}
         }
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes fitted-dot{0%,100%{opacity:.25;transform:scale(.75)}50%{opacity:1;transform:scale(1)}}
