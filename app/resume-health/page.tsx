@@ -113,7 +113,14 @@ export default function ResumeHealthPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f4f2ed', fontFamily: 'sans-serif' }}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}`}</style>
+      <style>{`
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+        @media (max-width: 768px) {
+          .rh-page{padding:16px 16px 60px !important}
+          .rh-score-card{flex-direction:column !important;align-items:flex-start !important;gap:14px !important;padding:18px 16px !important}
+        }
+      `}</style>
 
       <nav style={{ height: 56, background: '#fff', borderBottom: '1px solid rgba(0,0,0,.07)', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 14 }}>
         <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#7a7a85', cursor: 'pointer', fontSize: 13, fontFamily: 'sans-serif', padding: 0 }}>← Back</button>
@@ -122,7 +129,7 @@ export default function ResumeHealthPage() {
         <span style={{ fontSize: 13, color: '#b0b0b8' }}>/ Resume Health</span>
       </nav>
 
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: '32px 20px 60px' }}>
+      <div className="rh-page" style={{ maxWidth: 680, margin: '0 auto', padding: '32px 20px 60px' }}>
 
         {/* ── STEP 1: SETUP ────────────────────────────── */}
         {step === 'setup' && (
@@ -182,7 +189,7 @@ export default function ResumeHealthPage() {
           <div style={{ animation: 'fadeIn .4s ease' }}>
 
             {/* Score card */}
-            <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderRadius: 14, padding: '24px 28px', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 24 }}>
+            <div className="rh-score-card" style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderRadius: 14, padding: '24px 28px', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 24 }}>
               <ScoreRing value={result.score} size={96} />
               <div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
