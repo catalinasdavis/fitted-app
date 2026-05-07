@@ -570,7 +570,7 @@ Return JSON only — no other text:
   const selStyle = {width:'100%',padding:'6px 9px',border:'1px solid rgba(0,0,0,.13)',borderRadius:6,fontFamily:'sans-serif',fontSize:12.5,color:'#1a1a1f',background:'#f4f2ed',outline:'none',boxSizing:'border-box' as const,cursor:'pointer'}
 
   const RP = ({ mob = false }: { mob?: boolean }) => (
-    <div style={{padding:'18px 16px',display:'flex',flexDirection:'column',overflowY:'auto',height:'100%',boxSizing:'border-box' as const}}>
+    <div className={mob?'rp-mob':'rp-desktop'} style={{padding:'18px 16px',display:'flex',flexDirection:'column',overflowY:'auto',height:'100%',boxSizing:'border-box' as const}}>
       <div style={{paddingBottom:18,marginBottom:18,borderBottom:'1px solid rgba(0,0,0,.07)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
           <span style={{fontFamily:'Georgia, serif',fontSize:16}}>Career</span>
@@ -621,11 +621,30 @@ Return JSON only — no other text:
       </div>
       {mob && (
         <div style={{paddingBottom:18,marginBottom:18,borderBottom:'1px solid rgba(0,0,0,.07)'}}>
-          <div style={{fontFamily:'Georgia, serif',fontSize:16,marginBottom:10}}>My Resumes</div>
-          <div onClick={()=>lim.atLimit?setShowLim(true):fRef.current?.click()} style={{border:'1.5px dashed rgba(0,0,0,.15)',borderRadius:8,padding:10,textAlign:'center',cursor:'pointer',marginBottom:10}}>
-            <div style={{fontSize:12,color:'#7a7a85'}}>{uploading?'⏳ Reading…':'+ Upload a resume'}<div style={{fontSize:10,color:'#b0b0b8',marginTop:2}}>PDF · DOCX · TXT</div></div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+            <div style={{fontFamily:'Georgia, serif',fontSize:16}}>My Resumes</div>
+            <button onClick={openAccount} style={{fontSize:12,color:'#7a7a85',background:'#f4f2ed',border:'1px solid rgba(0,0,0,.1)',borderRadius:8,padding:'5px 11px',cursor:'pointer',fontFamily:'sans-serif',display:'flex',alignItems:'center',gap:5}}>
+              <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M1.5 11.5c0-2.2 2.2-4 5-4s5 1.8 5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+              Account
+            </button>
           </div>
-          {resumes.map(r=><div key={r.id} style={{padding:'8px 10px',borderRadius:8,border:`1px solid ${r.is_active?'#2d5be3':'rgba(0,0,0,.07)'}`,background:r.is_active?'#eaeffe':'#f4f2ed',marginBottom:6}}><div style={{display:'flex',alignItems:'center',gap:7}}><div onClick={()=>toggleActive(r.id)} style={{width:7,height:7,borderRadius:'50%',background:r.is_active?'#2d5be3':'#b0b0b8',cursor:'pointer',flexShrink:0}}/><span style={{fontSize:12.5,color:r.is_active?'#2d5be3':'#3d3d45',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:r.is_active?500:400}}>{r.name}</span><button onClick={()=>delResume(r.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:14}}>×</button></div></div>)}
+          <div onClick={()=>lim.atLimit?setShowLim(true):fRef.current?.click()} className="resume-upload-zone" style={{border:'1.5px dashed rgba(0,0,0,.15)',borderRadius:10,padding:'16px 12px',textAlign:'center',cursor:'pointer',marginBottom:10,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+            {uploading
+              ? <><div style={{fontSize:14}}>⏳</div><div style={{fontSize:13,color:'#7a7a85'}}>Reading…</div></>
+              : <><div style={{fontSize:22,lineHeight:1}}>📄</div><div style={{fontSize:13,color:'#7a7a85',fontWeight:500}}>Upload a resume</div><div style={{fontSize:11,color:'#b0b0b8'}}>PDF · DOCX · TXT</div></>}
+          </div>
+          {resumes.map(r=>(
+            <div key={r.id} style={{padding:'10px 12px',borderRadius:10,border:`1px solid ${r.is_active?'#2d5be3':'rgba(0,0,0,.07)'}`,background:r.is_active?'#eaeffe':'#f4f2ed',marginBottom:8}}>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <div onClick={()=>toggleActive(r.id)} style={{width:9,height:9,borderRadius:'50%',background:r.is_active?'#2d5be3':'#b0b0b8',cursor:'pointer',flexShrink:0}}/>
+                <span style={{fontSize:13,color:r.is_active?'#2d5be3':'#3d3d45',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:r.is_active?500:400}}>{r.name}</span>
+                <button onClick={()=>delResume(r.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:18,lineHeight:1,minWidth:32,minHeight:32,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+              </div>
+              <div style={{display:'flex',gap:6,marginTop:8}}>
+                <a href={`/resume-health?r=${r.id}`} style={{fontSize:11.5,color:'#7c5cbf',background:'rgba(124,92,191,0.08)',padding:'4px 10px',borderRadius:20,textDecoration:'none',fontWeight:500}}>✦ Health Score</a>
+              </div>
+            </div>
+          ))}
         </div>
       )}
       <div>
@@ -712,7 +731,8 @@ Return JSON only — no other text:
           value={kwSearch}
           onChange={e => { setKwSearch(e.target.value); if (nlFilters) setNlFilters(null) }}
           onKeyDown={e => { if (e.key === 'Enter' && kwSearch.trim()) parseNLQuery(kwSearch) }}
-          placeholder="Try: 'remote PM, no startups' or 'less stressful than my last role'"
+          placeholder="Search jobs or try 'remote PM, no startups'…"
+          className="nl-search-input"
           style={{width:'100%',padding:'8px 74px 8px 32px',border:`1px solid ${nlFilters?'rgba(109,40,217,.35)':'rgba(0,0,0,.12)'}`,borderRadius:10,fontFamily:'sans-serif',fontSize:13,background:nlFilters?'#faf8ff':'#fff',color:'#1a1a1f',outline:'none',boxSizing:'border-box' as const}}
         />
         <div style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',display:'flex',alignItems:'center',gap:4}}>
@@ -926,10 +946,10 @@ Return JSON only — no other text:
       <nav style={{height:60,background:'#fff',borderBottom:'1px solid rgba(0,0,0,.07)',display:'flex',alignItems:'center',padding:'0 18px',gap:14,flexShrink:0,zIndex:20}}>
         <div style={{display:'flex',flexDirection:'column',flexShrink:0,lineHeight:1}}>
           <span style={{fontFamily:'Georgia, serif',fontSize:22,letterSpacing:'-.02em',color:'#1a1a1f'}}>fitted<span style={{color:'#2d5be3'}}>.</span></span>
-          <span style={{fontSize:11.5,color:'#b8a99a',fontFamily:'sans-serif',fontWeight:300,marginTop:2}}>get a career tailor-made for you</span>
+          <span className="nav-subtitle" style={{fontSize:11.5,color:'#b8a99a',fontFamily:'sans-serif',fontWeight:300,marginTop:2}}>get a career tailor-made for you</span>
         </div>
-        <div style={{width:1,height:32,background:'rgba(0,0,0,.1)',flexShrink:0}}/>
-        <div style={{flex:1,maxWidth:460,position:'relative'}}>
+        <div className="nav-divider" style={{width:1,height:32,background:'rgba(0,0,0,.1)',flexShrink:0}}/>
+        <div className="nav-search" style={{flex:1,maxWidth:460,position:'relative'}}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'#b0b0b8',pointerEvents:'none'}}><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.4"/><path d="M9 9L12.5 12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
           <input value={isPro?cSearch:''} onChange={e=>isPro&&setCSearch(e.target.value)} onClick={()=>!isPro&&setShowUp(true)} placeholder={isPro?'Search companies…':'Search companies… (Pro)'} readOnly={!isPro} style={{width:'100%',padding:'7px 12px 7px 32px',border:'1px solid rgba(0,0,0,.12)',borderRadius:10,fontFamily:'sans-serif',fontSize:13,background:'#f4f2ed',color:'#1a1a1f',outline:'none',cursor:isPro?'text':'pointer'}}/>
         </div>
@@ -1058,7 +1078,7 @@ Return JSON only — no other text:
         {[{id:'tracker',label:'Tracker',svg:<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="3" width="3.5" height="14" rx="1.5" fill="currentColor" opacity=".5"/><rect x="7.5" y="2" width="3.5" height="15" rx="1.5" fill="currentColor" opacity=".8"/><rect x="13.5" y="6" width="3.5" height="11" rx="1.5" fill="currentColor"/></svg>},
           {id:'browse',label:'Browse',svg:<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="currentColor" opacity=".8"/><rect x="13" y="2" width="7" height="7" rx="1.5" fill="currentColor" opacity=".8"/><rect x="2" y="13" width="7" height="7" rx="1.5" fill="currentColor" opacity=".4"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="currentColor" opacity=".4"/></svg>},
           {id:'profile',label:'Profile',svg:<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.6"/><path d="M4 19c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>}]
-          .map(tab=><button key={tab.id} onClick={()=>setMobileTab(tab.id as any)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,background:'none',border:'none',cursor:'pointer',fontFamily:'sans-serif',color:mobileTab===tab.id?'#2d5be3':'#b0b0b8',flex:1,padding:'4px 0'}}>{tab.svg}<span style={{fontSize:10,fontWeight:mobileTab===tab.id?600:400}}>{tab.label}</span></button>)}
+          .map(tab=><button key={tab.id} onClick={()=>setMobileTab(tab.id as any)} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,background:'none',border:'none',cursor:'pointer',fontFamily:'sans-serif',color:mobileTab===tab.id?'#2d5be3':'#b0b0b8',flex:1,padding:'4px 0',minHeight:44}}>{tab.svg}<span style={{fontSize:10,fontWeight:mobileTab===tab.id?600:400}}>{tab.label}</span></button>)}
       </div>
 
       <input ref={fRef} type="file" multiple accept=".pdf,.docx,.txt" style={{display:'none'}} onChange={e=>upload(e.target.files)}/>
@@ -1516,6 +1536,16 @@ Return JSON only — no other text:
           .acct-section{padding-left:18px !important;padding-right:18px !important}
           .acct-sub-buttons{flex-direction:column !important}
           .acct-sub-buttons button{width:100% !important}
+
+          /* Nav — clean minimal on mobile */
+          .nav-subtitle{display:none !important}
+          .nav-divider{display:none !important}
+          .nav-search{display:none !important}
+
+          /* Profile tab — fix double-padding and resize upload zone */
+          .rp-mob{padding:0 !important;height:auto !important;overflow-y:visible !important}
+          .resume-upload-zone{min-height:72px !important}
+          .nl-search-input::placeholder{font-size:12px}
         }
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes fitted-dot{0%,100%{opacity:.25;transform:scale(.75)}50%{opacity:1;transform:scale(1)}}
