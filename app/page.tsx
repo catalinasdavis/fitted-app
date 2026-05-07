@@ -1194,8 +1194,8 @@ Return JSON only — no other text:
 
       {/* UPGRADE MODAL */}
       {showUp&&(
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget)setShowUp(false)}}>
-          <div style={{background:'#fff',borderRadius:20,padding:32,maxWidth:440,width:'100%',maxHeight:'90vh',overflowY:'auto'}}>
+        <div className="up-overlay" style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget)setShowUp(false)}}>
+          <div className="up-card" style={{background:'#fff',borderRadius:20,padding:32,maxWidth:440,width:'100%',maxHeight:'90vh',overflowY:'auto'}}>
             <h2 style={{fontFamily:'Georgia, serif',fontSize:24,color:'#1a1a1f',margin:'0 0 6px'}}>fitted<span style={{color:'#2d5be3'}}>.</span> Pro</h2>
             <p style={{color:'#7a7a85',fontSize:13,margin:'0 0 20px',lineHeight:1.6}}>Unlock salary scripts, career path, interview feedback, company search, portfolio uploads, and unlimited resumes.</p>
             <div style={{background:'#f4f2ed',borderRadius:12,padding:16,marginBottom:22}}>
@@ -1546,6 +1546,10 @@ Return JSON only — no other text:
           .rp-mob{padding:0 !important;height:auto !important;overflow-y:visible !important}
           .resume-upload-zone{min-height:72px !important}
           .nl-search-input::placeholder{font-size:12px}
+
+          /* Upgrade modal — bottom sheet on mobile */
+          .up-overlay{padding:0 !important;align-items:flex-end !important}
+          .up-card{max-height:92vh !important;border-radius:20px 20px 0 0 !important;max-width:100% !important;padding:24px 20px 32px !important}
         }
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes fitted-dot{0%,100%{opacity:.25;transform:scale(.75)}50%{opacity:1;transform:scale(1)}}
