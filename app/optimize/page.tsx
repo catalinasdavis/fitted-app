@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 interface Resume { id: string; name: string; is_active: boolean }
@@ -67,7 +67,7 @@ const LOADING_MSGS = [
   'Calibrating match score…',
 ]
 
-export default function OptimizePage() {
+function OptimizeInner() {
   const router       = useRouter()
   const params       = useSearchParams()
   const preJobTitle  = params.get('jobtitle') || ''
@@ -366,5 +366,17 @@ export default function OptimizePage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function OptimizePage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', background: '#f4f2ed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#b0b0b8', fontSize: 14 }}>
+        Loading…
+      </div>
+    }>
+      <OptimizeInner />
+    </Suspense>
   )
 }

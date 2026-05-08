@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 interface Resume { id: string; name: string; is_active: boolean }
@@ -49,7 +49,7 @@ const LOADING_MSGS = [
   'Drafting candid insights…',
 ]
 
-export default function ResumeHealthPage() {
+function ResumeHealthInner() {
   const router  = useRouter()
   const params  = useSearchParams()
   const preId   = params.get('r') || ''
@@ -349,5 +349,17 @@ export default function ResumeHealthPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function ResumeHealthPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', background: '#f4f2ed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#b0b0b8', fontSize: 14 }}>
+        Loading…
+      </div>
+    }>
+      <ResumeHealthInner />
+    </Suspense>
   )
 }
