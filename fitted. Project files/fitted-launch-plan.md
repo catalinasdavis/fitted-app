@@ -1,7 +1,7 @@
 # fitted Launch Plan
 
 **Founder**: Catalina Davis  
-**Target Launch Date**: Saturday, June 13, 2026  
+**Target Launch Date**: Saturday, June 14, 2026  (exactly one year after I graduated from the University of Washington)
 **Buffer Launch Date**: Saturday, June 20, 2026 (Week 7 — only if quality demands it)  
 **Domain**: www.getfittedcareers.com (pending DNS)  
 **Repo**: github.com/catalinasdavis/fitted-app  
@@ -24,6 +24,62 @@ Every decision is measured against four lenses:
 4. **User experience** — Does this treat job seekers like intelligent adults who deserve real guidance?
 
 **Test for everything**: “Would I be proud to show this to someone I respect?”
+
+---
+
+## Monetization & Pricing Model (v1)
+
+**Tiers**
+
+- **Pro** — $9/month or $90/year (2 months free)
+  - 30 AI Actions per month
+  - All core Pro features
+  - Ability to buy additional AI Action packs
+
+- **Premium** — $16–18/month or $160–180/year (2 months free)
+  - Unlimited AI Actions
+  - Priority access + all Pro features
+
+**AI Actions System**
+- We no longer show raw token counts to users
+- All AI features (search, resume optimization, health score, Ask Fitted., coach nudges, interview prep, etc.) consume from a unified “AI Actions” pool
+- Pro users get 30 AI Actions per month
+- Users can buy extra Action packs if they run out
+- In Account settings, users can toggle on/off auto-generation for:
+  - Match Insights on job detail
+  - Tailor My Resume suggestions
+  - Help Me Stand Out
+  - fitted. thinks insights
+
+**Buy More Packs (for Pro users)**
+
+Pack | Actions | Price
+--- | --- | ---
+Small | 10 Actions | $5
+Medium | 25 Actions | $12 *(most popular)*
+Large | 60 Actions | $25
+
+---
+
+## AI Model Usage Strategy (Haiku vs Sonnet)
+
+To balance cost and quality, we use two Claude models strategically:
+
+| Feature | Model | Reason |
+|---|---|---|
+| Natural Language Search | Haiku | Fast, frequent, good enough |
+| Basic Match Scoring | Haiku | Very frequent calls |
+| Resume Health Score | Haiku | Frequent |
+| Personal Coach Nudges & Summaries | Haiku | Short & frequent |
+| Per-Job Resume Optimization | **Sonnet** | High value, needs quality |
+| Ask Fitted. Chat | Sonnet (first 2 turns) → Haiku | Quality conversation starter |
+| Interview Prep Generator | **Sonnet** | Needs to be smart |
+| Salary Negotiation Scripts | **Sonnet** | High stakes |
+| Career Path Simulator | **Sonnet** | Complex reasoning |
+
+**Rule of thumb**: Use **Sonnet** for deep coaching / high-stakes outputs. Use **Haiku** for everything else to protect margins.
+
+---
 
 ## Week-by-Week Roadmap
 
@@ -110,6 +166,47 @@ Every decision is measured against four lenses:
 **🚀 Launch**: Saturday, June 13, 2026
 
 **Week 7 — Buffer** (June 13 – 20, only if needed)
+
+## Bonus Tasks (Extra Time / Usage)
+
+These are high-value features we can tackle when main weekly goals are complete and usage remains.
+
+**High Priority**
+- ✅ Intelligent Natural Language Search Bar (with role suggestions and negative prompts)
+- ✅ Per-Job Resume Optimization + Before/After comparison
+- ✅ Resume Health Score + Candid "fitted. thinks" Insights
+- Final polish and deployment of coming-soon.html landing page to getfittedcareers.com (with proper Vercel config)
+
+**Medium-High Priority**
+- Improved Career Transition Intelligence: Add smart tags ("Realistic Stretch", "Good Next Step", "Ambitious Move") and better suggestions for users changing fields. Make recommendations feel like a thoughtful career coach instead of purely algorithmic.
+
+**Medium Priority**
+- ✅ Personal Career Coach Mode (memory, proactive nudges, continuous learning across sessions)
+- ✅ Job-specific Interview Prep Generator
+- ✅ Salary Negotiation Scripts (personalized)
+- ✅ AI Preferences toggles in Account modal (users can control auto-generation per feature)
+- Better About Me Editor: Expand to a large modal/popup textarea when editing, with autosave or clear Save button. Fix small-box scrolling frustration.
+- Social media content templates + posting calendar (using fitted. design system)
+
+**Lower Priority (Nice-to-Haves)**
+- Role Explorer ("What Could I Do?" suggestions)
+- Multiple Resume Versions Manager
+- ATS Compatibility Checker
+- Career Path Simulator
+
+---
+
+## Post-Launch Growth & Partnerships
+
+### Anthropic Startup Program Application
+- **Goal:** Apply for Anthropic Startup credits once we have:
+  - Live product with real users (target: 500+ active users)
+  - Some Pro subscription revenue
+  - Strong Claude usage demonstrated in the product
+- **Prepare one-pager:** product vision, how heavily we use Claude (search, resume optimization, coach mode, health score, etc.), traction metrics
+- **Timing:** 4–8 weeks after public launch (June/July 2026)
+
+---
 
 ## Cross-Cutting Concerns (tracked every week)
 
@@ -247,5 +344,79 @@ Every decision is measured against four lenses:
 
 ---
 
-**Last updated**: May 5, 2026  
+**2026-05-06 — Week 2 Day 5 + Bonus Tasks sprint**
+
+**Main Work**
+- Enhanced job detail page: tracker status badges in header pill row, SVG arc match rings (replacing flat stat cards), similar jobs shimmer skeleton while loading
+- Improved tracker UX: meaningful empty state with "Browse jobs →" CTA, date added + 📝 notes dot on cards, logical smart move buttons (NEXT map: saved→[applied,phone], applied→[phone,interview], etc.)
+- Feed cards now show tracker column pills for jobs past "Saved" (applied, interview, offer, etc.)
+
+**Bonus Tasks Completed (7 total)**
+1. **Intelligent Natural Language Search Bar** — NLP query parsing via Claude Haiku; structured filters applied client-side; include/exclude pills; role suggestions; purple active state
+2. **Per-Job Resume Optimization** — `/optimize` page + `/api/optimize`; before/after suggestion cards; keyword analysis; Pro gate after 2 suggestions
+3. **Resume Health Score** — `/resume-health` page + `/api/resume-health`; 5-dimension scoring; A+–D− grade; "fitted. thinks" summary; blindspot cards with severity/fix; Pro gate
+4. **Personal Career Coach foundation** — `coach_memory` JSONB on profiles; `/api/coach` route; welcome-back nudge after 3-day absence (Haiku, 7-day dismiss cooldown); rolling summary updated every 5 actions; purple nudge banner in feed
+5. **Job-specific Interview Prep Generator** — "✦ Generate Interview Prep" on Prep tab; category-badged cards; "fitted. thinks" talking points (Pro); 8 questions Sonnet / 4 Haiku; per-answer feedback retained
+6. **Salary Negotiation Scripts** — "✦ Prepare My Negotiation" on Prep tab; target range callout; opening script + talking points + pushback responses; counter-offer + email template (Pro); blurred gate for Free
+7. **AI Preferences toggles** — 6 toggles in Account modal (Match Insights, Tailor, Stand Out, fitted. thinks, Interview Prep, Negotiate); saves to `ai_prefs` JSONB on profiles; job detail page respects all prefs; approximate AI activity counter for Pro
+
+**Bug fix**
+- Resume uploads (POST /api/resume): fixed PDF filename fallback (empty MIME + .pdf extension fell through extractText branches); added Claude API error logging
+
+---
+
+**2026-05-07 — Week 3 Mobile Responsiveness (Day 1 + Day 2) + Coming Soon Deployment**
+
+**Week 3 Day 1 — Mobile Foundation**
+- Tracker board: vertical column stack on mobile (`flex-direction:column`), empty columns hidden (`tracker-col-empty` class + `display:none`)
+- Account modal: full bottom-sheet pattern on mobile (`align-items:flex-end`, `border-radius:20px 20px 0 0`, `max-height:92vh`, full-width)
+- Job detail page (`/jobs/[id]`): `jd-nav`, `jd-layout`, `jd-content`, `jd-sidebar` responsive classes; SVG arc rings grid → column on mobile; shimmer keyframe consolidated
+
+**Week 3 Day 2 — Polish + Remaining Pages**
+- Nav sidebar: `nav-subtitle`, `nav-divider`, `nav-search` hidden on mobile
+- Profile tab (RP): `rp-mob` class removes double-padding (main-feed already provides padding); `.rp-mob{padding:0!important}`
+- Resume upload zone redesigned: icon layout (`📄` + label + file type hint), `resume-upload-zone` class, cleaner tap target
+- Resume rows: clickable Health Score link integrated
+- Account button added to mobile Profile tab header (flex row with "My Resumes" heading)
+- Bottom nav: `minHeight:44` for proper touch targets
+- Upgrade modal: bottom-sheet on mobile (`up-overlay`/`up-card` classes)
+- Natural language search input: `nl-search-input` class
+- Job detail header polish: `jd-job-header`, `jd-job-title`, `jd-apply-btn` tighter sizing on mobile
+- Resume Health page: `rh-page`, `rh-score-card` classes; score card → column on mobile
+
+**Coming Soon Deployment**
+- `public/coming-soon.html` added — full landing page with countdown, marquee, features grid, PWA install guide
+- Root rewrite issue: `vercel.json` rewrites are overridden by Next.js routing manifest on Vercel framework deployments; fixed by moving rewrite to `next.config.ts` `beforeFiles` (runs inside Next.js router before app-directory lookup)
+
+**Vercel Build Fix**
+- Build error: `useSearchParams() should be wrapped in a suspense boundary at page "/optimize"` (same on `/resume-health`)
+- Fix: extracted component body into `OptimizeInner` / `ResumeHealthInner`; default export wraps in `<Suspense>` with loading fallback; both pages now build as `○ (Static)`
+
+**PWA Icons**
+- Created `public/icon.svg` — 512×512 dark bg (`#1a1a1f`), "f" in off-white Georgia serif (`#faf9f6`), "." in italic taupe (`#b8a99a`), rounded corners (`rx=114`)
+- Created `public/manifest.json` — name "fitted.", `theme_color`/`background_color` `#1a1a1f`, SVG icon reference
+- Added `<link rel="manifest">`, `<link rel="icon">`, `<link rel="apple-touch-icon">` to `coming-soon.html` head
+
+**Stripe Cancellation Save Flow (backend complete)**
+- `/api/stripe/cancel-subscription` — cancels at period end, marks `cancelled_at` in profiles
+- `/api/stripe/save-offer` — checks eligibility (monthly Pro, ≤2 prior offers), applies 50% coupon for 3 months
+- `/api/stripe/webhook` — handles `customer.subscription.updated` to sync cancel/reactivate state
+- Frontend modal (cancel → offer → confirm flow) not yet built — tracked in open plan
+
+---
+
+## Known Issues & Bugs (Running List)
+
+**Date** | **Issue** | **Status** | **Notes**
+--- | --- | --- | ---
+2026-05-05 | Match scoring too punitive for career changers | **Open** | Scores often 68% or lower even for realistic transitions (e.g. retail/aerospace → marketing/partnerships/luxury brands/sponsorships). Need better "directional" intelligence with tags like "Realistic Stretch", "Good Transition Path".
+2026-05-05 | Resume uploads failing (POST /api/resume returns 400) | **Unfixed** | Claude API returns 401 "invalid x-api-key". PDFs fail to extract text.
+2026-05-01 | Adzuna API returns 400/401 errors | **Unfixed** | AUTH_FAIL or HTML error page. Still falling back to static jobs.
+2026-05-07 | `useSearchParams()` Suspense error on `/optimize` and `/resume-health` | **Fixed** | Wrapped in `<Suspense>` — pages now build as static. |
+2026-05-01 | coming-soon.html landing page not live on getfittedcareers.com | **Fixed** | Moved rewrite to `next.config.ts` `beforeFiles`; `vercel.json` insufficient for Next.js framework deployments on Vercel. |
+<!-- Add new issues above this line, newest first -->
+
+---
+
+**Last updated**: May 7, 2026  
 **Next checkpoint**: Friday, May 15 (Week 2 checkpoint)
