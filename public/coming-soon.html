@@ -1260,48 +1260,90 @@
 
     /* Large text: font-size set on <html> in JS so rem units scale */
 
-    /* High contrast */
+    /* High contrast — light brand palette, dark text */
     body.a11y-high-contrast {
-      --charcoal:    #000000;
-      --navy:        #00112b;
-      --bg:          #0a0a0a;
-      --off-white:   #ffffff;
-      --taupe:       #f5c842;
-      --taupe-mid:   #f5c842;
-      --taupe-light: #f5c842;
-      background: #000 !important;
-      color: #fff !important;
+      --charcoal:    #f4f2ed;
+      --navy:        #2f3e5c;
+      --bg:          #f4f2ed;
+      --off-white:   #1a1a1f;
+      --taupe:       #5171BF;
+      --taupe-mid:   #5171BF;
+      --taupe-light: #3a5fa8;
+      background: #f4f2ed !important;
+      color: #1a1a1f !important;
     }
+    /* Nav */
     body.a11y-high-contrast nav {
-      background: #000 !important;
-      border-bottom-color: rgba(245,200,66,0.35) !important;
+      background: rgba(244,242,237,0.97) !important;
+      border-bottom-color: rgba(47,62,92,0.2) !important;
     }
+    body.a11y-high-contrast .nav-logo-f { color: #1a1a1f !important; }
+    body.a11y-high-contrast .nav-badge { color: #2f3e5c !important; border-color: rgba(47,62,92,0.4) !important; }
+    /* All section backgrounds → light */
+    body.a11y-high-contrast .hero,
     body.a11y-high-contrast section,
     body.a11y-high-contrast footer,
     body.a11y-high-contrast .remembers-section,
-    body.a11y-high-contrast .marquee-section { background: #000 !important; }
+    body.a11y-high-contrast .section-mid,
+    body.a11y-high-contrast .marquee-section { background: #f4f2ed !important; }
     body.a11y-high-contrast .section-light,
-    body.a11y-high-contrast .pwa-section { background: #0a0a0a !important; }
-    body.a11y-high-contrast .section-light .section-headline,
-    body.a11y-high-contrast .section-light .section-label,
-    body.a11y-high-contrast .pwa-platform-name,
-    body.a11y-high-contrast .pwa-step-text,
-    body.a11y-high-contrast .pwa-platform-sub { color: #fff !important; }
+    body.a11y-high-contrast .pwa-section { background: #ebe8e2 !important; }
+    /* Override hardcoded rgba() text that won't inherit from CSS vars */
     body.a11y-high-contrast .hero-sub,
     body.a11y-high-contrast .section-body,
     body.a11y-high-contrast .section-light .section-body,
     body.a11y-high-contrast .feature-desc,
     body.a11y-high-contrast .timeline-text,
     body.a11y-high-contrast .tease-insight-text,
+    body.a11y-high-contrast .remembers-quote,
     body.a11y-high-contrast .pwa-step-note,
-    body.a11y-high-contrast .footer-tagline { color: rgba(255,255,255,0.88) !important; }
+    body.a11y-high-contrast .footer-tagline,
+    body.a11y-high-contrast .footer-copy { color: #2f3e5c !important; }
+    body.a11y-high-contrast .section-light .section-headline { color: #1a1a1f !important; }
+    body.a11y-high-contrast .section-light .section-label { color: #2f3e5c !important; }
+    body.a11y-high-contrast .pwa-platform-name,
+    body.a11y-high-contrast .pwa-step-text { color: #1a1a1f !important; }
+    body.a11y-high-contrast .pwa-platform-sub,
+    body.a11y-high-contrast .pwa-step-note { color: #2f3e5c !important; }
+    /* Tease card internals (hardcoded rgba) */
+    body.a11y-high-contrast .tease-job { color: #1a1a1f !important; }
+    body.a11y-high-contrast .tease-co,
+    body.a11y-high-contrast .tease-insight-label { color: #2f3e5c !important; }
+    /* Marquee text */
+    body.a11y-high-contrast .marquee-text { color: #2f3e5c !important; }
+    /* Timeline */
+    body.a11y-high-contrast .timeline-heading { color: #1a1a1f !important; }
+    /* Cards */
     body.a11y-high-contrast .feature-card,
-    body.a11y-high-contrast .tease-card { background: #111 !important; border-color: rgba(255,255,255,0.22) !important; }
-    body.a11y-high-contrast .pwa-card { background: #111 !important; border-color: rgba(255,255,255,0.2) !important; }
-    body.a11y-high-contrast a { color: #f5c842 !important; text-decoration: underline; }
-    body.a11y-high-contrast .nav-badge { color: #f5c842 !important; border-color: rgba(245,200,66,0.45) !important; }
-    body.a11y-high-contrast .waitlist-btn { background: #00112b !important; color: #fff !important; }
-    body.a11y-high-contrast .waitlist-row { border-color: rgba(255,255,255,0.35) !important; }
+    body.a11y-high-contrast .tease-card {
+      background: #ebe8e2 !important;
+      border-color: rgba(47,62,92,0.2) !important;
+    }
+    body.a11y-high-contrast .tease-card-header { background: rgba(47,62,92,0.1) !important; }
+    body.a11y-high-contrast .tease-insight { background: rgba(47,62,92,0.08) !important; border-left-color: #5171BF !important; }
+    body.a11y-high-contrast .pwa-card {
+      background: #f4f2ed !important;
+      border-color: rgba(47,62,92,0.25) !important;
+    }
+    /* Links */
+    body.a11y-high-contrast a { color: #2f3e5c !important; text-decoration: underline; }
+    body.a11y-high-contrast a:hover { color: #5171BF !important; }
+    /* Waitlist form */
+    body.a11y-high-contrast .waitlist-row {
+      background: #ebe8e2 !important;
+      border-color: rgba(47,62,92,0.35) !important;
+    }
+    body.a11y-high-contrast .waitlist-input { color: #1a1a1f !important; }
+    body.a11y-high-contrast .waitlist-input::placeholder { color: rgba(47,62,92,0.5) !important; }
+    body.a11y-high-contrast .waitlist-btn {
+      background: #2f3e5c !important;
+      color: #f4f2ed !important;
+      border-left-color: rgba(47,62,92,0.4) !important;
+    }
+    body.a11y-high-contrast .waitlist-btn:hover:not(:disabled) { background: #1a1a1f !important; }
+    /* Footer links */
+    body.a11y-high-contrast .footer-links a { color: #2f3e5c !important; }
+    body.a11y-high-contrast .footer-links a:hover { color: #5171BF !important; }
 
     /* Reduce motion */
     @media (prefers-reduced-motion: reduce) {
