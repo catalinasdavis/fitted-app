@@ -212,7 +212,8 @@ export default function Home() {
   const stRef = useRef<NodeJS.Timeout | null>(null)
   const fRef  = useRef<HTMLInputElement>(null)
 
-  const isPro       = profile?.plan === 'pro'
+  const isPremium   = profile?.plan === 'premium'
+  const isPro       = profile?.plan === 'pro' || isPremium
   const isCancelled = isPro && (profile?.subscription_status === 'cancelled' || profile?.subscription_status === 'canceling')
   const isExtended  = isPro && profile?.subscription_status === 'extended'
   const isPastDue   = isPro && profile?.subscription_status === 'past_due'
@@ -268,13 +269,16 @@ export default function Home() {
           if (fresh.profile) {
             setProfile(fresh.profile)
             // Optimistic patch if DB update raced or failed
-            if ((type === 'monthly' || type === 'annual') && fresh.profile.plan !== 'pro') {
+            if (type === 'premium_monthly' || type === 'premium_annual') {
+              if (fresh.profile.plan !== 'premium') setProfile(pr => pr ? {...pr, plan: 'premium'} : pr)
+            } else if ((type === 'monthly' || type === 'annual') && fresh.profile.plan !== 'pro') {
               setProfile(pr => pr ? {...pr, plan: 'pro'} : pr)
             } else if (type === 'resume_slot' && !fresh.profile.extra_resume_slot) {
               setProfile(pr => pr ? {...pr, extra_resume_slot: true} : pr)
             }
           } else {
             if (type === 'resume_slot') setProfile(pr => pr ? {...pr, extra_resume_slot: true} : pr)
+            else if (type === 'premium_monthly' || type === 'premium_annual') setProfile(pr => pr ? {...pr, plan: 'premium'} : pr)
             else setProfile(pr => pr ? {...pr, plan: 'pro'} : pr)
           }
         } catch (e) { console.error('Stripe verify error:', e) }
@@ -411,7 +415,7 @@ export default function Home() {
     if (data.success) { setProfile(p => ({...p!, plan:'pro'})); setPromoMsg('✓ Pro unlocked!'); setTimeout(() => setShowUp(false), 2000) } else setPromoMsg(data.error||'Invalid code.')
     setPromoLoad(false)
   }
-  async function checkout(type: 'monthly'|'annual'|'resume_slot'|'portal'|'pro_extension') {
+  async function checkout(type: 'monthly'|'annual'|'resume_slot'|'portal'|'pro_extension'|'premium_monthly'|'premium_annual') {
     setStripeL(type)
     try { const res = await fetch('/api/stripe/create-checkout', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type})}); const data = await res.json(); if (data.url) window.location.href = data.url; else { alert(data.error||'Could not start checkout.'); setStripeL(null) } } catch { alert('Something went wrong.'); setStripeL(null) }
   }
@@ -964,9 +968,9 @@ Return JSON only — no other text:
           {!isPro ? (
             <button onClick={()=>setShowUp(true)} style={{padding:'7px 13px',background:'#b8750a',color:'#fff',border:'none',borderRadius:8,fontFamily:'sans-serif',fontSize:13,fontWeight:500,cursor:'pointer'}}>Upgrade</button>
           ) : isCancelled ? (
-            <span style={{background:'rgba(26, 122, 74, 0.45)',color:'#fff',fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:20,whiteSpace:'nowrap'}}>✦ Pro · {daysUntil(profile?.current_period_end)}d left</span>
+            <span style={{background:'rgba(26, 122, 74, 0.45)',color:'#fff',fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:20,whiteSpace:'nowrap'}}>✦ {isPremium?'Premium':'Pro'} · {daysUntil(profile?.current_period_end)}d left</span>
           ) : (
-            <span style={{background:'#1a7a4a',color:'#fff',fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:20}}>✦ Pro</span>
+            <span style={{background:isPremium?'#6d28d9':'#1a7a4a',color:'#fff',fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:20}}>✦ {isPremium?'Premium':'Pro'}</span>
           )}
           <button onClick={openAccount} className="hide-mobile" style={{padding:'6px 12px',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,background:'none',fontFamily:'sans-serif',fontSize:12,color:'#7a7a85',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}>
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M1.5 11.5c0-2.2 2.2-4 5-4s5 1.8 5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
@@ -1199,33 +1203,66 @@ Return JSON only — no other text:
       {/* UPGRADE MODAL */}
       {showUp&&(
         <div className="up-overlay" style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget)setShowUp(false)}}>
-          <div className="up-card" style={{background:'#fff',borderRadius:20,padding:32,maxWidth:440,width:'100%',maxHeight:'90vh',overflowY:'auto'}}>
-            <h2 style={{fontFamily:'Georgia, serif',fontSize:24,color:'#1a1a1f',margin:'0 0 6px'}}>fitted<span style={{color:'#2d5be3'}}>.</span> Pro</h2>
-            <p style={{color:'#7a7a85',fontSize:13,margin:'0 0 20px',lineHeight:1.6}}>Unlock salary scripts, career path, interview feedback, company search, portfolio uploads, and unlimited resumes.</p>
-            <div style={{background:'#f4f2ed',borderRadius:12,padding:16,marginBottom:22}}>
-              {['Unlimited resumes','Salary negotiation scripts','Career path & milestones','Interview answer feedback','AI-powered tailor suggestions','Unlimited chat','Portfolio uploads','Company search'].map(f=><div key={f} style={{display:'flex',alignItems:'center',gap:8,padding:'4px 0',fontSize:13,color:'#3d3d45'}}><span style={{color:'#1a7a4a',fontWeight:700}}>✓</span> {f}</div>)}
+          <div className="up-card" style={{background:'#fff',borderRadius:20,padding:28,maxWidth:520,width:'100%',maxHeight:'90vh',overflowY:'auto'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+              <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:0}}>fitted<span style={{color:'#2d5be3'}}>.</span> Plans</h2>
+              <button onClick={()=>setShowUp(false)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:22,lineHeight:1,padding:4}}>×</button>
             </div>
-            <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
-              <button onClick={()=>checkout('annual')} disabled={!!stripeL} style={{width:'100%',padding:'13px 16px',background:'#2d5be3',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:14,fontWeight:600,cursor:stripeL?'wait':'pointer',textAlign:'left' as const,display:'flex',justifyContent:'space-between',alignItems:'center',opacity:stripeL&&stripeL!=='annual'?.5:1}}>
-                <div><div>{stripeL==='annual'?'Redirecting…':'$89 / year'}</div><div style={{fontSize:11,opacity:.8,fontWeight:400,marginTop:2}}>Best value — save 17% vs monthly</div></div>
-                {stripeL!=='annual'&&<span style={{background:'#fff',color:'#2d5be3',fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,flexShrink:0}}>BEST VALUE</span>}
-              </button>
-              <button onClick={()=>checkout('monthly')} disabled={!!stripeL} style={{width:'100%',padding:'13px 16px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:14,fontWeight:600,cursor:stripeL?'wait':'pointer',textAlign:'left' as const,opacity:stripeL&&stripeL!=='monthly'?.5:1}}>
-                <div>{stripeL==='monthly'?'Redirecting…':'$9 / month'}</div><div style={{fontSize:11,opacity:.8,fontWeight:400,marginTop:2}}>Cancel anytime</div>
-              </button>
+
+            {/* Two-tier grid */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+              {/* Pro */}
+              <div style={{border:'1.5px solid #e8e4db',borderRadius:14,padding:'16px 14px',display:'flex',flexDirection:'column',gap:0}}>
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:'.1em',color:'#1a7a4a',textTransform:'uppercase' as const,marginBottom:6}}>Pro</div>
+                <div style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',marginBottom:2}}>$9<span style={{fontSize:13,color:'#7a7a85',fontWeight:400}}>/mo</span></div>
+                <div style={{fontSize:11,color:'#b0b0b8',marginBottom:12}}>or $89/yr · save 2 months</div>
+                <div style={{display:'flex',flexDirection:'column',gap:5,flex:1,marginBottom:14}}>
+                  {['30 AI Actions/month','Unlimited resumes','Resume optimizer','Interview prep','Salary scripts','Career coach','Full job feed + tracker'].map(f=>(
+                    <div key={f} style={{display:'flex',alignItems:'flex-start',gap:7,fontSize:12,color:'#3d3d45'}}><span style={{color:'#1a7a4a',fontWeight:700,flexShrink:0,marginTop:1}}>✓</span>{f}</div>
+                  ))}
+                </div>
+                <button onClick={()=>checkout('annual')} disabled={!!stripeL} style={{width:'100%',padding:'9px 12px',background:'#2d5be3',color:'#fff',border:'none',borderRadius:9,fontFamily:'sans-serif',fontSize:12.5,fontWeight:600,cursor:stripeL?'wait':'pointer',marginBottom:6,opacity:stripeL&&stripeL!=='annual'?.5:1}}>
+                  {stripeL==='annual'?'Redirecting…':'$89 / year'}
+                </button>
+                <button onClick={()=>checkout('monthly')} disabled={!!stripeL} style={{width:'100%',padding:'9px 12px',background:'none',color:'#2f3e5c',border:'1.5px solid #2f3e5c',borderRadius:9,fontFamily:'sans-serif',fontSize:12.5,fontWeight:600,cursor:stripeL?'wait':'pointer',opacity:stripeL&&stripeL!=='monthly'?.5:1}}>
+                  {stripeL==='monthly'?'Redirecting…':'$9 / month'}
+                </button>
+              </div>
+
+              {/* Premium */}
+              <div style={{border:'1.5px solid #6d28d9',borderRadius:14,padding:'16px 14px',display:'flex',flexDirection:'column',gap:0,background:'rgba(109,40,217,.025)'}}>
+                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+                  <div style={{fontSize:11,fontWeight:700,letterSpacing:'.1em',color:'#6d28d9',textTransform:'uppercase' as const}}>Premium</div>
+                  <span style={{fontSize:9,fontWeight:700,background:'#6d28d9',color:'#fff',borderRadius:20,padding:'1px 6px',letterSpacing:'.04em'}}>NEW</span>
+                </div>
+                <div style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',marginBottom:2}}>$18<span style={{fontSize:13,color:'#7a7a85',fontWeight:400}}>/mo</span></div>
+                <div style={{fontSize:11,color:'#b0b0b8',marginBottom:12}}>or $180/yr · save 2 months</div>
+                <div style={{display:'flex',flexDirection:'column',gap:5,flex:1,marginBottom:14}}>
+                  {['Unlimited AI Actions','Everything in Pro','Unlimited optimizations','Unlimited interview prep','Unlimited negotiation scripts','Unlimited coach chats','Priority support + early access'].map(f=>(
+                    <div key={f} style={{display:'flex',alignItems:'flex-start',gap:7,fontSize:12,color:'#3d3d45'}}><span style={{color:'#6d28d9',fontWeight:700,flexShrink:0,marginTop:1}}>✓</span>{f}</div>
+                  ))}
+                </div>
+                <button onClick={()=>checkout('premium_annual')} disabled={!!stripeL} style={{width:'100%',padding:'9px 12px',background:'#6d28d9',color:'#fff',border:'none',borderRadius:9,fontFamily:'sans-serif',fontSize:12.5,fontWeight:600,cursor:stripeL?'wait':'pointer',marginBottom:6,opacity:stripeL&&stripeL!=='premium_annual'?.5:1}}>
+                  {stripeL==='premium_annual'?'Redirecting…':'$180 / year'}
+                </button>
+                <button onClick={()=>checkout('premium_monthly')} disabled={!!stripeL} style={{width:'100%',padding:'9px 12px',background:'none',color:'#6d28d9',border:'1.5px solid #6d28d9',borderRadius:9,fontFamily:'sans-serif',fontSize:12.5,fontWeight:600,cursor:stripeL?'wait':'pointer',opacity:stripeL&&stripeL!=='premium_monthly'?.5:1}}>
+                  {stripeL==='premium_monthly'?'Redirecting…':'$18 / month'}
+                </button>
+              </div>
             </div>
+
             {!isPro&&!profile?.extra_resume_slot&&(<>
-              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}><div style={{flex:1,height:1,background:'rgba(0,0,0,.08)'}}/><span style={{fontSize:11,color:'#b0b0b8',whiteSpace:'nowrap'}}>just need one more resume?</span><div style={{flex:1,height:1,background:'rgba(0,0,0,.08)'}}/></div>
-              <button onClick={()=>{setShowUp(false);checkout('resume_slot')}} disabled={!!stripeL} style={{width:'100%',padding:'11px 14px',background:'#f4f2ed',color:'#2d5be3',border:'1.5px solid #2d5be3',borderRadius:10,fontFamily:'sans-serif',fontSize:13,fontWeight:600,cursor:stripeL?'wait':'pointer',marginBottom:16,textAlign:'left' as const,opacity:stripeL?.7:1}}>
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}><div style={{flex:1,height:1,background:'rgba(0,0,0,.08)'}}/><span style={{fontSize:11,color:'#b0b0b8',whiteSpace:'nowrap'}}>just need one more resume?</span><div style={{flex:1,height:1,background:'rgba(0,0,0,.08)'}}/></div>
+              <button onClick={()=>{setShowUp(false);checkout('resume_slot')}} disabled={!!stripeL} style={{width:'100%',padding:'10px 14px',background:'#f4f2ed',color:'#2d5be3',border:'1.5px solid #2d5be3',borderRadius:10,fontFamily:'sans-serif',fontSize:13,fontWeight:600,cursor:stripeL?'wait':'pointer',marginBottom:14,textAlign:'left' as const,opacity:stripeL?.7:1}}>
                 <div>{stripeL==='resume_slot'?'Redirecting…':'$4.99 one-time — Unlock second resume slot'}</div><div style={{fontSize:11,color:'#7a7a85',fontWeight:400,marginTop:2}}>No subscription. Permanent.</div>
               </button>
             </>)}
-            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}><div style={{flex:1,height:1,background:'rgba(0,0,0,.08)'}}/><span style={{fontSize:11,color:'#b0b0b8'}}>Have a promo code?</span><div style={{flex:1,height:1,background:'rgba(0,0,0,.08)'}}/></div>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}><div style={{flex:1,height:1,background:'rgba(0,0,0,.08)'}}/><span style={{fontSize:11,color:'#b0b0b8'}}>Have a promo code?</span><div style={{flex:1,height:1,background:'rgba(0,0,0,.08)'}}/></div>
             <div style={{display:'flex',gap:8,marginBottom:8}}>
               <input value={promo} onChange={e=>setPromo(e.target.value.toUpperCase())} onKeyDown={e=>e.key==='Enter'&&redeem()} placeholder="Enter code" style={{flex:1,padding:'10px 14px',border:'1.5px solid #e8e4db',borderRadius:10,fontFamily:'monospace',fontSize:14,letterSpacing:'.08em',outline:'none',color:'#1a1a1f',background:'#f4f2ed'}}/>
               <button onClick={redeem} disabled={promoLoad||!!stripeL} style={{padding:'10px 18px',background:'#2d5be3',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',opacity:promoLoad?.6:1}}>{promoLoad?'…':'Apply'}</button>
             </div>
-            {promoMsg&&<p style={{fontSize:13,color:promoMsg.startsWith('✓')?'#1a7a4a':'#e85d3a',margin:'0 0 16px'}}>{promoMsg}</p>}
+            {promoMsg&&<p style={{fontSize:13,color:promoMsg.startsWith('✓')?'#1a7a4a':'#e85d3a',margin:'0 0 14px'}}>{promoMsg}</p>}
             <button onClick={()=>setShowUp(false)} style={{width:'100%',padding:11,background:'none',border:'1.5px solid #e8e4db',borderRadius:10,fontSize:13,color:'#7a7a85',cursor:'pointer',fontFamily:'sans-serif'}}>Maybe later</button>
           </div>
         </div>
@@ -1285,8 +1322,8 @@ Return JSON only — no other text:
                     <div style={{fontSize:12,color:'#7a7a85',marginTop:2}}>
                       {isPro ? (
                         isCancelled
-                          ? <span style={{color:'#b8750a'}}>✦ Pro · ends {formatEndDate(profile?.current_period_end)}</span>
-                          : <span style={{color:'#1a7a4a'}}>✦ Pro</span>
+                          ? <span style={{color:'#b8750a'}}>✦ {isPremium?'Premium':'Pro'} · ends {formatEndDate(profile?.current_period_end)}</span>
+                          : <span style={{color:isPremium?'#6d28d9':'#1a7a4a'}}>✦ {isPremium?'Premium':'Pro'}</span>
                       ) : 'Free plan'}
                     </div>
                   </div>

@@ -11,10 +11,12 @@ const SUPABASE_ANON_KEY  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const SUPABASE_ADMIN_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 const PRICE_IDS: Record<string, string> = {
-  monthly:       process.env.STRIPE_MONTHLY_PRICE_ID!,
-  annual:        process.env.STRIPE_ANNUAL_PRICE_ID!,
-  resume_slot:   process.env.STRIPE_EXTRA_SLOT_PRICE_ID!,
-  pro_extension: process.env.STRIPE_EXTENSION_PRICE_ID!,
+  monthly:           process.env.STRIPE_MONTHLY_PRICE_ID!,
+  annual:            process.env.STRIPE_ANNUAL_PRICE_ID!,
+  resume_slot:       process.env.STRIPE_EXTRA_SLOT_PRICE_ID!,
+  pro_extension:     process.env.STRIPE_EXTENSION_PRICE_ID!,
+  premium_monthly:   process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID!,
+  premium_annual:    process.env.STRIPE_PREMIUM_ANNUAL_PRICE_ID!,
 }
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ url: session.url })
     }
 
-    const knownTypes = ['monthly', 'annual', 'resume_slot', 'pro_extension']
+    const knownTypes = ['monthly', 'annual', 'resume_slot', 'pro_extension', 'premium_monthly', 'premium_annual']
     if (!type || !knownTypes.includes(type)) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
     }
@@ -69,7 +71,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `${type} is not available yet` }, { status: 400 })
     }
 
-    const isSubscription = type === 'monthly' || type === 'annual'
+    const isSubscription = ['monthly', 'annual', 'premium_monthly', 'premium_annual'].includes(type)
 
     const session = await stripe.checkout.sessions.create({
       mode: isSubscription ? 'subscription' : 'payment',
@@ -123,11 +125,12 @@ export async function GET(request: NextRequest) {
 
     const admin = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY)
 
-    if (type === 'monthly' || type === 'annual') {
+    if (['monthly', 'annual', 'premium_monthly', 'premium_annual'].includes(type ?? '')) {
+      const plan = (type === 'premium_monthly' || type === 'premium_annual') ? 'premium' : 'pro'
       const { error } = await admin
         .from('profiles')
         .update({
-          plan: 'pro',
+          plan,
           stripe_customer_id: session.customer as string,
         })
         .eq('id', uid)
@@ -146,7 +149,7 @@ export async function GET(request: NextRequest) {
         if (subErr) console.warn('[Stripe GET] stripe_subscription_id not saved:', subErr.message)
       }
 
-      console.log('[Stripe GET] updated profile to pro for user:', uid)
+      console.log(`[Stripe GET] updated profile to ${plan} for user:`, uid)
     } else if (type === 'resume_slot') {
       const { error } = await admin
         .from('profiles')

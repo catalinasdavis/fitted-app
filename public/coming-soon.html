@@ -1125,6 +1125,141 @@
       letter-spacing: 0.02em;
     }
 
+    .waitlist-coppa {
+      font-size: 0.625rem;
+      color: rgba(184,169,154,0.28);
+      margin-top: 0.35rem;
+      font-weight: 300;
+      letter-spacing: 0.01em;
+    }
+
+    /* ── ACCESSIBILITY BUTTON ── */
+    #a11y-btn {
+      position: fixed;
+      bottom: 1.25rem;
+      right: 1.25rem;
+      z-index: 9999;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(47,62,92,0.9);
+      border: 1px solid rgba(184,169,154,0.2);
+      color: var(--off-white);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      transition: background 0.2s, transform 0.15s;
+    }
+    #a11y-btn:hover { background: rgba(60,78,115,0.95); transform: scale(1.06); }
+    #a11y-btn:focus-visible { outline: 2px solid var(--taupe); outline-offset: 2px; }
+
+    #a11y-modal {
+      display: none;
+      position: fixed;
+      bottom: 5rem;
+      right: 1.25rem;
+      z-index: 9999;
+      width: 240px;
+      background: #22232a;
+      border: 1px solid rgba(184,169,154,0.18);
+      border-radius: 14px;
+      padding: 1.25rem 1.25rem 1rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      font-family: var(--sans);
+    }
+    #a11y-modal.open { display: block; }
+
+    .a11y-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(184,169,154,0.55);
+      margin-bottom: 0.875rem;
+    }
+
+    .a11y-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .a11y-row:last-child { margin-bottom: 0; }
+
+    .a11y-label {
+      font-size: 0.8125rem;
+      color: var(--off-white);
+      font-weight: 400;
+    }
+
+    .a11y-toggle {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .a11y-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .a11y-toggle-track {
+      position: absolute;
+      inset: 0;
+      background: rgba(184,169,154,0.18);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .a11y-toggle input:checked + .a11y-toggle-track { background: var(--taupe); }
+    .a11y-toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 14px; height: 14px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .a11y-toggle input:checked + .a11y-toggle-track::after { transform: translateX(16px); }
+    .a11y-toggle input:focus-visible + .a11y-toggle-track { outline: 2px solid var(--taupe); outline-offset: 1px; }
+
+    .a11y-divider { border: none; border-top: 1px solid rgba(184,169,154,0.1); margin: 0.75rem 0; }
+
+    .a11y-reset {
+      background: none;
+      border: none;
+      color: rgba(184,169,154,0.45);
+      font-size: 0.7rem;
+      cursor: pointer;
+      padding: 0;
+      font-family: var(--sans);
+      letter-spacing: 0.02em;
+    }
+    .a11y-reset:hover { color: var(--taupe); }
+
+    /* applied states */
+    body.a11y-large-text { font-size: 19px !important; }
+    body.a11y-large-text .waitlist-input,
+    body.a11y-large-text .waitlist-btn { font-size: 1rem !important; }
+
+    body.a11y-high-contrast {
+      --bg: #000000;
+      --off-white: #ffffff;
+      --charcoal: #000000;
+      --taupe: #ffdd00;
+      --navy: #003399;
+    }
+    body.a11y-high-contrast a { color: #ffdd00 !important; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+    }
+    body.a11y-reduce-motion *, body.a11y-reduce-motion *::before, body.a11y-reduce-motion *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+
     .waitlist-success {
       display: flex;
       align-items: center;
@@ -1253,6 +1388,7 @@
             </button>
           </div>
           <p class="waitlist-note">First 100 get 50% off at launch &middot; Next 100 get 25% off</p>
+          <p class="waitlist-coppa">This service is intended for users 13 and older.</p>
         </form>
         <div class="waitlist-success" id="waitlist-success" style="display:none;">
           <div class="waitlist-success-icon">
@@ -1827,6 +1963,99 @@
           btn.disabled = false;
           btn.textContent = 'Join waitlist';
         }
+      });
+    })();
+  </script>
+
+  <!-- ──────────────── ACCESSIBILITY BUTTON ──────────────── -->
+  <button id="a11y-btn" aria-label="Accessibility options" aria-expanded="false" aria-controls="a11y-modal">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="4.5" r="1.75" fill="currentColor"/>
+      <path d="M5 8.5h14M12 8.5v11M8.5 19.5l3.5-5.5 3.5 5.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <div id="a11y-modal" role="dialog" aria-modal="true" aria-label="Accessibility options">
+    <p class="a11y-title">Accessibility</p>
+
+    <div class="a11y-row">
+      <span class="a11y-label" id="a11y-font-label">Larger text</span>
+      <label class="a11y-toggle" aria-labelledby="a11y-font-label">
+        <input type="checkbox" id="a11y-font" />
+        <span class="a11y-toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="a11y-row">
+      <span class="a11y-label" id="a11y-contrast-label">High contrast</span>
+      <label class="a11y-toggle" aria-labelledby="a11y-contrast-label">
+        <input type="checkbox" id="a11y-contrast" />
+        <span class="a11y-toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="a11y-row">
+      <span class="a11y-label" id="a11y-motion-label">Reduce motion</span>
+      <label class="a11y-toggle" aria-labelledby="a11y-motion-label">
+        <input type="checkbox" id="a11y-motion" />
+        <span class="a11y-toggle-track"></span>
+      </label>
+    </div>
+
+    <hr class="a11y-divider" />
+    <button class="a11y-reset" id="a11y-reset">Reset all</button>
+  </div>
+
+  <script>
+    (function() {
+      var btn   = document.getElementById('a11y-btn');
+      var modal = document.getElementById('a11y-modal');
+      var fontChk     = document.getElementById('a11y-font');
+      var contrastChk = document.getElementById('a11y-contrast');
+      var motionChk   = document.getElementById('a11y-motion');
+      var resetBtn    = document.getElementById('a11y-reset');
+
+      var prefs = JSON.parse(localStorage.getItem('a11y') || '{}');
+
+      function apply() {
+        document.body.classList.toggle('a11y-large-text',    !!prefs.font);
+        document.body.classList.toggle('a11y-high-contrast', !!prefs.contrast);
+        document.body.classList.toggle('a11y-reduce-motion', !!prefs.motion);
+        fontChk.checked     = !!prefs.font;
+        contrastChk.checked = !!prefs.contrast;
+        motionChk.checked   = !!prefs.motion;
+        localStorage.setItem('a11y', JSON.stringify(prefs));
+      }
+
+      apply();
+
+      btn.addEventListener('click', function() {
+        var open = modal.classList.toggle('open');
+        btn.setAttribute('aria-expanded', String(open));
+      });
+
+      document.addEventListener('click', function(e) {
+        if (!modal.contains(e.target) && e.target !== btn) {
+          modal.classList.remove('open');
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          modal.classList.remove('open');
+          btn.setAttribute('aria-expanded', 'false');
+          btn.focus();
+        }
+      });
+
+      fontChk.addEventListener('change',     function() { prefs.font     = fontChk.checked;     apply(); });
+      contrastChk.addEventListener('change', function() { prefs.contrast = contrastChk.checked; apply(); });
+      motionChk.addEventListener('change',   function() { prefs.motion   = motionChk.checked;   apply(); });
+
+      resetBtn.addEventListener('click', function() {
+        prefs = {};
+        apply();
       });
     })();
   </script>
