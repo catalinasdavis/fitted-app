@@ -1117,14 +1117,6 @@
     .waitlist-btn:hover:not(:disabled) { background: #3a4f75; }
     .waitlist-btn:disabled { opacity: 0.55; cursor: wait; }
 
-    .waitlist-note {
-      font-size: 0.6875rem;
-      color: rgba(184,169,154,0.38);
-      margin-top: 0.75rem;
-      font-weight: 300;
-      letter-spacing: 0.02em;
-    }
-
     .waitlist-coppa {
       font-size: 0.625rem;
       color: rgba(184,169,154,0.28);
@@ -1387,7 +1379,6 @@
               Join waitlist
             </button>
           </div>
-          <p class="waitlist-note">First 100 get 50% off at launch &middot; Next 100 get 25% off</p>
           <p class="waitlist-coppa">This service is intended for users 13 and older.</p>
         </form>
         <div class="waitlist-success" id="waitlist-success" style="display:none;">
@@ -1397,8 +1388,8 @@
             </svg>
           </div>
           <div>
-            <p class="waitlist-success-headline">You're in.</p>
-            <p class="waitlist-success-sub" id="waitlist-tier-msg">We'll email you on launch day.</p>
+            <p class="waitlist-success-headline">You're on the list.</p>
+            <p class="waitlist-success-sub">We'll notify you when fitted. launches on June 14.</p>
           </div>
         </div>
         <p class="waitlist-error" id="waitlist-error" style="display:none;"></p>
@@ -1914,7 +1905,6 @@
       const emailEl  = document.getElementById('waitlist-email');
       const btn      = document.getElementById('waitlist-btn');
       const success  = document.getElementById('waitlist-success');
-      const tierMsg  = document.getElementById('waitlist-tier-msg');
       const errorEl  = document.getElementById('waitlist-error');
 
       if (!form) return;
@@ -1938,13 +1928,6 @@
 
           if (res.ok && data.success) {
             form.style.display = 'none';
-            if (data.tier === 'founding') {
-              tierMsg.textContent = 'You\'re in the founding 100 — you\'ll get 50% off at launch.';
-            } else if (data.tier === 'early') {
-              tierMsg.textContent = 'You\'re in the early 100 — you\'ll get 25% off at launch.';
-            } else {
-              tierMsg.textContent = 'We\'ll email you on launch day.';
-            }
             success.style.display = 'flex';
           } else if (res.status === 409) {
             errorEl.textContent = 'You\'re already on the list.';
