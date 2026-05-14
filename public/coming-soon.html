@@ -1231,9 +1231,7 @@
     .a11y-reset:hover { color: var(--taupe); }
 
     /* applied states */
-    body.a11y-large-text { font-size: 19px !important; }
-    body.a11y-large-text .waitlist-input,
-    body.a11y-large-text .waitlist-btn { font-size: 1rem !important; }
+    /* large-text: applied via document.documentElement.style.fontSize in JS */
 
     body.a11y-high-contrast {
       --bg: #000000;
@@ -1791,7 +1789,7 @@
         June 2026.<br /><em>See you then.</em>
       </h2>
       <p class="section-body fade-up delay-2" style="text-align:center;margin:0 auto 2.5rem;color:rgba(250,249,246,0.45);">
-        No waitlist. No spam. fitted. will be ready when it's ready — and when it is, it'll be worth it.
+        Join the waitlist above and we'll reach out on launch day. No spam, ever — just fitted., ready when it's ready.
       </p>
       <div class="fade-up delay-3" style="display:flex;align-items:center;justify-content:center;gap:1.5rem;flex-wrap:wrap;">
         <div style="display:flex;align-items:baseline;">
@@ -2001,7 +1999,7 @@
       var prefs = JSON.parse(localStorage.getItem('a11y') || '{}');
 
       function apply() {
-        document.body.classList.toggle('a11y-large-text',    !!prefs.font);
+        document.documentElement.style.fontSize = prefs.font ? '19px' : '';
         document.body.classList.toggle('a11y-high-contrast', !!prefs.contrast);
         document.body.classList.toggle('a11y-reduce-motion', !!prefs.motion);
         fontChk.checked     = !!prefs.font;
@@ -2018,7 +2016,7 @@
       });
 
       document.addEventListener('click', function(e) {
-        if (!modal.contains(e.target) && e.target !== btn) {
+        if (!modal.contains(e.target) && !btn.contains(e.target)) {
           modal.classList.remove('open');
           btn.setAttribute('aria-expanded', 'false');
         }
