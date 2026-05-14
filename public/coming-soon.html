@@ -1261,93 +1261,217 @@
 
     /* Large text: font-size set on <html> in JS so rem units scale */
 
-    /* High contrast — dark, intentional, 7:1+ ratios */
+    /* High contrast — light palette, strong dark text, 7:1+ */
     body.a11y-high-contrast {
-      --charcoal:    #1a1a1f;
-      --navy:        #1a1a1f;
-      --bg:          #1a1a1f;
-      --off-white:   #f4f2ed;
-      --taupe:       #b8a99a;
-      --taupe-mid:   #b8a99a;
-      --taupe-light: #b8a99a;
-      background: #1a1a1f !important;
-      color: #f4f2ed !important;
+      --charcoal:    #f4f2ed;
+      --navy:        #2f3e5c;
+      --bg:          #f4f2ed;
+      --off-white:   #1a1a1f;
+      --taupe:       #5171BF;
+      --taupe-mid:   #5171BF;
+      --taupe-light: #3a5fa8;
+      background: #f4f2ed !important;
+      color: #1a1a1f !important;
     }
+    /* Suppress grain + glow on light background */
+    body.a11y-high-contrast::before { opacity: 0.05 !important; }
+    body.a11y-high-contrast .hero-glow { opacity: 0.12 !important; }
+
     /* Nav */
     body.a11y-high-contrast nav {
-      background: rgba(26,26,31,0.97) !important;
-      border-bottom-color: rgba(184,169,154,0.2) !important;
+      background: rgba(244,242,237,0.97) !important;
+      border-bottom-color: rgba(47,62,92,0.18) !important;
     }
-    body.a11y-high-contrast .nav-logo-f { color: #f4f2ed !important; }
-    body.a11y-high-contrast .nav-badge { color: #b8a99a !important; border-color: rgba(184,169,154,0.35) !important; }
-    /* All section backgrounds → dark */
+    body.a11y-high-contrast .nav-logo-f { color: #1a1a1f !important; }
+    body.a11y-high-contrast .nav-badge { color: #2f3e5c !important; border-color: rgba(47,62,92,0.4) !important; }
+
+    /* Section backgrounds */
     body.a11y-high-contrast .hero,
     body.a11y-high-contrast section,
     body.a11y-high-contrast footer,
     body.a11y-high-contrast .remembers-section,
     body.a11y-high-contrast .section-mid,
-    body.a11y-high-contrast .marquee-section { background: #1a1a1f !important; }
+    body.a11y-high-contrast .marquee-section { background: #f4f2ed !important; }
     body.a11y-high-contrast .section-light,
-    body.a11y-high-contrast .pwa-section { background: #22252e !important; }
-    /* Override hardcoded rgba() body text */
-    body.a11y-high-contrast .hero-sub,
+    body.a11y-high-contrast .pwa-section { background: #ebe8e2 !important; }
+    body.a11y-high-contrast .divider {
+      background: linear-gradient(to right, transparent, rgba(47,62,92,0.18), transparent) !important;
+    }
+
+    /* Hero details (hardcoded rgba decoratives) */
+    body.a11y-high-contrast .monogram-rule { background: rgba(47,62,92,0.3) !important; }
+    body.a11y-high-contrast .hero-kicker::before,
+    body.a11y-high-contrast .hero-kicker::after { background: rgba(47,62,92,0.3) !important; }
+    body.a11y-high-contrast .hero-sub { color: #2f3e5c !important; }
+
+    /* Countdown — labels + separators use hardcoded rgba */
+    body.a11y-high-contrast .countdown-num { color: #1a1a1f !important; }
+    body.a11y-high-contrast .countdown-label { color: #2f3e5c !important; }
+    body.a11y-high-contrast .countdown-sep { color: rgba(47,62,92,0.4) !important; }
+
+    /* Section labels with hardcoded dark-label modifier */
+    body.a11y-high-contrast .section-label.dark-label { color: #5171BF !important; }
+    body.a11y-high-contrast .section-label.dark-label::before { background: #5171BF !important; }
+
+    /* Body text (hardcoded rgba overrides) */
     body.a11y-high-contrast .section-body,
-    body.a11y-high-contrast .section-light .section-body,
     body.a11y-high-contrast .feature-desc,
     body.a11y-high-contrast .timeline-text,
     body.a11y-high-contrast .tease-insight-text,
     body.a11y-high-contrast .remembers-quote,
     body.a11y-high-contrast .pwa-step-note,
     body.a11y-high-contrast .footer-tagline,
-    body.a11y-high-contrast .footer-copy { color: #b8a99a !important; }
-    /* Light-section text needs explicit light override */
-    body.a11y-high-contrast .section-light .section-headline,
-    body.a11y-high-contrast .pwa-platform-name,
-    body.a11y-high-contrast .pwa-step-text { color: #f4f2ed !important; }
-    body.a11y-high-contrast .section-light .section-label,
-    body.a11y-high-contrast .pwa-platform-sub { color: #b8a99a !important; }
-    /* Tease card internals */
-    body.a11y-high-contrast .tease-job { color: #f4f2ed !important; }
-    body.a11y-high-contrast .tease-co,
-    body.a11y-high-contrast .tease-insight-label { color: #b8a99a !important; }
-    /* Marquee */
-    body.a11y-high-contrast .marquee-text { color: rgba(184,169,154,0.55) !important; }
-    /* Timeline */
-    body.a11y-high-contrast .timeline-heading { color: #f4f2ed !important; }
-    /* Cards */
-    body.a11y-high-contrast .feature-card,
-    body.a11y-high-contrast .tease-card {
-      background: #22252e !important;
-      border-color: rgba(184,169,154,0.18) !important;
+    body.a11y-high-contrast .footer-copy { color: #2f3e5c !important; }
+
+    /* "Launching June 2026" badges — hardcoded rgba(184,169,154,0.4) */
+    body.a11y-high-contrast .feature-soon { color: #2f3e5c !important; }
+    body.a11y-high-contrast .feature-soon::before { background: #5171BF !important; opacity: 1 !important; }
+
+    /* Feature numbers (near-invisible on light bg) */
+    body.a11y-high-contrast .feature-num { color: rgba(47,62,92,0.2) !important; }
+
+    /* Feature cards */
+    body.a11y-high-contrast .feature-card {
+      background: #ebe8e2 !important;
+      border-color: rgba(47,62,92,0.15) !important;
     }
-    body.a11y-high-contrast .tease-card-header { background: rgba(47,62,92,0.5) !important; }
+    body.a11y-high-contrast .feature-card::before {
+      background: linear-gradient(to right, transparent, rgba(47,62,92,0.15), transparent) !important;
+    }
+    body.a11y-high-contrast .feature-title { color: #1a1a1f !important; }
+
+    /* Feature icon SVGs (stroke-based, hardcoded rgba stroke attributes) */
+    body.a11y-high-contrast .feature-icon path,
+    body.a11y-high-contrast .feature-icon circle,
+    body.a11y-high-contrast .feature-icon rect { stroke: #2f3e5c !important; }
+
+    /* Marquee */
+    body.a11y-high-contrast .marquee-text { color: #2f3e5c !important; }
+    body.a11y-high-contrast .marquee-dot { background: rgba(47,62,92,0.3) !important; }
+
+    /* "What is fitted." — tease card */
+    body.a11y-high-contrast .tease-card {
+      background: #ebe8e2 !important;
+      border-color: rgba(47,62,92,0.15) !important;
+    }
+    body.a11y-high-contrast .tease-card-header {
+      background: rgba(47,62,92,0.1) !important;
+      border-bottom-color: rgba(47,62,92,0.1) !important;
+    }
+    body.a11y-high-contrast .tease-card-title,
+    body.a11y-high-contrast .tease-job { color: #1a1a1f !important; }
+    body.a11y-high-contrast .tease-badge { background: rgba(47,62,92,0.1) !important; color: #2f3e5c !important; }
+    body.a11y-high-contrast .tease-row {
+      background: rgba(47,62,92,0.05) !important;
+      border-color: rgba(47,62,92,0.1) !important;
+    }
+    body.a11y-high-contrast .tease-co { color: #2f3e5c !important; }
+    body.a11y-high-contrast .ring-high,
+    body.a11y-high-contrast .ring-mid { border-color: #2f3e5c !important; color: #2f3e5c !important; }
+    body.a11y-high-contrast .ring-low { border-color: rgba(47,62,92,0.3) !important; color: rgba(47,62,92,0.4) !important; }
+    body.a11y-high-contrast .tease-tag { background: rgba(47,62,92,0.1) !important; color: #2f3e5c !important; }
     body.a11y-high-contrast .tease-insight {
-      background: rgba(47,62,92,0.25) !important;
+      background: rgba(81,113,191,0.07) !important;
       border-left-color: #5171BF !important;
     }
-    body.a11y-high-contrast .pwa-card {
-      background: #22252e !important;
-      border-color: rgba(184,169,154,0.18) !important;
+    body.a11y-high-contrast .tease-insight-text { color: #2f3e5c !important; }
+    body.a11y-high-contrast .float-score {
+      background: #ebe8e2 !important;
+      border-color: rgba(47,62,92,0.2) !important;
     }
-    /* Links — #b8a99a on #1a1a1f = 8.7:1; hover uses blue accent */
-    body.a11y-high-contrast a { color: #b8a99a !important; text-decoration: underline; }
-    body.a11y-high-contrast a:hover { color: #f4f2ed !important; }
+    body.a11y-high-contrast .float-score-num { color: #1a1a1f !important; }
+    body.a11y-high-contrast .float-score-info { color: #2f3e5c !important; }
+    body.a11y-high-contrast .float-score-info strong { color: #1a1a1f !important; }
+
+    /* Timeline */
+    body.a11y-high-contrast .timeline-heading { color: #1a1a1f !important; }
+    body.a11y-high-contrast .timeline-dot {
+      background: rgba(47,62,92,0.08) !important;
+      border-color: rgba(47,62,92,0.28) !important;
+    }
+    body.a11y-high-contrast .timeline-dot path,
+    body.a11y-high-contrast .timeline-dot circle { stroke: #2f3e5c !important; }
+    body.a11y-high-contrast .timeline-item::before {
+      background: linear-gradient(to bottom, rgba(47,62,92,0.2), transparent) !important;
+    }
+
+    /* "We're always listening" box (class added to HTML) */
+    body.a11y-high-contrast .listening-box {
+      background: rgba(47,62,92,0.07) !important;
+      border-color: rgba(47,62,92,0.18) !important;
+    }
+    body.a11y-high-contrast .listening-box svg path { fill: #2f3e5c !important; }
+    body.a11y-high-contrast .listening-box > div:last-child > div:last-child { color: #2f3e5c !important; }
+
+    /* PWA section */
+    body.a11y-high-contrast .pwa-card {
+      background: #f4f2ed !important;
+      border-color: rgba(47,62,92,0.2) !important;
+    }
+    body.a11y-high-contrast .pwa-platform-name,
+    body.a11y-high-contrast .pwa-step-text { color: #1a1a1f !important; }
+    body.a11y-high-contrast .pwa-platform-sub { color: #2f3e5c !important; }
+    body.a11y-high-contrast .pwa-step-num {
+      background: rgba(47,62,92,0.08) !important;
+      color: #2f3e5c !important;
+    }
+
+    /* "Follow fitted." social icons — targeted by data attribute */
+    body.a11y-high-contrast section[data-screen-label="Follow fitted."] a svg { stroke: #2f3e5c !important; }
+    body.a11y-high-contrast section[data-screen-label="Follow fitted."] a svg path,
+    body.a11y-high-contrast section[data-screen-label="Follow fitted."] a svg rect { fill: #2f3e5c !important; }
+    body.a11y-high-contrast section[data-screen-label="Follow fitted."] span { color: #2f3e5c !important; }
+
+    /* Links */
+    body.a11y-high-contrast a { color: #5171BF !important; }
+    body.a11y-high-contrast a:hover { color: #2f3e5c !important; }
+
     /* Waitlist */
     body.a11y-high-contrast .waitlist-row {
-      background: rgba(255,255,255,0.03) !important;
-      border-color: rgba(184,169,154,0.28) !important;
+      background: #ebe8e2 !important;
+      border-color: rgba(47,62,92,0.3) !important;
     }
-    body.a11y-high-contrast .waitlist-input { color: #f4f2ed !important; }
-    body.a11y-high-contrast .waitlist-input::placeholder { color: rgba(184,169,154,0.45) !important; }
+    body.a11y-high-contrast .waitlist-input { color: #1a1a1f !important; }
+    body.a11y-high-contrast .waitlist-input::placeholder { color: rgba(47,62,92,0.45) !important; }
     body.a11y-high-contrast .waitlist-btn {
-      background: #5171BF !important;
+      background: #2f3e5c !important;
       color: #f4f2ed !important;
-      border-left-color: rgba(255,255,255,0.1) !important;
+      border-left-color: rgba(47,62,92,0.3) !important;
     }
-    body.a11y-high-contrast .waitlist-btn:hover:not(:disabled) { background: #3a5fa8 !important; }
+    body.a11y-high-contrast .waitlist-btn:hover:not(:disabled) { background: #1a1a1f !important; }
+    body.a11y-high-contrast .waitlist-success {
+      background: rgba(81,113,191,0.07) !important;
+      border-color: rgba(81,113,191,0.2) !important;
+    }
+    body.a11y-high-contrast .waitlist-success-headline { color: #1a1a1f !important; }
+    body.a11y-high-contrast .waitlist-success-sub { color: #2f3e5c !important; }
+
     /* Footer */
-    body.a11y-high-contrast .footer-links a { color: #b8a99a !important; }
-    body.a11y-high-contrast .footer-links a:hover { color: #f4f2ed !important; }
+    body.a11y-high-contrast footer { background: #ebe8e2 !important; }
+    body.a11y-high-contrast .footer-logo-f { color: #1a1a1f !important; }
+    body.a11y-high-contrast .footer-launch,
+    body.a11y-high-contrast .footer-tagline,
+    body.a11y-high-contrast .footer-copy { color: #2f3e5c !important; }
+    body.a11y-high-contrast .footer-links a { color: #2f3e5c !important; text-decoration: underline; }
+    body.a11y-high-contrast .footer-links a:hover { color: #5171BF !important; }
+
+    /* Accessibility button + modal stay dark when HC active */
+    body.a11y-high-contrast #a11y-btn {
+      background: #2f3e5c !important;
+      color: #f4f2ed !important;
+      border-color: rgba(47,62,92,0.6) !important;
+    }
+    body.a11y-high-contrast #a11y-modal {
+      background: #1a1a1f !important;
+      border-color: rgba(244,242,237,0.15) !important;
+    }
+    body.a11y-high-contrast .a11y-title { color: #f4f2ed !important; }
+    body.a11y-high-contrast .a11y-label { color: #f4f2ed !important; }
+    body.a11y-high-contrast .a11y-toggle-track { background: rgba(244,242,237,0.15) !important; }
+    body.a11y-high-contrast .a11y-toggle input:checked + .a11y-toggle-track { background: #b8a99a !important; }
+    body.a11y-high-contrast .a11y-divider { border-top-color: rgba(244,242,237,0.1) !important; }
+    body.a11y-high-contrast .a11y-reset { color: rgba(244,242,237,0.4) !important; }
+    body.a11y-high-contrast .a11y-close { color: rgba(244,242,237,0.45) !important; }
 
     /* Reduce motion */
     @media (prefers-reduced-motion: reduce) {
@@ -1718,7 +1842,7 @@
         <p class="section-body" style="margin-top:1.75rem;color:rgba(250,249,246,0.45);">
           fitted. isn't a snapshot — it's a running picture of your career. It remembers your goals, tracks your progress, and holds your full history so it can give you smarter guidance the longer you use it. Every interaction makes your matches sharper and your guidance more personal.
         </p>
-        <div style="margin-top:2rem;padding:1.25rem 1.5rem;background:rgba(47,62,92,0.2);border-radius:8px;border:1px solid rgba(184,169,154,0.15);display:flex;align-items:flex-start;gap:1rem;">
+        <div class="listening-box" style="margin-top:2rem;padding:1.25rem 1.5rem;background:rgba(47,62,92,0.2);border-radius:8px;border:1px solid rgba(184,169,154,0.15);display:flex;align-items:flex-start;gap:1rem;">
           <div style="flex-shrink:0;margin-top:2px;">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M8 1.5C4.41 1.5 1.5 4.41 1.5 8S4.41 14.5 8 14.5 14.5 11.59 14.5 8 11.59 1.5 8 1.5zm0 2a1 1 0 110 2 1 1 0 010-2zm0 3.5c.55 0 1 .45 1 1v3.5c0 .55-.45 1-1 1s-1-.45-1-1V8c0-.55.45-1 1-1z" fill="rgba(184,169,154,0.6)"/>
