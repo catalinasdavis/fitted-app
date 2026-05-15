@@ -327,6 +327,40 @@
       opacity: 0.5;
     }
 
+    /* ── POST-LAUNCH CTA BUTTON ── */
+    .hero-cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.625rem;
+      background: var(--off-white);
+      color: var(--charcoal);
+      font-family: var(--sans);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      padding: 0.875rem 2.25rem;
+      border-radius: 4px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      margin-top: 0.5rem;
+      opacity: 0;
+      animation: fadeUp 0.9s ease 1.45s forwards;
+    }
+    .hero-cta-btn:hover {
+      background: #ffffff;
+      transform: translateY(-2px);
+    }
+    body.a11y-high-contrast .hero-cta-btn {
+      background: #1a1a1f !important;
+      color: #f4f2ed !important;
+    }
+    body.a11y-high-contrast .hero-cta-btn:hover {
+      background: #2f3e5c !important;
+    }
+    body.a11y-reduce-motion .hero-cta-btn { opacity: 1 !important; animation: none !important; }
+
     /* ── SHARED ANIMATIONS ── */
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(20px); }
@@ -1257,6 +1291,117 @@
     }
     .a11y-reset:hover { color: var(--taupe); }
 
+    /* ── PRICING SECTION ── */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      max-width: 900px;
+      margin: 3rem auto 0;
+      text-align: left;
+    }
+    @media (max-width: 740px) {
+      .pricing-grid { grid-template-columns: 1fr; max-width: 360px; }
+    }
+    .pricing-card {
+      border: 1px solid rgba(184,169,154,0.12);
+      border-radius: 12px;
+      padding: 1.75rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .pricing-card--pro {
+      border-color: rgba(81,113,191,0.45);
+      background: rgba(81,113,191,0.04);
+    }
+    .pricing-badge {
+      display: inline-block;
+      font-size: 0.5625rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: #5171BF;
+      background: rgba(81,113,191,0.14);
+      padding: 0.25rem 0.625rem;
+      border-radius: 20px;
+      margin-bottom: 1rem;
+    }
+    .pricing-tier {
+      font-family: var(--serif);
+      font-size: 1.375rem;
+      color: var(--off-white);
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.01em;
+    }
+    .pricing-price {
+      font-family: var(--serif);
+      font-size: clamp(2.25rem, 3.5vw, 2.75rem);
+      color: var(--off-white);
+      line-height: 1;
+      margin-bottom: 0.375rem;
+    }
+    .pricing-price span {
+      font-family: var(--sans);
+      font-size: 0.875rem;
+      color: rgba(250,249,246,0.35);
+      font-weight: 300;
+    }
+    .pricing-annual {
+      font-size: 0.6875rem;
+      color: rgba(184,169,154,0.45);
+      margin-bottom: 1.75rem;
+      min-height: 1rem;
+      letter-spacing: 0.01em;
+    }
+    .pricing-features {
+      list-style: none;
+      flex: 1;
+      margin-bottom: 1.75rem;
+    }
+    .pricing-features li {
+      font-size: 0.8125rem;
+      color: rgba(250,249,246,0.6);
+      font-weight: 300;
+      padding: 0.4375rem 0;
+      border-bottom: 1px solid rgba(184,169,154,0.07);
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      line-height: 1.4;
+    }
+    .pricing-features li::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(184,169,154,0.35);
+      flex-shrink: 0;
+    }
+    .pricing-card--pro .pricing-features li::before { background: #5171BF; }
+    .pricing-btn {
+      display: block;
+      text-align: center;
+      padding: 0.75rem 1.25rem;
+      border-radius: 6px;
+      font-family: var(--sans);
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      letter-spacing: 0.01em;
+      transition: opacity 0.2s, transform 0.15s;
+      border: 1px solid rgba(184,169,154,0.25);
+      color: var(--off-white);
+    }
+    .pricing-btn:hover { opacity: 0.75; transform: translateY(-1px); }
+    .pricing-btn--pro {
+      background: #5171BF;
+      border-color: #5171BF;
+      color: #fff;
+    }
+    .pricing-btn--pro:hover { opacity: 0.88; }
+
     /* ── APPLIED A11Y STATES ── */
 
     /* Large text: font-size set on <html> in JS so rem units scale */
@@ -1475,6 +1620,35 @@
     body.a11y-high-contrast .a11y-reset { color: rgba(47,62,92,0.45) !important; }
     body.a11y-high-contrast .a11y-close { color: rgba(47,62,92,0.45) !important; }
     body.a11y-high-contrast .a11y-close:hover { color: #1a1a1f !important; background: rgba(47,62,92,0.08) !important; }
+    body.a11y-high-contrast .waitlist-coppa { color: #1a1a1f !important; }
+    body.a11y-high-contrast .monogram-tagline { color: #1a1a1f !important; }
+    body.a11y-high-contrast .pwa-icon-note { color: #1a1a1f !important; }
+    body.a11y-high-contrast .cta-tagline,
+    body.a11y-high-contrast .cta-tagline span { color: #1a1a1f !important; }
+    body.a11y-high-contrast section[data-screen-label="Follow fitted."] p { color: #1a1a1f !important; }
+    body.a11y-high-contrast .pwa-why-label { color: #5171BF !important; }
+    body.a11y-high-contrast .pwa-why-body { color: #2f3e5c !important; }
+    body.a11y-high-contrast footer .waitlist-coppa { color: #2f3e5c !important; }
+    body.a11y-high-contrast .pricing-card {
+      background: #ebe8e2 !important;
+      border-color: rgba(47,62,92,0.15) !important;
+    }
+    body.a11y-high-contrast .pricing-card--pro {
+      background: rgba(81,113,191,0.05) !important;
+      border-color: rgba(81,113,191,0.35) !important;
+    }
+    body.a11y-high-contrast .pricing-tier,
+    body.a11y-high-contrast .pricing-price { color: #1a1a1f !important; }
+    body.a11y-high-contrast .pricing-price span { color: #2f3e5c !important; }
+    body.a11y-high-contrast .pricing-annual { color: #2f3e5c !important; }
+    body.a11y-high-contrast .pricing-features li {
+      color: #2f3e5c !important;
+      border-bottom-color: rgba(47,62,92,0.1) !important;
+    }
+    body.a11y-high-contrast .pricing-features li::before { background: rgba(47,62,92,0.3) !important; }
+    body.a11y-high-contrast .pricing-card--pro .pricing-features li::before { background: #5171BF !important; }
+    body.a11y-high-contrast .pricing-btn { border-color: rgba(47,62,92,0.25) !important; color: #1a1a1f !important; }
+    body.a11y-high-contrast .pricing-btn--pro { background: #5171BF !important; border-color: #5171BF !important; color: #fff !important; }
 
     /* Reduce motion */
     @media (prefers-reduced-motion: reduce) {
@@ -1572,75 +1746,99 @@
         </div>
       </div>
 
-      <!-- Kicker -->
-      <div class="hero-kicker">Coming June 2026</div>
+      <!-- PRE-LAUNCH: kicker, headline, sub, countdown, waitlist -->
+      <div id="hero-prelaunch">
+        <!-- Kicker -->
+        <div class="hero-kicker">Coming June 2026</div>
 
-      <!-- Headline -->
-      <h1 class="hero-headline">
-        Get <em>fitted</em> for your future.
-      </h1>
+        <!-- Headline -->
+        <h1 class="hero-headline">
+          Get <em>fitted</em> for your future.
+        </h1>
 
-      <!-- Sub -->
-      <p class="hero-sub">
-        Intelligent career guidance that actually knows you — your history, your goals, and where you're headed. Not a job board. Not a recruiter. Something quieter and more useful.
-      </p>
+        <!-- Sub -->
+        <p class="hero-sub">
+          Intelligent career guidance that actually knows you — your history, your goals, and where you're headed. Not a job board. Not a recruiter. Something quieter and more useful.
+        </p>
 
-      <!-- Countdown -->
-      <div class="countdown-wrap">
-        <div class="countdown" id="countdown">
-          <div class="countdown-unit">
-            <div class="countdown-num" id="cd-days">--</div>
-            <div class="countdown-label">Days</div>
+        <!-- Countdown -->
+        <div class="countdown-wrap">
+          <div class="countdown" id="countdown">
+            <div class="countdown-unit">
+              <div class="countdown-num" id="cd-days">--</div>
+              <div class="countdown-label">Days</div>
+            </div>
+            <div class="countdown-sep">:</div>
+            <div class="countdown-unit">
+              <div class="countdown-num" id="cd-hours">--</div>
+              <div class="countdown-label">Hours</div>
+            </div>
+            <div class="countdown-sep">:</div>
+            <div class="countdown-unit">
+              <div class="countdown-num" id="cd-mins">--</div>
+              <div class="countdown-label">Minutes</div>
+            </div>
+            <div class="countdown-sep">:</div>
+            <div class="countdown-unit">
+              <div class="countdown-num" id="cd-secs">--</div>
+              <div class="countdown-label">Seconds</div>
+            </div>
           </div>
-          <div class="countdown-sep">:</div>
-          <div class="countdown-unit">
-            <div class="countdown-num" id="cd-hours">--</div>
-            <div class="countdown-label">Hours</div>
+        </div>
+
+        <!-- Waitlist -->
+        <div class="waitlist-wrap">
+          <p class="waitlist-kicker">Get early access</p>
+          <form id="waitlist-form">
+            <div class="waitlist-row">
+              <input
+                type="email"
+                id="waitlist-email"
+                class="waitlist-input"
+                placeholder="your@email.com"
+                autocomplete="email"
+                required
+              />
+              <button type="submit" class="waitlist-btn" id="waitlist-btn">
+                Join waitlist
+              </button>
+            </div>
+            <p class="waitlist-coppa">This service is intended for users 13 and older.</p>
+          </form>
+          <div class="waitlist-success" id="waitlist-success" style="display:none;">
+            <div class="waitlist-success-icon">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M2 7l3.5 3.5L12 3" stroke="rgba(26,200,100,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <p class="waitlist-success-headline">You're on the list.</p>
+              <p class="waitlist-success-sub">We'll notify you when fitted. launches on June 14.</p>
+            </div>
           </div>
-          <div class="countdown-sep">:</div>
-          <div class="countdown-unit">
-            <div class="countdown-num" id="cd-mins">--</div>
-            <div class="countdown-label">Minutes</div>
-          </div>
-          <div class="countdown-sep">:</div>
-          <div class="countdown-unit">
-            <div class="countdown-num" id="cd-secs">--</div>
-            <div class="countdown-label">Seconds</div>
-          </div>
+          <p class="waitlist-error" id="waitlist-error" style="display:none;"></p>
         </div>
       </div>
 
-      <!-- Waitlist -->
-      <div class="waitlist-wrap">
-        <p class="waitlist-kicker">Get early access</p>
-        <form id="waitlist-form">
-          <div class="waitlist-row">
-            <input
-              type="email"
-              id="waitlist-email"
-              class="waitlist-input"
-              placeholder="your@email.com"
-              autocomplete="email"
-              required
-            />
-            <button type="submit" class="waitlist-btn" id="waitlist-btn">
-              Join waitlist
-            </button>
-          </div>
-          <p class="waitlist-coppa">This service is intended for users 13 and older.</p>
-        </form>
-        <div class="waitlist-success" id="waitlist-success" style="display:none;">
-          <div class="waitlist-success-icon">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M2 7l3.5 3.5L12 3" stroke="rgba(26,200,100,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div>
-            <p class="waitlist-success-headline">You're on the list.</p>
-            <p class="waitlist-success-sub">We'll notify you when fitted. launches on June 14.</p>
-          </div>
-        </div>
-        <p class="waitlist-error" id="waitlist-error" style="display:none;"></p>
+      <!-- POST-LAUNCH: shown on localhost always, and on prod on/after June 14 2026 -->
+      <div id="hero-postlaunch" style="display:none;">
+
+        <h1 class="hero-headline">
+          Welcome to <em>fitted.</em>
+        </h1>
+
+        <p class="hero-sub">
+          Your career, guided by real intelligence.
+        </p>
+
+        <a href="/auth" class="hero-cta-btn">
+          Get Started
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+
+        <p class="waitlist-coppa" style="margin-top:1.25rem;">This service is intended for users 13 and older.</p>
       </div>
     </div>
 
@@ -1979,7 +2177,7 @@
               </div>
               <div class="pwa-icon-label">fitted.</div>
             </div>
-            <div style="font-size:0.8125rem;color:#9ca3af;font-weight:300;line-height:1.6;padding-bottom:0.25rem;">This is how fitted. will appear on your home screen.</div>
+            <div class="pwa-icon-note" style="font-size:0.8125rem;color:#9ca3af;font-weight:300;line-height:1.6;padding-bottom:0.25rem;">This is how fitted. will appear on your home screen.</div>
           </div>
         </div>
 
@@ -2023,8 +2221,8 @@
             </div>
           </div>
           <div style="margin-top:1.75rem;padding:1rem 1.25rem;background:rgba(47,62,92,0.06);border-radius:6px;border-left:3px solid rgba(184,169,154,0.4);">
-            <div style="font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:#b8a99a;font-weight:600;margin-bottom:0.375rem;">Why install?</div>
-            <div style="font-size:0.875rem;color:#6b7280;line-height:1.6;font-weight:300;">Faster load times, offline access to your saved roles and notes, and native notifications when new high-match jobs appear.</div>
+            <div class="pwa-why-label" style="font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:#b8a99a;font-weight:600;margin-bottom:0.375rem;">Why install?</div>
+            <div class="pwa-why-body" style="font-size:0.875rem;color:#6b7280;line-height:1.6;font-weight:300;">Faster load times, offline access to your saved roles and notes, and native notifications when new high-match jobs appear.</div>
           </div>
         </div>
       </div>
@@ -2046,9 +2244,69 @@
           <span style="font-family:var(--serif);font-size:2rem;color:var(--off-white);letter-spacing:-0.01em;">fitted</span>
           <span style="font-family:var(--serif);font-size:2rem;font-style:italic;color:var(--taupe);letter-spacing:-0.01em;">.</span>
         </div>
-        <div style="font-size:0.8125rem;color:rgba(184,169,154,0.45);font-weight:300;line-height:1.6;">
+        <div class="cta-tagline" style="font-size:0.8125rem;color:rgba(184,169,154,0.45);font-weight:300;line-height:1.6;">
           a career tailor-made for you<br />
           <span style="font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;font-weight:500;color:rgba(184,169,154,0.3);">fitted. · June 2026</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────── PRICING ──────────────── -->
+  <section style="padding:7rem 5vw;background:#111116;border-top:1px solid rgba(184,169,154,0.08);text-align:center;" data-screen-label="Pricing">
+    <div style="max-width:900px;margin:0 auto;">
+      <div class="section-label dark-label fade-up" style="justify-content:center;margin-bottom:1rem;">Plans &amp; pricing</div>
+      <h2 class="fade-up delay-1" style="font-family:var(--garamond);font-size:clamp(1.625rem,2.75vw,2.25rem);font-weight:400;color:var(--off-white);line-height:1.2;margin-bottom:0.75rem;letter-spacing:-0.01em;">Simple, transparent pricing.</h2>
+      <p class="fade-up delay-2" style="font-size:0.9375rem;color:rgba(250,249,246,0.4);font-weight:300;line-height:1.7;">Start free. Upgrade when you're ready.</p>
+
+      <div class="pricing-grid">
+        <!-- FREE -->
+        <div class="pricing-card fade-up delay-1">
+          <div class="pricing-tier">Free</div>
+          <div class="pricing-price">$0<span> /month</span></div>
+          <div class="pricing-annual">&nbsp;</div>
+          <ul class="pricing-features">
+            <li>1 resume slot</li>
+            <li>Basic job feed</li>
+            <li>Job tracker</li>
+            <li>Match scoring</li>
+          </ul>
+          <a href="/auth" class="pricing-btn">Get started</a>
+        </div>
+
+        <!-- PRO -->
+        <div class="pricing-card pricing-card--pro fade-up delay-2">
+          <div class="pricing-badge">Most popular</div>
+          <div class="pricing-tier">Pro</div>
+          <div class="pricing-price">$9<span> /month</span></div>
+          <div class="pricing-annual">or $89/year · save 2 months</div>
+          <ul class="pricing-features">
+            <li>30 AI Actions/month</li>
+            <li>Unlimited resumes</li>
+            <li>Resume optimizer</li>
+            <li>Interview prep</li>
+            <li>Salary scripts</li>
+            <li>Career coach</li>
+            <li>Full job feed + tracker</li>
+          </ul>
+          <a href="/auth" class="pricing-btn pricing-btn--pro">Get Pro</a>
+        </div>
+
+        <!-- PREMIUM -->
+        <div class="pricing-card fade-up delay-3">
+          <div class="pricing-tier" style="font-style:italic;">Premium</div>
+          <div class="pricing-price">$18<span> /month</span></div>
+          <div class="pricing-annual">or $180/year · save 2 months</div>
+          <ul class="pricing-features">
+            <li>Unlimited AI Actions</li>
+            <li>Everything in Pro</li>
+            <li>Unlimited optimizations</li>
+            <li>Unlimited interview prep</li>
+            <li>Unlimited salary scripts</li>
+            <li>Unlimited coach chats</li>
+            <li>Priority support + early access</li>
+          </ul>
+          <a href="/auth" class="pricing-btn">Get Premium</a>
         </div>
       </div>
     </div>
@@ -2077,6 +2335,10 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(184,169,154,0.7)"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
           <span style="font-size:0.75rem;color:var(--taupe);font-weight:500;letter-spacing:0.04em;">Facebook</span>
         </a>
+        <a href="https://youtube.com/@fittedcareers" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:0.625rem;padding:1.25rem 1.5rem;text-decoration:none;border-radius:8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(184,169,154,0.7)"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          <span style="font-size:0.75rem;color:var(--taupe);font-weight:500;letter-spacing:0.04em;">YouTube</span>
+        </a>
       </div>
       <p style="margin-top:2rem;font-size:0.75rem;color:rgba(184,169,154,0.3);font-weight:300;letter-spacing:0.04em;">@fittedcareers everywhere</p>
     </div>
@@ -2096,14 +2358,26 @@
       <li><a href="#">Contact</a></li>
     </ul>
     <div class="footer-copy">© 2026 fitted. All rights reserved.</div>
+    <p class="waitlist-coppa">This service is intended for users 13 and older.</p>
   </footer>
 
   <script>
+    // ── LAUNCH FLAG ──
+    // localhost always shows post-launch; prod switches automatically on June 14
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const LAUNCH_DATE = new Date('2026-06-14T00:00:00');
+    const isLaunched  = isLocalhost || new Date() >= LAUNCH_DATE;
+
+    if (isLaunched) {
+      document.getElementById('hero-prelaunch').style.display = 'none';
+      document.getElementById('hero-postlaunch').style.display = '';
+      document.title = 'fitted. — Career guidance';
+    }
+
     // ── COUNTDOWN TIMER ──
     function updateCountdown() {
-      const launch = new Date('2026-06-14T00:00:00');
-      const now = new Date();
-      const diff = launch - now;
+      const now  = new Date();
+      const diff = LAUNCH_DATE - now;
 
       if (diff <= 0) {
         document.getElementById('countdown').innerHTML =
@@ -2122,8 +2396,10 @@
       document.getElementById('cd-secs').textContent  = String(secs).padStart(2, '0');
     }
 
-    updateCountdown();
-    setInterval(updateCountdown, 1000);
+    if (!isLaunched) {
+      updateCountdown();
+      setInterval(updateCountdown, 1000);
+    }
 
     // ── SCROLL FADE-UP OBSERVER ──
     const observer = new IntersectionObserver((entries) => {

@@ -2,6 +2,7 @@
   "rewrites": [
     {
       "source": "/",
+      "missing": [{"type": "cookie", "key": "fitted-token"}],
       "destination": "/coming-soon.html"
     }
   ]

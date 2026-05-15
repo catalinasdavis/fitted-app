@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fitted. — Design System</title>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Core brand */
+      --navy:       #2f3e5c;
+      --taupe:      #b8a99a;
+      --taupe-mid:  #cbbdaf;
+      --taupe-light:#d9cfc7;
+      --taupe-pale: #ede8e3;
+      --bg:         #f4f2ed;
+      --bg-warm:    #edeae3;
+      --white:      #faf9f6;
+      --black:      #1e2530;
+      /* Functional */
+      --success:    #3d7a3d;
+      --warning:    #8a6a1e;
+      --muted:      #6b7280;
+      --border:     rgba(184,169,154,0.3);
+      /* Type */
+      --serif:      'EB Garamond', Georgia, serif;
+      --sans:       'DM Sans', Helvetica, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--black);
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── SIDEBAR NAV ── */
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: 220px;
+      height: 100vh;
+      background: var(--white);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 2rem 0;
+      z-index: 100;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      font-family: var(--serif);
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: var(--navy);
+      padding: 0 1.5rem 0.25rem;
+      letter-spacing: -0.02em;
+    }
+
+    .sidebar-tagline {
+      font-size: 0.6875rem;
+      color: var(--taupe);
+      padding: 0 1.5rem 1.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0 1.5rem 1.25rem;
+    }
+
+    .nav-group-label {
+      font-size: 0.625rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--taupe);
+      font-weight: 600;
+      padding: 0.875rem 1.5rem 0.375rem;
+    }
+
+    .nav-link {
+      display: block;
+      padding: 0.4rem 1.5rem;
+      font-size: 0.8125rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s, background 0.15s;
+      border-left: 2px solid transparent;
+    }
+
+    .nav-link:hover { color: var(--navy); background: var(--bg); }
+    .nav-link.active { color: var(--navy); border-left-color: var(--taupe); background: var(--bg); font-weight: 500; }
+
+    .sidebar-version {
+      margin-top: auto;
+      padding: 1.5rem;
+      font-size: 0.6875rem;
+      color: var(--taupe-light);
+    }
+
+    /* ── MAIN CONTENT ── */
+    .main {
+      margin-left: 220px;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      background: var(--navy);
+      padding: 5rem 4rem 4.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .page-header::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      right: -10%;
+      width: 50%;
+      height: 200%;
+      background: radial-gradient(ellipse, rgba(184,169,154,0.15) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .page-header::after {
+      content: 'fitted.';
+      position: absolute;
+      bottom: -2rem;
+      right: 3rem;
+      font-family: var(--serif);
+      font-size: 11rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.04);
+      line-height: 1;
+      pointer-events: none;
+      letter-spacing: -0.04em;
+    }
+
+    .header-kicker {
+      font-size: 0.6875rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--taupe-light);
+      font-weight: 500;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+    }
+
+    .header-kicker::before {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 1px;
+      background: var(--taupe-light);
+    }
+
+    .page-header h1 {
+      font-family: var(--serif);
+      font-size: 3.5rem;
+      font-weight: 500;
+      color: var(--white);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .page-header p {
+      font-size: 1.0625rem;
+      color: rgba(244,242,237,0.6);
+      font-weight: 300;
+      max-width: 520px;
+      line-height: 1.7;
+    }
+
+    .header-meta {
+      display: flex;
+      gap: 2rem;
+      margin-top: 2.5rem;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .meta-label {
+      font-size: 0.625rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--taupe-light);
+      font-weight: 500;
+    }
+
+    .meta-value {
+      font-size: 0.875rem;
+      color: rgba(244,242,237,0.8);
+      font-weight: 400;
+    }
+
+    /* ── SECTIONS ── */
+    .section {
+      padding: 4.5rem 4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section:last-child { border-bottom: none; }
+
+    .section-alt { background: var(--white); }
+    .section-dark { background: var(--navy); }
+
+    .section-header {
+      margin-bottom: 3rem;
+    }
+
+    .section-number {
+      font-size: 0.625rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--taupe);
+      font-weight: 600;
+      margin-bottom: 0.625rem;
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+    }
+
+    .section-number::before {
+      content: '';
+      display: inline-block;
+      width: 16px;
+      height: 1px;
+      background: var(--taupe);
+    }
+
+    .section-title {
+      font-family: var(--serif);
+      font-size: 2.5rem;
+      font-weight: 500;
+      color: var(--navy);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    .section-dark .section-title { color: var(--white); }
+    .section-dark .section-number { color: var(--taupe-light); }
+    .section-dark .section-number::before { background: var(--taupe-light); }
+
+    .section-desc {
+      margin-top: 0.75rem;
+      font-size: 0.9375rem;
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    .section-dark .section-desc { color: rgba(244,242,237,0.55); }
+
+    /* ── COLOR PALETTE ── */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .color-swatch {
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .swatch-chip {
+      height: 80px;
+      width: 100%;
+    }
+
+    .swatch-info {
+      padding: 0.75rem;
+      background: var(--white);
+    }
+
+    .section-alt .swatch-info { background: var(--bg); }
+
+    .swatch-name {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--black);
+      margin-bottom: 0.2rem;
+    }
+
+    .swatch-hex {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-family: 'Courier New', monospace;
+    }
+
+    .swatch-role {
+      font-size: 0.6875rem;
+      color: var(--taupe);
+      margin-top: 0.25rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .color-group-label {
+      font-size: 0.6875rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--taupe);
+      font-weight: 600;
+      margin-bottom: 1rem;
+      margin-top: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .color-group-label::before {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      height: 1px;
+      background: var(--taupe);
+    }
+
+    /* ── TYPOGRAPHY ── */
+    .type-specimen {
+      margin-bottom: 2.5rem;
+      padding: 2.5rem;
+      background: var(--bg);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .section-alt .type-specimen { background: var(--white); }
+
+    .type-label {
+      font-size: 0.6875rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--taupe);
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .type-meta {
+      font-family: 'Courier New', monospace;
+      font-size: 0.6875rem;
+      color: var(--taupe-light);
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .type-scale {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .type-row {
+      display: flex;
+      align-items: baseline;
+      gap: 1.5rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .type-row:last-child { border-bottom: none; }
+
+    .type-size-label {
+      font-family: 'Courier New', monospace;
+      font-size: 0.6875rem;
+      color: var(--taupe);
+      width: 80px;
+      flex-shrink: 0;
+    }
+
+    .type-example { flex: 1; }
+
+    .type-spec {
+      font-size: 0.6875rem;
+      color: var(--taupe-light);
+      font-family: 'Courier New', monospace;
+      white-space: nowrap;
+    }
+
+    /* ── VOICE & TONE ── */
+    .voice-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .voice-card {
+      padding: 2rem;
+      border-radius: 8px;
+    }
+
+    .voice-card.is { background: rgba(47,62,92,0.05); border: 1px solid rgba(47,62,92,0.12); }
+    .voice-card.not { background: rgba(184,169,154,0.1); border: 1px solid rgba(184,169,154,0.25); }
+
+    .voice-card-label {
+      font-size: 0.6875rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+    }
+
+    .voice-card.is .voice-card-label { color: var(--navy); }
+    .voice-card.not .voice-card-label { color: var(--taupe); }
+
+    .voice-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      color: var(--black);
+      line-height: 1.5;
+    }
+
+    .voice-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 0.45rem;
+    }
+
+    .voice-card.is .voice-dot { background: var(--navy); }
+    .voice-card.not .voice-dot { background: var(--taupe); }
+
+    .copy-example {
+      margin: 2rem 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .copy-example-header {
+      background: var(--navy);
+      padding: 0.75rem 1.25rem;
+      font-size: 0.6875rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--taupe-light);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .copy-example-body {
+      padding: 1.5rem 1.25rem;
+      background: var(--white);
+    }
+
+    .section-alt .copy-example-body { background: var(--bg); }
+
+    .copy-good {
+      font-family: var(--serif);
+      font-size: 1.25rem;
+      color: var(--navy);
+      line-height: 1.5;
+      font-style: italic;
+      margin-bottom: 0.5rem;
+    }
+
+    .copy-bad {
+      font-size: 0.9375rem;
+      color: var(--muted);
+      text-decoration: line-through;
+      margin-bottom: 0.5rem;
+    }
+
+    .copy-note {
+      font-size: 0.8125rem;
+      color: var(--taupe);
+      font-weight: 500;
+      margin-top: 0.5rem;
+    }
+
+    /* ── BUTTONS ── */
+    .component-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .component-row {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .component-label-col {
+      width: 140px;
+      flex-shrink: 0;
+    }
+
+    .component-label {
+      font-size: 0.6875rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--taupe);
+      font-weight: 600;
+    }
+
+    .component-spec {
+      font-size: 0.6875rem;
+      color: var(--taupe-light);
+      font-family: 'Courier New', monospace;
+      margin-top: 0.25rem;
+    }
+
+    /* Actual buttons */
+    .btn { cursor: default; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
+    .btn-primary-demo { background: var(--navy); color: var(--white); padding: 0.875rem 2rem; border-radius: 3px; font-family: var(--sans); font-size: 0.9375rem; font-weight: 500; }
+    .btn-secondary-demo { border: 1.5px solid var(--navy); color: var(--navy); padding: 0.875rem 2rem; border-radius: 3px; font-family: var(--sans); font-size: 0.9375rem; font-weight: 500; background: transparent; }
+    .btn-ghost-demo { color: var(--navy); font-size: 0.9375rem; border-bottom: 1px solid var(--taupe-light); padding-bottom: 2px; font-family: var(--sans); font-weight: 400; background: transparent; border-radius: 0; }
+    .btn-taupe-demo { background: var(--taupe); color: var(--navy); padding: 0.875rem 2rem; border-radius: 3px; font-family: var(--sans); font-size: 0.9375rem; font-weight: 600; }
+    .btn-sm-demo { background: var(--navy); color: var(--white); padding: 0.5rem 1.125rem; border-radius: 3px; font-family: var(--sans); font-size: 0.8125rem; font-weight: 500; }
+    .btn-pill-demo { background: rgba(47,62,92,0.08); color: var(--navy); padding: 0.375rem 0.875rem; border-radius: 20px; font-family: var(--sans); font-size: 0.75rem; font-weight: 500; }
+
+    /* ── SPACING ── */
+    .spacing-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .spacing-row {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 0.875rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .spacing-row:last-child { border-bottom: none; }
+
+    .spacing-token {
+      font-family: 'Courier New', monospace;
+      font-size: 0.75rem;
+      color: var(--navy);
+      width: 80px;
+      flex-shrink: 0;
+    }
+
+    .spacing-bar-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .spacing-bar {
+      height: 12px;
+      background: var(--taupe);
+      border-radius: 2px;
+      opacity: 0.6;
+    }
+
+    .spacing-px {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-family: 'Courier New', monospace;
+      white-space: nowrap;
+    }
+
+    .spacing-use {
+      font-size: 0.75rem;
+      color: var(--taupe);
+      width: 200px;
+      flex-shrink: 0;
+    }
+
+    /* ── ICON STYLE ── */
+    .icon-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+
+    .icon-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.625rem;
+      padding: 1.25rem;
+      background: var(--bg);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      min-width: 90px;
+    }
+
+    .section-alt .icon-item { background: var(--white); }
+
+    .icon-name {
+      font-size: 0.6875rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    /* ── CARDS ── */
+    .card-demo {
+      background: var(--white);
+      border-radius: 8px;
+      padding: 1.5rem;
+      border: 1px solid rgba(184,169,154,0.25);
+      box-shadow: 0 4px 20px rgba(47,62,92,0.06);
+    }
+
+    .section-alt .card-demo { background: var(--bg); }
+
+    /* ── PHOTOGRAPHY ── */
+    .photo-direction-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+    }
+
+    .photo-frame {
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .photo-placeholder {
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 0.75rem;
+      position: relative;
+    }
+
+    .photo-placeholder-label {
+      font-size: 0.6875rem;
+      color: var(--muted);
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      line-height: 1.5;
+      z-index: 1;
+      padding: 0 1rem;
+    }
+
+    .photo-tag-row {
+      padding: 0.875rem;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-top: none;
+    }
+
+    .section-alt .photo-tag-row { background: var(--bg); }
+
+    .photo-tag-title { font-size: 0.8125rem; font-weight: 500; color: var(--navy); margin-bottom: 0.25rem; }
+    .photo-tag-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.45; }
+
+    /* ── DOS & DONTS ── */
+    .dos-donts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .dos-col, .donts-col { display: flex; flex-direction: column; gap: 1rem; }
+
+    .dd-header {
+      font-size: 0.6875rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 0.625rem 1rem;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .dd-header.do { background: rgba(47,62,92,0.08); color: var(--navy); }
+    .dd-header.dont { background: rgba(184,169,154,0.15); color: #7a6e64; }
+
+    .dd-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.875rem;
+      padding: 1rem 1.125rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    .dd-item.do { background: rgba(47,62,92,0.04); border: 1px solid rgba(47,62,92,0.1); color: var(--black); }
+    .dd-item.dont { background: rgba(184,169,154,0.08); border: 1px solid rgba(184,169,154,0.2); color: var(--muted); }
+
+    .dd-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+      font-weight: 700;
+    }
+
+    .dd-item.do .dd-icon { background: var(--navy); color: var(--white); }
+    .dd-item.dont .dd-icon { background: var(--taupe-light); color: var(--white); }
+
+    /* ── SOCIAL MEDIA TEMPLATES ── */
+    .social-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    .social-frame {
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(47,62,92,0.1);
+    }
+
+    .social-label {
+      font-size: 0.6875rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* ── MOTION ── */
+    .motion-spec {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .motion-card {
+      padding: 1.5rem;
+      background: var(--bg);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .section-alt .motion-card { background: var(--white); }
+
+    .motion-card-label {
+      font-size: 0.6875rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--taupe);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    .motion-value {
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      color: var(--navy);
+      margin-bottom: 0.375rem;
+    }
+
+    .motion-use {
+      font-size: 0.8125rem;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 0.5rem;
+    }
+
+    /* ── INSIGHT COMPONENT DEMO ── */
+    .insight-demo {
+      background: rgba(47,62,92,0.04);
+      border-left: 3px solid var(--taupe);
+      border-radius: 5px;
+      padding: 1rem 1.25rem;
+    }
+
+    .insight-label-demo {
+      font-size: 0.6875rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--taupe);
+      font-weight: 600;
+      margin-bottom: 0.375rem;
+    }
+
+    .insight-text-demo {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── BADGE / TAG DEMOS ── */
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.625rem;
+      align-items: center;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .tag {
+      font-size: 0.6875rem;
+      font-weight: 500;
+      padding: 0.2rem 0.5rem;
+      border-radius: 3px;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── SOCIAL TEMPLATE DESIGNS ── */
+    .sq { aspect-ratio: 1; }
+    .reel { aspect-ratio: 9/16; max-height: 320px; }
+    .banner { aspect-ratio: 16/9; }
+
+    .s-navy { background: var(--navy); }
+    .s-taupe { background: var(--taupe); }
+    .s-bg { background: var(--bg); border: 1px solid var(--border); }
+
+    .social-inner {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .social-wordmark {
+      font-family: var(--serif);
+      font-size: 1.125rem;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+
+    .social-headline {
+      font-family: var(--serif);
+      font-weight: 500;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    .social-body {
+      font-size: 0.8125rem;
+      font-weight: 300;
+      line-height: 1.65;
+    }
+
+    .social-tag {
+      font-size: 0.6875rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .social-score {
+      font-family: var(--serif);
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    /* ── TABLE OF CONTENTS DOTS ── */
+    .toc-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--taupe);
+      margin-right: 0.5rem;
+      vertical-align: middle;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--taupe-light); border-radius: 2px; }
+
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .page-header { padding: 3rem 1.5rem; }
+      .section { padding: 3rem 1.5rem; }
+      .voice-grid, .dos-donts-grid, .social-grid, .photo-direction-grid, .motion-spec { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">fitted.</div>
+  <div class="sidebar-tagline">Design System v1.0</div>
+  <div class="sidebar-divider"></div>
+
+  <div class="nav-group-label">Foundation</div>
+  <a href="#colors" class="nav-link">Color Palette</a>
+  <a href="#typography" class="nav-link">Typography</a>
+  <a href="#spacing" class="nav-link">Spacing & Layout</a>
+  <a href="#motion" class="nav-link">Motion</a>
+
+  <div class="nav-group-label">Brand</div>
+  <a href="#voice" class="nav-link">Voice & Tone</a>
+  <a href="#photography" class="nav-link">Photography</a>
+  <a href="#social" class="nav-link">Social Templates</a>
+
+  <div class="nav-group-label">Components</div>
+  <a href="#buttons" class="nav-link">Buttons</a>
+  <a href="#badges" class="nav-link">Badges & Tags</a>
+  <a href="#cards" class="nav-link">Cards</a>
+  <a href="#icons" class="nav-link">Icons</a>
+
+  <div class="nav-group-label">Guidelines</div>
+  <a href="#dos-donts" class="nav-link">Do's & Don'ts</a>
+
+  <div class="sidebar-version">fitted. DS · May 2026 · v1.0</div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="header-kicker">Brand & Design</div>
+    <h1>fitted.<br />Design System</h1>
+    <p>The definitive reference for all fitted. visual communication — landing page, web app, email, and social media.</p>
+    <div class="header-meta">
+      <div class="meta-item">
+        <div class="meta-label">Version</div>
+        <div class="meta-value">1.0 — May 2026</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Tone</div>
+        <div class="meta-value">Quiet Luxury · Editorial</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Audience</div>
+        <div class="meta-value">Mid-career professionals</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 01 COLORS ═══ -->
+  <section class="section" id="colors">
+    <div class="section-header">
+      <div class="section-number">01 — Foundation</div>
+      <div class="section-title">Color Palette</div>
+      <div class="section-desc">Every color in the fitted. palette is chosen for calm authority. Use navy to anchor, taupe to warm, off-white to breathe. Never introduce new colors without approval.</div>
+    </div>
+
+    <div class="color-group-label">Primary</div>
+    <div class="color-grid">
+      <div class="color-swatch">
+        <div class="swatch-chip" style="background:#2f3e5c;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Navy</div>
+          <div class="swatch-hex">#2f3e5c</div>
+          <div class="swatch-role">Primary · Authority</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch-chip" style="background:#b8a99a;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Taupe</div>
+          <div class="swatch-hex">#b8a99a</div>
+          <div class="swatch-role">Accent · Warmth</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch-chip" style="background:#f4f2ed; border:1px solid #e8e4dc;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Off-white</div>
+          <div class="swatch-hex">#f4f2ed</div>
+          <div class="swatch-role">Background · Space</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch-chip" style="background:#faf9f6; border:1px solid #e8e4dc;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">White</div>
+          <div class="swatch-hex">#faf9f6</div>
+          <div class="swatch-role">Surface · Card bg</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch-chip" style="background:#1e2530;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Ink</div>
+          <div class="swatch-hex">#1e2530</div>
+          <div class="swatch-role">Body text · Dark</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="color-group-label">Taupe Scale</div>
+    <div class="color-grid">
+      <div class="color-swatch">
+        <div class="swatch-chip" style="background:#7a6e64;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Taupe Dark</div>
+          <div class="swatch-hex">#7a6e64</div>
+          <div class="swatch-role">Emphasis on light bg</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch-chip" style="background:#b8a99a;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Taupe</div>
+          <div class="swatch-hex">#b8a99a</div>
+          <div class="swatch-role">Accent · Labels</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch-chip" style="background:#cbbdaf;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Taupe Mid</div>
+          <div class="swatch-hex">#cbbdaf</div>
+          <div class="swatch-role">Borders on dark bg</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch-chip" style="background:#d9cfc7;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Taupe Light</div>
+          <div class="swatch-hex">#d9cfc7</div>
+          <div class="swatch-role">Dividers · Borders</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch-chip" style="background:#ede8e3;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Taupe Pale</div>
+          <div class="swatch-hex">#ede8e3</div>
+          <div class="swatch-role">Hover states · Tints</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="color-group-label">Functional</div>
+    <div class="color-grid">
+      <div class="color-swatch">
+        <div class="swatch-chip" style="background:#6b7280;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Muted</div>
+          <div class="swatch-hex">#6b7280</div>
+          <div class="swatch-role">Body text · Subtitles</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch-chip" style="background:#9ca3af;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Dim</div>
+          <div class="swatch-hex">#9ca3af</div>
+          <div class="swatch-role">Placeholders</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch-chip" style="background:#3d7a3d;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Success</div>
+          <div class="swatch-hex">#3d7a3d</div>
+          <div class="swatch-role">Applied · Offer state</div>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch-chip" style="background:#8a6a1e;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Warning</div>
+          <div class="swatch-hex">#8a6a1e</div>
+          <div class="swatch-role">Deadline · Caution</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Color usage rules -->
+    <div style="margin-top:2.5rem; display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+      <div style="padding:1.5rem; background:var(--white); border-radius:8px; border:1px solid var(--border);">
+        <div style="font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:1rem;">Contrast Rules</div>
+        <div style="font-size:0.875rem;color:var(--muted);line-height:1.7;">
+          Navy on off-white: <strong style="color:var(--navy);">✓ 8.2:1</strong><br/>
+          Navy on white: <strong style="color:var(--navy);">✓ 9.1:1</strong><br/>
+          Taupe on navy: <strong style="color:var(--navy);">✓ 4.8:1</strong><br/>
+          White on navy: <strong style="color:var(--navy);">✓ 9.1:1</strong><br/>
+          <span style="color:var(--taupe);font-size:0.8125rem;margin-top:0.5rem;display:block;">Never use taupe on off-white for body text — contrast is insufficient.</span>
+        </div>
+      </div>
+      <div style="padding:1.5rem; background:var(--white); border-radius:8px; border:1px solid var(--border);">
+        <div style="font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:1rem;">Palette Combinations</div>
+        <div style="display:flex;flex-direction:column;gap:0.625rem;">
+          <div style="display:flex;gap:0.5rem;align-items:center;">
+            <div style="width:28px;height:28px;border-radius:4px;background:#2f3e5c;flex-shrink:0;"></div>
+            <div style="width:28px;height:28px;border-radius:4px;background:#f4f2ed;flex-shrink:0;border:1px solid #e8e4dc;"></div>
+            <div style="font-size:0.8125rem;color:var(--muted);">Primary hero / sections</div>
+          </div>
+          <div style="display:flex;gap:0.5rem;align-items:center;">
+            <div style="width:28px;height:28px;border-radius:4px;background:#2f3e5c;flex-shrink:0;"></div>
+            <div style="width:28px;height:28px;border-radius:4px;background:#b8a99a;flex-shrink:0;"></div>
+            <div style="font-size:0.8125rem;color:var(--muted);">Navy bg + taupe CTA / accent</div>
+          </div>
+          <div style="display:flex;gap:0.5rem;align-items:center;">
+            <div style="width:28px;height:28px;border-radius:4px;background:#faf9f6;flex-shrink:0;border:1px solid #e8e4dc;"></div>
+            <div style="width:28px;height:28px;border-radius:4px;background:#b8a99a;flex-shrink:0;"></div>
+            <div style="width:28px;height:28px;border-radius:4px;background:#2f3e5c;flex-shrink:0;"></div>
+            <div style="font-size:0.8125rem;color:var(--muted);">Light sections</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 02 TYPOGRAPHY ═══ -->
+  <section class="section section-alt" id="typography">
+    <div class="section-header">
+      <div class="section-number">02 — Foundation</div>
+      <div class="section-title">Typography</div>
+      <div class="section-desc">Two typefaces only. EB Garamond for all display and heading use — its classical authority and warmth define the fitted. editorial voice. DM Sans for all body, UI, and functional text.</div>
+    </div>
+
+    <!-- Typeface 1 -->
+    <div class="type-specimen">
+      <div class="type-label">
+        Display & Headings
+        <span class="type-meta">EB Garamond · Google Fonts · Free</span>
+      </div>
+      <div style="font-family:var(--serif);font-size:3.5rem;font-weight:500;color:var(--navy);line-height:1.1;letter-spacing:-0.02em;margin-bottom:0.5rem;">
+        Aa Bb Cc Dd Ee Ff
+      </div>
+      <div style="font-family:var(--serif);font-size:1.5rem;font-style:italic;color:var(--taupe);line-height:1.3;margin-bottom:1.25rem;">
+        The quick brown fox jumps over the lazy dog.
+      </div>
+      <div style="font-size:0.8125rem;color:var(--muted);line-height:1.6;">
+        Use: Section headings, hero headlines, pull quotes, pricing numbers, editorial callouts, blockquotes, logo wordmark.<br/>
+        Avoid: Body paragraphs, UI labels, buttons, form elements.
+      </div>
+    </div>
+
+    <!-- Typeface 2 -->
+    <div class="type-specimen">
+      <div class="type-label">
+        UI & Body
+        <span class="type-meta">DM Sans · Google Fonts · Free</span>
+      </div>
+      <div style="font-family:var(--sans);font-size:2rem;font-weight:400;color:var(--navy);line-height:1.2;margin-bottom:0.5rem;">
+        Aa Bb Cc Dd Ee Ff
+      </div>
+      <div style="font-family:var(--sans);font-size:1rem;color:var(--muted);line-height:1.7;margin-bottom:1.25rem;font-weight:300;">
+        The quick brown fox jumps over the lazy dog. 0123456789
+      </div>
+      <div style="font-size:0.8125rem;color:var(--muted);line-height:1.6;">
+        Use: Body text, navigation, buttons, labels, badges, captions, form fields, data.<br/>
+        Weights: 300 (body copy), 400 (default), 500 (emphasis), 600 (strong, CTAs).
+      </div>
+    </div>
+
+    <!-- Type scale -->
+    <div style="margin-bottom:0.75rem;font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;">Type Scale</div>
+    <div style="padding:2rem;background:var(--bg);border-radius:10px;border:1px solid var(--border);">
+      <div class="type-scale">
+        <div class="type-row">
+          <div class="type-size-label">display-xl</div>
+          <div class="type-example"><span style="font-family:var(--serif);font-size:3.5rem;font-weight:500;color:var(--navy);line-height:1;letter-spacing:-0.02em;">fitted.</span></div>
+          <div class="type-spec">56px / 500 / -0.02em / Garamond</div>
+        </div>
+        <div class="type-row">
+          <div class="type-size-label">display</div>
+          <div class="type-example"><span style="font-family:var(--serif);font-size:2.5rem;font-weight:500;color:var(--navy);line-height:1.1;letter-spacing:-0.02em;">Hero headline</span></div>
+          <div class="type-spec">40px / 500 / -0.02em / Garamond</div>
+        </div>
+        <div class="type-row">
+          <div class="type-size-label">h1</div>
+          <div class="type-example"><span style="font-family:var(--serif);font-size:2rem;font-weight:500;color:var(--navy);letter-spacing:-0.015em;">Section heading</span></div>
+          <div class="type-spec">32px / 500 / -0.015em / Garamond</div>
+        </div>
+        <div class="type-row">
+          <div class="type-size-label">h2</div>
+          <div class="type-example"><span style="font-family:var(--serif);font-size:1.5rem;font-weight:500;color:var(--navy);">Feature headline</span></div>
+          <div class="type-spec">24px / 500 / -0.01em / Garamond</div>
+        </div>
+        <div class="type-row">
+          <div class="type-size-label">h3</div>
+          <div class="type-example"><span style="font-family:var(--serif);font-size:1.25rem;font-weight:500;color:var(--navy);">Card title</span></div>
+          <div class="type-spec">20px / 500 / 0 / Garamond</div>
+        </div>
+        <div class="type-row">
+          <div class="type-size-label">body-lg</div>
+          <div class="type-example"><span style="font-size:1.0625rem;color:var(--muted);font-weight:300;line-height:1.7;">Lead paragraph text — calm and readable, never rushed.</span></div>
+          <div class="type-spec">17px / 300 / 1.7lh / DM Sans</div>
+        </div>
+        <div class="type-row">
+          <div class="type-size-label">body</div>
+          <div class="type-example"><span style="font-size:0.9375rem;color:var(--muted);line-height:1.65;">Default body copy. Clear, neutral, slightly condensed.</span></div>
+          <div class="type-spec">15px / 400 / 1.65lh / DM Sans</div>
+        </div>
+        <div class="type-row">
+          <div class="type-size-label">caption</div>
+          <div class="type-example"><span style="font-size:0.8125rem;color:var(--muted);">Supporting text, metadata, bylines</span></div>
+          <div class="type-spec">13px / 400 / 1.5lh / DM Sans</div>
+        </div>
+        <div class="type-row">
+          <div class="type-size-label">label</div>
+          <div class="type-example"><span style="font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;">Section label · Kicker text</span></div>
+          <div class="type-spec">11px / 600 / 0.12em / uppercase / DM Sans</div>
+        </div>
+        <div class="type-row">
+          <div class="type-size-label">mono</div>
+          <div class="type-example"><span style="font-family:'Courier New',monospace;font-size:0.8125rem;color:var(--muted);">#2f3e5c · 16px · 500</span></div>
+          <div class="type-spec">13px / Courier New / specs only</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem;padding:1.25rem 1.5rem;background:rgba(47,62,92,0.05);border-radius:6px;border-left:3px solid var(--taupe);">
+      <div style="font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:0.5rem;">Italic usage</div>
+      <div style="font-size:0.9rem;color:var(--muted);line-height:1.6;">Garamond italic is a signature tone element — use it sparingly for maximum impact. Best for: a single key word in a headline, pull quotes, emotional emphasis. <em style="font-family:var(--serif);color:var(--taupe);font-size:1rem;"> guided. today. fitted.</em></div>
+    </div>
+  </section>
+
+  <!-- ═══ 03 SPACING ═══ -->
+  <section class="section" id="spacing">
+    <div class="section-header">
+      <div class="section-number">03 — Foundation</div>
+      <div class="section-title">Spacing & Layout</div>
+      <div class="section-desc">Generous whitespace is a core brand value. When in doubt, add more space. fitted. never feels crowded.</div>
+    </div>
+
+    <div style="margin-bottom:2rem;font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;">Base-4 spacing scale</div>
+    <div class="spacing-grid">
+      <div class="spacing-row">
+        <div class="spacing-token">space-1</div>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:4px;"></div><span class="spacing-px">4px</span></div>
+        <div class="spacing-use">Icon gap, tight inline</div>
+      </div>
+      <div class="spacing-row">
+        <div class="spacing-token">space-2</div>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:8px;"></div><span class="spacing-px">8px</span></div>
+        <div class="spacing-use">Badge padding, list gap</div>
+      </div>
+      <div class="spacing-row">
+        <div class="spacing-token">space-3</div>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:12px;"></div><span class="spacing-px">12px</span></div>
+        <div class="spacing-use">Card inner padding</div>
+      </div>
+      <div class="spacing-row">
+        <div class="spacing-token">space-4</div>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:16px;"></div><span class="spacing-px">16px</span></div>
+        <div class="spacing-use">Button padding, form fields</div>
+      </div>
+      <div class="spacing-row">
+        <div class="spacing-token">space-5</div>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:24px;"></div><span class="spacing-px">24px</span></div>
+        <div class="spacing-use">Component gap, card padding</div>
+      </div>
+      <div class="spacing-row">
+        <div class="spacing-token">space-6</div>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:32px;"></div><span class="spacing-px">32px</span></div>
+        <div class="spacing-use">Section inner spacing</div>
+      </div>
+      <div class="spacing-row">
+        <div class="spacing-token">space-8</div>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:48px;"></div><span class="spacing-px">48px</span></div>
+        <div class="spacing-use">Section margins</div>
+      </div>
+      <div class="spacing-row">
+        <div class="spacing-token">space-12</div>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:72px;"></div><span class="spacing-px">72px</span></div>
+        <div class="spacing-use">Major section padding</div>
+      </div>
+      <div class="spacing-row">
+        <div class="spacing-token">space-16</div>
+        <div class="spacing-bar-wrap"><div class="spacing-bar" style="width:96px;"></div><span class="spacing-px">96px</span></div>
+        <div class="spacing-use">Hero / CTA section padding</div>
+      </div>
+    </div>
+
+    <div style="margin-top:2.5rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div style="padding:1.5rem;background:var(--white);border-radius:8px;border:1px solid var(--border);">
+        <div style="font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:1rem;">Border Radius</div>
+        <div style="display:flex;flex-direction:column;gap:0.75rem;">
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <div style="width:36px;height:36px;background:var(--navy);border-radius:2px;flex-shrink:0;"></div>
+            <div><div style="font-size:0.8125rem;font-weight:500;">2–3px</div><div style="font-size:0.75rem;color:var(--muted);">Buttons, tags, inputs</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <div style="width:36px;height:36px;background:var(--navy);border-radius:6px;flex-shrink:0;"></div>
+            <div><div style="font-size:0.8125rem;font-weight:500;">6–8px</div><div style="font-size:0.75rem;color:var(--muted);">Cards, modals, panels</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <div style="width:36px;height:36px;background:var(--navy);border-radius:12px;flex-shrink:0;"></div>
+            <div><div style="font-size:0.8125rem;font-weight:500;">10–12px</div><div style="font-size:0.75rem;color:var(--muted);">Feature cards, illustrations</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <div style="width:36px;height:36px;background:var(--taupe);border-radius:50%;flex-shrink:0;"></div>
+            <div><div style="font-size:0.8125rem;font-weight:500;">50% (circle)</div><div style="font-size:0.75rem;color:var(--muted);">Avatars, score rings, badges</div></div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:1.5rem;background:var(--white);border-radius:8px;border:1px solid var(--border);">
+        <div style="font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:1rem;">Grid & Layout</div>
+        <div style="font-size:0.875rem;color:var(--muted);line-height:1.8;">
+          <strong style="color:var(--navy);">Desktop:</strong> 12-column grid, 5vw gutters<br/>
+          <strong style="color:var(--navy);">Tablet:</strong> 8-column, 4vw gutters<br/>
+          <strong style="color:var(--navy);">Mobile:</strong> 4-column, 20px gutters<br/><br/>
+          Max content width: <strong style="color:var(--navy);">1320px</strong><br/>
+          Nav height: <strong style="color:var(--navy);">64px desktop / 56px mobile</strong><br/>
+          Bottom nav height (mobile): <strong style="color:var(--navy);">64px</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 04 MOTION ═══ -->
+  <section class="section section-alt" id="motion">
+    <div class="section-header">
+      <div class="section-number">04 — Foundation</div>
+      <div class="section-title">Motion</div>
+      <div class="section-desc">Animations are calm and considered — never flashy. They guide attention, not demand it. Every transition should feel like turning a page, not a loading spinner.</div>
+    </div>
+
+    <div class="motion-spec">
+      <div class="motion-card">
+        <div class="motion-card-label">Fade Up (Scroll)</div>
+        <div class="motion-value">0.7s ease</div>
+        <div class="motion-value">translateY(28px → 0)</div>
+        <div class="motion-value">opacity(0 → 1)</div>
+        <div class="motion-use">Section entrances, card reveals on scroll. Stagger siblings by 100ms.</div>
+      </div>
+      <div class="motion-card">
+        <div class="motion-card-label">Hover Lift</div>
+        <div class="motion-value">0.2s ease</div>
+        <div class="motion-value">translateY(0 → -2px)</div>
+        <div class="motion-use">Buttons, cards. Subtle — 2px max. Never bounce or spring.</div>
+      </div>
+      <div class="motion-card">
+        <div class="motion-card-label">Opacity Fade</div>
+        <div class="motion-value">0.2s ease</div>
+        <div class="motion-value">opacity(1 → 0.85)</div>
+        <div class="motion-use">Button hover state. Cleaner than color change on dark bg.</div>
+      </div>
+      <div class="motion-card">
+        <div class="motion-card-label">Nav Scroll</div>
+        <div class="motion-value">0.3s ease</div>
+        <div class="motion-value">box-shadow appears</div>
+        <div class="motion-use">Nav shadow on scroll past 40px. Signals depth, not movement.</div>
+      </div>
+      <div class="motion-card">
+        <div class="motion-card-label">Hero Load</div>
+        <div class="motion-value">0.7s ease</div>
+        <div class="motion-value">80ms base + 100ms stagger</div>
+        <div class="motion-use">On load: kicker → headline → sub → CTA → proof. Sequential, never simultaneous.</div>
+      </div>
+      <div class="motion-card">
+        <div class="motion-card-label">Forbidden</div>
+        <div class="motion-value" style="color:var(--taupe);">bounce / spring</div>
+        <div class="motion-value" style="color:var(--taupe);">rotate / flip</div>
+        <div class="motion-use" style="color:var(--taupe);">No playful or elastic easings. No spinning loaders. Calm at all times.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 05 VOICE & TONE ═══ -->
+  <section class="section" id="voice">
+    <div class="section-header">
+      <div class="section-number">05 — Brand</div>
+      <div class="section-title">Voice & Tone</div>
+      <div class="section-desc">fitted. speaks like a brilliant mentor who respects your time. It never sells. It never cheerleads. It informs, guides, and — when necessary — is candid.</div>
+    </div>
+
+    <div class="voice-grid">
+      <div class="voice-card is">
+        <div class="voice-card-label">fitted. is</div>
+        <div class="voice-item"><div class="voice-dot"></div><div><strong>Trusted.</strong> Speaks from evidence, not enthusiasm. States facts confidently.</div></div>
+        <div class="voice-item"><div class="voice-dot"></div><div><strong>Calm.</strong> Never urgent. No countdown timers, no "spots filling fast."</div></div>
+        <div class="voice-item"><div class="voice-dot"></div><div><strong>Direct.</strong> Says the thing. Doesn't pad, hedge, or use filler phrases.</div></div>
+        <div class="voice-item"><div class="voice-dot"></div><div><strong>Intelligent.</strong> Assumes the reader is smart. Never over-explains.</div></div>
+        <div class="voice-item"><div class="voice-dot"></div><div><strong>Candid.</strong> Will say what's not working — the way a good mentor would.</div></div>
+        <div class="voice-item"><div class="voice-dot"></div><div><strong>Warm.</strong> Empathy without sentimentality. Sees the person behind the resume.</div></div>
+      </div>
+      <div class="voice-card not">
+        <div class="voice-card-label">fitted. is not</div>
+        <div class="voice-item"><div class="voice-dot"></div><div><strong>Hustle-culture.</strong> No "crush it," "land your dream job," "level up."</div></div>
+        <div class="voice-item"><div class="voice-dot"></div><div><strong>Salesy.</strong> No exclamation points. No LIMITED TIME OFFER.</div></div>
+        <div class="voice-item"><div class="voice-dot"></div><div><strong>Corporate.</strong> No buzzwords: synergy, leverage, pivot, disrupt.</div></div>
+        <div class="voice-item"><div class="voice-dot"></div><div><strong>Hollow.</strong> No "we believe in you!" without specific insight behind it.</div></div>
+        <div class="voice-item"><div class="voice-dot"></div><div><strong>Frantic.</strong> Never uses urgency as manipulation. Never creates FOMO.</div></div>
+        <div class="voice-item"><div class="voice-dot"></div><div><strong>Vague.</strong> Every claim is specific. "94% match" not "great fit."</div></div>
+      </div>
+    </div>
+
+    <div class="copy-example">
+      <div class="copy-example-header">
+        Copy Examples — Headlines
+        <span style="color:var(--taupe-light);font-weight:400;text-transform:none;letter-spacing:0;">what good looks like</span>
+      </div>
+      <div class="copy-example-body" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+        <div>
+          <div style="font-size:0.625rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:0.75rem;">✓ Use this</div>
+          <div class="copy-good">"Your search, guided by real intelligence."</div>
+          <div class="copy-good">"Know exactly where you stand — before you apply."</div>
+          <div class="copy-good">"A better search starts today."</div>
+          <div class="copy-note">Calm. Specific. Adult. Uses Garamond italic for a single word of weight.</div>
+        </div>
+        <div>
+          <div style="font-size:0.625rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:0.75rem;">✗ Avoid this</div>
+          <div class="copy-bad">"Supercharge your job search with AI!"</div>
+          <div class="copy-bad">"Land your dream job today 🚀"</div>
+          <div class="copy-bad">"The #1 platform for career success!"</div>
+          <div class="copy-note" style="color:#9ca3af;">Excitable. Vague. Juvenile. Emoji. Hustle-coded.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="copy-example">
+      <div class="copy-example-header">
+        Copy Examples — AI Insight Voice
+        <span style="color:var(--taupe-light);font-weight:400;text-transform:none;letter-spacing:0;">fitted. thinks</span>
+      </div>
+      <div class="copy-example-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+          <div>
+            <div style="font-size:0.625rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:0.75rem;">✓ Candid & specific</div>
+            <div class="insight-demo">
+              <div class="insight-label-demo">fitted. thinks</div>
+              <div class="insight-text-demo">You consistently undersell scope. Your resume describes what you did — not the decisions you owned. That gap is costing you interviews.</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:0.625rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:0.75rem;">✗ Generic & hollow</div>
+            <div class="insight-demo" style="border-left-color:#d9cfc7;opacity:0.6;">
+              <div class="insight-label-demo">fitted. thinks</div>
+              <div class="insight-text-demo">Great work on your profile! You're doing amazing. Keep applying and the right opportunity will come your way!</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vocabulary list -->
+    <div style="margin-top:2rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div style="padding:1.5rem;background:var(--white);border-radius:8px;border:1px solid var(--border);">
+        <div style="font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--navy);font-weight:600;margin-bottom:1rem;">Preferred vocabulary</div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+          {['guided','insight','clarity','thoughtful','genuine','honest','pipeline','score','optimized','tailored','candid','considered','calm'].map(w => `<span style="background:rgba(47,62,92,0.07);color:#2f3e5c;padding:0.25rem 0.625rem;border-radius:3px;font-size:0.8125rem;font-weight:500;">${w}</span>`).join('')}
+        </div>
+      </div>
+      <div style="padding:1.5rem;background:var(--white);border-radius:8px;border:1px solid var(--border);">
+        <div style="font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:1rem;">Banned vocabulary</div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+          {['crush it','hustle','dream job','level up','supercharge','skyrocket','amazing','game-changing','disrupt','#1','incredible','explosive','unlock your potential'].map(w => `<span style="background:rgba(184,169,154,0.12);color:#7a6e64;padding:0.25rem 0.625rem;border-radius:3px;font-size:0.8125rem;text-decoration:line-through;">${w}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 06 BUTTONS ═══ -->
+  <section class="section section-alt" id="buttons">
+    <div class="section-header">
+      <div class="section-number">06 — Components</div>
+      <div class="section-title">Buttons</div>
+      <div class="section-desc">Three tiers: Primary (action), Secondary (alternative), Ghost (low-priority). Never use more than two button types in one view.</div>
+    </div>
+
+    <div class="component-grid">
+      <div class="component-row">
+        <div class="component-label-col">
+          <div class="component-label">Primary</div>
+          <div class="component-spec">Navy · white text<br/>14–15px / 500<br/>radius: 3px</div>
+        </div>
+        <div class="btn btn-primary-demo">Start for free</div>
+        <div class="btn btn-primary-demo" style="opacity:0.55;cursor:not-allowed;">Disabled</div>
+        <div class="btn btn-primary-demo" style="opacity:0.85;transform:translateY(-1px);">Hover state</div>
+      </div>
+
+      <div class="component-row">
+        <div class="component-label-col">
+          <div class="component-label">Secondary</div>
+          <div class="component-spec">Outlined · navy<br/>14–15px / 500<br/>border: 1.5px</div>
+        </div>
+        <div class="btn btn-secondary-demo">View features</div>
+        <div class="btn btn-secondary-demo" style="background:rgba(47,62,92,0.06);">Hover state</div>
+      </div>
+
+      <div class="component-row">
+        <div class="component-label-col">
+          <div class="component-label">Taupe CTA</div>
+          <div class="component-spec">Taupe bg · navy text<br/>Dark backgrounds only<br/>weight: 600</div>
+        </div>
+        <div class="btn btn-taupe-demo">Get started — it's free</div>
+        <div class="btn btn-taupe-demo" style="opacity:0.88;">Hover state</div>
+      </div>
+
+      <div class="component-row">
+        <div class="component-label-col">
+          <div class="component-label">Ghost / Link</div>
+          <div class="component-spec">No bg · underline<br/>Low emphasis<br/>14px / 400</div>
+        </div>
+        <div class="btn btn-ghost-demo">See how it works →</div>
+      </div>
+
+      <div class="component-row">
+        <div class="component-label-col">
+          <div class="component-label">Small</div>
+          <div class="component-spec">Nav · compact UI<br/>12–13px / 500<br/>padding: 6px 16px</div>
+        </div>
+        <div class="btn btn-sm-demo">Get started free</div>
+        <div class="btn btn-pill-demo">12 new</div>
+        <div class="btn btn-pill-demo" style="background:rgba(100,160,100,0.12);color:#3d7a3d;">Applied</div>
+        <div class="btn btn-pill-demo" style="background:rgba(184,169,154,0.2);color:#7a6e64;">Saved</div>
+      </div>
+    </div>
+
+    <div style="margin-top:2rem;padding:1.25rem 1.5rem;background:rgba(47,62,92,0.05);border-radius:6px;border-left:3px solid var(--taupe);">
+      <div style="font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:0.5rem;">Button rules</div>
+      <div style="font-size:0.875rem;color:var(--muted);line-height:1.7;">
+        Mobile touch targets must be <strong style="color:var(--navy);">min 44×44px</strong>. Primary CTA is always full-width on mobile. Never use more than one Primary button per screen section. Taupe CTA is reserved for dark (navy) backgrounds only.
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 07 BADGES & TAGS ═══ -->
+  <section class="section" id="badges">
+    <div class="section-header">
+      <div class="section-number">07 — Components</div>
+      <div class="section-title">Badges & Tags</div>
+      <div class="section-desc">Used for status, match scores, labels, and categorization. Always subtle — never vibrant or attention-grabbing.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:2rem;">
+      <div>
+        <div style="font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:1rem;">Status Tags (application tracker)</div>
+        <div class="badge-row">
+          <span class="tag" style="background:rgba(47,62,92,0.1);color:#2f3e5c;">New</span>
+          <span class="tag" style="background:rgba(184,169,154,0.2);color:#7a6e64;">Saved</span>
+          <span class="tag" style="background:rgba(100,160,100,0.12);color:#3d7a3d;">Applied</span>
+          <span class="tag" style="background:rgba(47,62,92,0.08);color:#4a6080;">Interview</span>
+          <span class="tag" style="background:rgba(100,160,100,0.18);color:#2d5c2d;font-weight:600;">Offer</span>
+          <span class="tag" style="background:rgba(160,160,160,0.1);color:#6b7280;">Closed</span>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:1rem;">Round Badges</div>
+        <div class="badge-row">
+          <span class="badge" style="background:rgba(47,62,92,0.1);color:#2f3e5c;">12 new</span>
+          <span class="badge" style="background:var(--navy);color:#faf9f6;">Pro</span>
+          <span class="badge" style="background:var(--taupe-pale);color:#7a6e64;">Free</span>
+          <span class="badge" style="background:rgba(100,160,100,0.12);color:#3d7a3d;">● Active</span>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:1rem;">Score Rings (match score display)</div>
+        <div class="badge-row">
+          <div style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;border:2px solid #2f3e5c;color:#2f3e5c;background:rgba(47,62,92,0.08);">94</div>
+          <div style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;border:2px solid #b8a99a;color:#7a6e64;background:rgba(184,169,154,0.12);">76</div>
+          <div style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;border:2px solid #ccc;color:#999;background:rgba(160,160,160,0.08);">51</div>
+          <div style="font-size:0.8125rem;color:var(--muted);line-height:1.5;max-width:280px;">90+ = navy ring (strong match). 70–89 = taupe ring (moderate). &lt;70 = grey ring (weak).</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 08 CARDS ═══ -->
+  <section class="section section-alt" id="cards">
+    <div class="section-header">
+      <div class="section-number">08 — Components</div>
+      <div class="section-title">Cards</div>
+      <div class="section-desc">Cards are the primary content container. They should feel like well-laid paper — not app-y or bubbly. Never use heavy shadows or vivid colors on cards.</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;">
+      <!-- Job match card -->
+      <div>
+        <div class="social-label">Match Card</div>
+        <div class="card-demo">
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);">
+            <div style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;border:2px solid #2f3e5c;color:#2f3e5c;background:rgba(47,62,92,0.08);flex-shrink:0;">94</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:500;color:#1e2530;">Director of Product</div>
+              <div style="font-size:11px;color:#6b7280;margin-top:2px;">Lattice · Remote</div>
+            </div>
+            <span style="font-size:10px;font-weight:500;background:rgba(47,62,92,0.1);color:#2f3e5c;padding:2px 6px;border-radius:3px;">New</span>
+          </div>
+          <div style="margin-top:10px;background:rgba(47,62,92,0.03);border-left:3px solid #b8a99a;border-radius:4px;padding:8px 10px;">
+            <div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#b8a99a;font-weight:600;margin-bottom:3px;">fitted. thinks</div>
+            <div style="font-size:11px;color:#6b7280;line-height:1.5;">Strong alignment. Highlight cross-functional leadership on your resume.</div>
+          </div>
+        </div>
+      </div>
+      <!-- Pricing card (free) -->
+      <div>
+        <div class="social-label">Pricing Card (Free)</div>
+        <div class="card-demo" style="border-color:rgba(184,169,154,0.3);">
+          <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#b8a99a;font-weight:500;margin-bottom:8px;">Free</div>
+          <div style="font-family:var(--serif);font-size:2.5rem;font-weight:500;color:#2f3e5c;line-height:1;">$0</div>
+          <div style="font-size:12px;color:#6b7280;margin:4px 0 16px;">Always free</div>
+          <div style="height:1px;background:rgba(184,169,154,0.25);margin-bottom:14px;"></div>
+          <div style="font-size:12px;color:#6b7280;line-height:1.6;">10 job matches/month<br/>5 active applications<br/>1 resume</div>
+        </div>
+      </div>
+      <!-- Pricing card (pro) -->
+      <div>
+        <div class="social-label">Pricing Card (Pro)</div>
+        <div style="background:var(--navy);border-radius:8px;padding:1.5rem;box-shadow:0 12px 40px rgba(47,62,92,0.2);">
+          <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#d9cfc7;font-weight:500;margin-bottom:8px;">Pro</div>
+          <div style="font-family:var(--serif);font-size:2.5rem;font-weight:500;color:#faf9f6;line-height:1;">$18</div>
+          <div style="font-size:12px;color:rgba(244,242,237,0.55);margin:4px 0 16px;">per month</div>
+          <div style="height:1px;background:rgba(255,255,255,0.15);margin-bottom:14px;"></div>
+          <div style="font-size:12px;color:rgba(244,242,237,0.7);line-height:1.6;">Unlimited matching<br/>Unlimited tracking<br/>Full AI insights + salary scripts</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem;padding:1.25rem 1.5rem;background:var(--bg);border-radius:6px;border-left:3px solid var(--taupe);">
+      <div style="font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:0.5rem;">Card rules</div>
+      <div style="font-size:0.875rem;color:var(--muted);line-height:1.7;">Background: white on off-white sections, off-white on white sections. Border: 1px rgba(184,169,154,0.25). Shadow: subtle — 0 4px 20px rgba(47,62,92,0.06). Radius: 8–12px. Never use colored card backgrounds except for the Pro pricing card (navy) and insight strip (taupe-bordered).</div>
+    </div>
+  </section>
+
+  <!-- ═══ 09 ICONS ═══ -->
+  <section class="section" id="icons">
+    <div class="section-header">
+      <div class="section-number">09 — Components</div>
+      <div class="section-title">Icon Style</div>
+      <div class="section-desc">Icons are structural, not decorative. Use sparingly. The fitted. icon style is stroke-based, 1.4–1.5px stroke weight, rounded caps, geometric but not playful.</div>
+    </div>
+
+    <div class="icon-grid">
+      <div class="icon-item">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="11" r="8" stroke="#2f3e5c" stroke-width="1.5" fill="none"/>
+          <path d="M8 11l2.5 2.5 4-4" stroke="#2f3e5c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="icon-name">Match / Check</div>
+      </div>
+      <div class="icon-item">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="#2f3e5c" stroke-width="1.5" fill="none"/>
+          <rect x="12" y="3" width="7" height="7" rx="1.5" stroke="#2f3e5c" stroke-width="1.5" fill="none"/>
+          <rect x="3" y="12" width="7" height="7" rx="1.5" stroke="#2f3e5c" stroke-width="1.5" fill="none"/>
+          <rect x="12" y="12" width="7" height="7" rx="1.5" stroke="#b8a99a" stroke-width="1.5" fill="none" stroke-dasharray="2 1.5"/>
+        </svg>
+        <div class="icon-name">Tracker / Grid</div>
+      </div>
+      <div class="icon-item">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <rect x="4" y="2" width="14" height="18" rx="2" stroke="#2f3e5c" stroke-width="1.5" fill="none"/>
+          <path d="M8 7h6M8 11h6M8 15h4" stroke="#2f3e5c" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <div class="icon-name">Resume</div>
+      </div>
+      <div class="icon-item">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="9" r="5" stroke="#2f3e5c" stroke-width="1.5" fill="none"/>
+          <path d="M4 20c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="#2f3e5c" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        <div class="icon-name">Profile</div>
+      </div>
+      <div class="icon-item">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M11 3v4M11 15v4M3 11h4M15 11h4" stroke="#2f3e5c" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="11" cy="11" r="3.5" stroke="#2f3e5c" stroke-width="1.5" fill="none"/>
+        </svg>
+        <div class="icon-name">Insight / AI</div>
+      </div>
+      <div class="icon-item">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M4 6h14M4 11h10M4 16h7" stroke="#2f3e5c" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <div class="icon-name">Menu / List</div>
+      </div>
+      <div class="icon-item">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <rect x="3" y="5" width="16" height="12" rx="2" stroke="#2f3e5c" stroke-width="1.5" fill="none"/>
+          <path d="M3 9h16" stroke="#2f3e5c" stroke-width="1.5"/>
+        </svg>
+        <div class="icon-name">Pricing / Card</div>
+      </div>
+      <div class="icon-item">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M7 4l5 14 3-6 6-2L7 4z" stroke="#2f3e5c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <div class="icon-name">Arrow / Send</div>
+      </div>
+      <div class="icon-item">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="11" r="8" stroke="#2f3e5c" stroke-width="1.5" fill="none"/>
+          <path d="M11 7v4.5l3 3" stroke="#2f3e5c" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <div class="icon-name">Clock / History</div>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem;padding:1.25rem 1.5rem;background:var(--white);border-radius:6px;border:1px solid var(--border);">
+      <div style="font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:0.5rem;">Icon rules</div>
+      <div style="font-size:0.875rem;color:var(--muted);line-height:1.7;">
+        <strong style="color:var(--navy);">Size:</strong> 18–24px in UI. Never smaller than 16px. <strong style="color:var(--navy);">Color:</strong> Navy (#2f3e5c) on light backgrounds. Off-white on dark. Taupe for secondary/dimmed state. <strong style="color:var(--navy);">Style:</strong> Stroke only — no fills, no solid icons. <strong style="color:var(--navy);">Avoid:</strong> emoji-style icons, filled shapes, vivid colors, decorative icons that add no meaning.
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 10 PHOTOGRAPHY ═══ -->
+  <section class="section section-alt" id="photography">
+    <div class="section-header">
+      <div class="section-number">10 — Brand</div>
+      <div class="section-title">Photography Direction</div>
+      <div class="section-desc">Photography signals that fitted. is for real people in real situations. Calm, considered, natural light. No stock-photo energy. No performative success.</div>
+    </div>
+
+    <div class="photo-direction-grid">
+      <div class="photo-frame">
+        <div class="photo-placeholder" style="background:linear-gradient(135deg,#e8e4dc,#d9cfc7);">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="opacity:0.4;"><rect x="4" y="8" width="24" height="18" rx="2" stroke="#2f3e5c" stroke-width="1.5" fill="none"/><circle cx="12" cy="16" r="3" stroke="#2f3e5c" stroke-width="1.5" fill="none"/><path d="M4 22l7-5 4 3 5-6 8 7" stroke="#2f3e5c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="photo-placeholder-label">Soft natural light<br/>Professional in calm setting<br/>Warm neutral tones</div>
+        </div>
+        <div class="photo-tag-row">
+          <div class="photo-tag-title">Context: Real workspace</div>
+          <div class="photo-tag-desc">Home office, cafe, or minimal desk. Natural light. Not staged.</div>
+        </div>
+      </div>
+
+      <div class="photo-frame">
+        <div class="photo-placeholder" style="background:linear-gradient(135deg,#d5cec7,#c5bab1);">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="opacity:0.4;"><circle cx="16" cy="12" r="6" stroke="#2f3e5c" stroke-width="1.5" fill="none"/><path d="M6 28c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="#2f3e5c" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+          <div class="photo-placeholder-label">Mid-career professional<br/>Composed, not grinning<br/>Candid expression</div>
+        </div>
+        <div class="photo-tag-row">
+          <div class="photo-tag-title">People: Authentic</div>
+          <div class="photo-tag-desc">Age 30–50. Calm expression. Thoughtful, not jubilant.</div>
+        </div>
+      </div>
+
+      <div class="photo-frame">
+        <div class="photo-placeholder" style="background:linear-gradient(135deg,#ede8e3,#e0d9d1);">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="opacity:0.4;"><rect x="4" y="4" width="14" height="18" rx="1.5" stroke="#2f3e5c" stroke-width="1.5" fill="none"/><path d="M10 9h6M10 13h6M10 17h4" stroke="#2f3e5c" stroke-width="1.5" stroke-linecap="round"/><rect x="16" y="14" width="12" height="14" rx="1.5" stroke="#2f3e5c" stroke-width="1.5" fill="none"/><path d="M20 19h4M20 23h3" stroke="#2f3e5c" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <div class="photo-placeholder-label">Documents / notebook<br/>Laptop in soft light<br/>Minimal surfaces</div>
+        </div>
+        <div class="photo-tag-row">
+          <div class="photo-tag-title">Objects: Tools of thought</div>
+          <div class="photo-tag-desc">Laptop, notebooks, coffee. Clean, quiet, real.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:2rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div style="padding:1.5rem;background:var(--bg);border-radius:8px;border:1px solid var(--border);">
+        <div style="font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--navy);font-weight:600;margin-bottom:1rem;">✓ Photography Do's</div>
+        <div style="font-size:0.875rem;color:var(--muted);line-height:1.8;">
+          Natural, directional light (window light ideal)<br/>
+          Warm neutral backgrounds: linen, stone, wood<br/>
+          Shallow depth of field, soft backgrounds<br/>
+          Genuine moments: reading, writing, thinking<br/>
+          Diverse representation across age, identity<br/>
+          Desaturated, film-like post-processing
+        </div>
+      </div>
+      <div style="padding:1.5rem;background:var(--bg);border-radius:8px;border:1px solid var(--border);">
+        <div style="font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:1rem;">✗ Photography Don'ts</div>
+        <div style="font-size:0.875rem;color:var(--muted);line-height:1.8;">
+          Stock-photo smiling at a blank screen<br/>
+          Overly bright, washed-out office environments<br/>
+          Fist pumps, celebrations, trophy poses<br/>
+          Ultra-saturated or HDR processing<br/>
+          White cube / studio backgrounds<br/>
+          Team huddles, corporate brainstorms
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:1rem;padding:1.25rem 1.5rem;background:var(--bg);border-radius:6px;border-left:3px solid var(--taupe);">
+      <div style="font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:0.5rem;">Color treatment on photos</div>
+      <div style="font-size:0.875rem;color:var(--muted);line-height:1.7;">All photos should be slightly desaturated (−10 to −20% saturation) with a subtle warm-taupe grade. Avoid cool blue tones. If overlaying text, use a navy overlay at 40–60% opacity or a warm blur treatment.</div>
+    </div>
+  </section>
+
+  <!-- ═══ 11 SOCIAL MEDIA TEMPLATES ═══ -->
+  <section class="section" id="social">
+    <div class="section-header">
+      <div class="section-number">11 — Brand</div>
+      <div class="section-title">Social Media Templates</div>
+      <div class="section-desc">Social content carries the same editorial restraint as the product. Typography-dominant, brand-color backgrounds, zero decoration for decoration's sake.</div>
+    </div>
+
+    <div style="margin-bottom:2rem;font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;">Square (1:1) — Instagram Feed, LinkedIn</div>
+    <div class="social-grid">
+      <!-- Square 1: Navy hero -->
+      <div>
+        <div class="social-frame sq" style="background:var(--navy);">
+          <div class="social-inner">
+            <div class="social-wordmark" style="color:var(--taupe-light);margin-bottom:auto;">fitted.</div>
+            <div>
+              <div class="social-tag" style="color:var(--taupe-light);margin-bottom:0.75rem;">Career insight</div>
+              <div class="social-headline" style="font-size:1.5rem;color:var(--white);">Your resume<br />is <em style="font-style:italic;color:var(--taupe-light);">underselling</em><br />your decisions.</div>
+            </div>
+            <div style="margin-top:1.25rem;border-top:1px solid rgba(255,255,255,0.15);padding-top:0.75rem;font-size:0.6875rem;color:rgba(244,242,237,0.45);font-weight:500;">fitted.app</div>
+          </div>
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;">Template A — Navy editorial</div>
+      </div>
+
+      <!-- Square 2: Off-white stat -->
+      <div>
+        <div class="social-frame sq" style="background:var(--bg);border:1px solid var(--border);">
+          <div class="social-inner">
+            <div class="social-wordmark" style="color:var(--navy);">fitted.</div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;">
+              <div class="social-score" style="font-size:5rem;color:var(--navy);">94</div>
+              <div style="font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--taupe);font-weight:500;margin-top:0.25rem;">Match score</div>
+              <div style="font-size:0.875rem;color:var(--muted);margin-top:0.5rem;font-weight:300;">Director of Product Strategy<br />Lattice · Remote</div>
+            </div>
+            <div style="font-size:0.625rem;color:var(--taupe-light);letter-spacing:0.08em;text-transform:uppercase;">fitted.app</div>
+          </div>
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;">Template B — Score callout</div>
+      </div>
+
+      <!-- Square 3: Taupe warm -->
+      <div>
+        <div class="social-frame sq" style="background:var(--taupe-pale);">
+          <div class="social-inner">
+            <div class="social-wordmark" style="color:var(--navy);">fitted.</div>
+            <div style="flex:1;display:flex;align-items:flex-end;">
+              <div>
+                <div class="social-tag" style="color:var(--taupe);margin-bottom:0.625rem;">fitted. thinks</div>
+                <div class="social-headline" style="font-size:1.125rem;color:var(--navy);font-style:italic;">"You've saved 9 director roles and applied to 2. The hesitation is worth examining."</div>
+              </div>
+            </div>
+            <div style="margin-top:1rem;font-size:0.625rem;color:var(--taupe);text-transform:uppercase;letter-spacing:0.08em;">Career intelligence · fitted.app</div>
+          </div>
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;">Template C — Quote / insight</div>
+      </div>
+    </div>
+
+    <div style="margin:2.5rem 0 1rem;font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;">Stories / Reels (9:16) — Instagram, TikTok</div>
+    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
+      <!-- Reel 1 -->
+      <div>
+        <div class="social-frame" style="width:180px;aspect-ratio:9/16;background:var(--navy);border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(47,62,92,0.15);">
+          <div style="padding:1.5rem;height:100%;display:flex;flex-direction:column;">
+            <div style="font-family:var(--serif);font-size:1rem;font-weight:500;color:var(--taupe-light);margin-bottom:auto;">fitted.</div>
+            <div>
+              <div style="font-size:0.625rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--taupe-light);font-weight:500;margin-bottom:0.75rem;">Your search, guided.</div>
+              <div style="font-family:var(--serif);font-size:1.75rem;font-weight:500;color:var(--white);line-height:1.1;margin-bottom:1rem;">3 things your resume isn't telling recruiters.</div>
+              <div style="background:var(--taupe);color:var(--navy);padding:0.625rem 1rem;border-radius:3px;font-size:0.8125rem;font-weight:600;text-align:center;">Watch →</div>
+            </div>
+            <div style="margin-top:1rem;font-size:0.5625rem;color:rgba(244,242,237,0.35);text-transform:uppercase;letter-spacing:0.08em;">fitted.app</div>
+          </div>
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;width:180px;">Reel cover — navy</div>
+      </div>
+
+      <!-- Reel 2 -->
+      <div>
+        <div class="social-frame" style="width:180px;aspect-ratio:9/16;background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(47,62,92,0.08);">
+          <div style="padding:1.5rem;height:100%;display:flex;flex-direction:column;">
+            <div style="font-family:var(--serif);font-size:1rem;font-weight:500;color:var(--navy);">fitted.</div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;text-align:center;flex-direction:column;">
+              <div style="font-family:var(--serif);font-size:4rem;font-weight:500;color:var(--navy);line-height:1;">94</div>
+              <div style="font-size:0.625rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-top:0.25rem;">Match score</div>
+              <div style="width:48px;height:1px;background:var(--taupe-light);margin:1rem auto;"></div>
+              <div style="font-family:var(--serif);font-size:1rem;font-style:italic;color:var(--navy);line-height:1.3;">"This is the one you've been waiting for."</div>
+            </div>
+            <div style="font-size:0.5625rem;color:var(--taupe-light);text-transform:uppercase;letter-spacing:0.08em;text-align:center;">fitted.app</div>
+          </div>
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;width:180px;">Reel cover — light</div>
+      </div>
+    </div>
+
+    <div style="margin-top:2rem;padding:1.5rem;background:var(--white);border-radius:8px;border:1px solid var(--border);">
+      <div style="font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:1rem;">Social content rules</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;font-size:0.875rem;color:var(--muted);line-height:1.7;">
+        <div>
+          <strong style="color:var(--navy);display:block;margin-bottom:0.5rem;">Typography on social</strong>
+          EB Garamond for headline. DM Sans for labels and captions. Always left-align or center — never right-align text. Minimum 32px for any readable text in graphics.
+        </div>
+        <div>
+          <strong style="color:var(--navy);display:block;margin-bottom:0.5rem;">Caption voice</strong>
+          Short. Direct. No hashtag spam — max 3–5 relevant tags. No exclamation points. Write like you're texting a smart friend, not pitching a product.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 12 DO'S & DON'TS ═══ -->
+  <section class="section section-alt" id="dos-donts">
+    <div class="section-header">
+      <div class="section-number">12 — Guidelines</div>
+      <div class="section-title">Do's & Don'ts</div>
+      <div class="section-desc">The most important rules for maintaining fitted.'s premium, quiet-luxury editorial standard across all touchpoints.</div>
+    </div>
+
+    <div style="margin-bottom:2rem;font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;">Visual Identity</div>
+    <div class="dos-donts-grid">
+      <div class="dos-col">
+        <div class="dd-header do">✓ Do</div>
+        <div class="dd-item do"><div class="dd-icon">✓</div><div>Use generous white space — let elements breathe. A crowded fitted. is not fitted.</div></div>
+        <div class="dd-item do"><div class="dd-icon">✓</div><div>Lead with the Garamond serif for any headline or callout. It's what makes us recognizable.</div></div>
+        <div class="dd-item do"><div class="dd-icon">✓</div><div>Keep backgrounds within the approved palette: navy, off-white (#f4f2ed), white (#faf9f6), taupe-pale.</div></div>
+        <div class="dd-item do"><div class="dd-icon">✓</div><div>Use one italic word per headline for emphasis — not the whole sentence.</div></div>
+        <div class="dd-item do"><div class="dd-icon">✓</div><div>Keep the taupe accent as warmth, not as a primary color. It supports navy; it doesn't replace it.</div></div>
+        <div class="dd-item do"><div class="dd-icon">✓</div><div>Use horizontal rules and fine lines to separate, not borders or boxes.</div></div>
+      </div>
+      <div class="donts-col">
+        <div class="dd-header dont">✗ Don't</div>
+        <div class="dd-item dont"><div class="dd-icon">✗</div><div>Use gradients as background fills. The palette is flat, warm, and grounded — not gradient-washed.</div></div>
+        <div class="dd-item dont"><div class="dd-icon">✗</div><div>Introduce new typefaces. EB Garamond + DM Sans only. System fonts are not acceptable for designed assets.</div></div>
+        <div class="dd-item dont"><div class="dd-icon">✗</div><div>Use emoji in any designed asset or headline copy. They break the editorial tone immediately.</div></div>
+        <div class="dd-item dont"><div class="dd-icon">✗</div><div>Use vivid colors (bright blue, green, purple, red) for any UI element except explicit error states.</div></div>
+        <div class="dd-item dont"><div class="dd-icon">✗</div><div>Round corners excessively. Pill-shaped buttons or cards feel consumer-app, not professional platform.</div></div>
+        <div class="dd-item dont"><div class="dd-icon">✗</div><div>Add drop shadows for decoration. Shadows only appear when elevation is meaningful (e.g. cards floating over backgrounds).</div></div>
+      </div>
+    </div>
+
+    <div style="margin:2.5rem 0 1rem;font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;">Copy & Voice</div>
+    <div class="dos-donts-grid">
+      <div class="dos-col">
+        <div class="dd-header do">✓ Do</div>
+        <div class="dd-item do"><div class="dd-icon">✓</div><div>Write as if the reader is a 38-year-old senior PM who has zero patience for marketing speak.</div></div>
+        <div class="dd-item do"><div class="dd-icon">✓</div><div>Use specific numbers and evidence: "94% match" not "great opportunity." Precision signals respect.</div></div>
+        <div class="dd-item do"><div class="dd-icon">✓</div><div>Make AI insights candid even when uncomfortable. That's the product's core value proposition.</div></div>
+        <div class="dd-item do"><div class="dd-icon">✓</div><div>End CTAs with something honest: "it's free" or "cancel anytime" — never "No credit card required!!" with exclamation.</div></div>
+      </div>
+      <div class="donts-col">
+        <div class="dd-header dont">✗ Don't</div>
+        <div class="dd-item dont"><div class="dd-icon">✗</div><div>Use exclamation points anywhere in UI, marketing, or social copy. Full stop.</div></div>
+        <div class="dd-item dont"><div class="dd-icon">✗</div><div>Create urgency artificially: "Only 3 spots left," "Offer expires soon," "Don't miss out."</div></div>
+        <div class="dd-item dont"><div class="dd-icon">✗</div><div>Use passive, hedging language: "We think you might potentially be a good fit, perhaps." Be clear.</div></div>
+        <div class="dd-item dont"><div class="dd-icon">✗</div><div>Write AI insights that are only positive. Honest means balanced. Cheerleading erodes trust.</div></div>
+      </div>
+    </div>
+
+    <div style="margin:2.5rem 0 1rem;font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;">Social Media Specific</div>
+    <div class="dos-donts-grid">
+      <div class="dos-col">
+        <div class="dd-header do">✓ Do</div>
+        <div class="dd-item do"><div class="dd-icon">✓</div><div>Use text-dominant graphics. The brand voice is the visual — a strong Garamond headline IS the asset.</div></div>
+        <div class="dd-item do"><div class="dd-icon">✓</div><div>Stick to navy, off-white, and taupe-pale as graphic backgrounds. Maximum 2 colors per graphic.</div></div>
+        <div class="dd-item do"><div class="dd-icon">✓</div><div>Keep hashtags topical (3–5 max): #careers #jobsearch #productmanagement etc.</div></div>
+      </div>
+      <div class="donts-col">
+        <div class="dd-header dont">✗ Don't</div>
+        <div class="dd-item dont"><div class="dd-icon">✗</div><div>Use Canva templates with stock decorations: confetti, arrows, stars, speech bubbles, neon accents.</div></div>
+        <div class="dd-item dont"><div class="dd-icon">✗</div><div>Put low-quality screenshots or app mockups in social graphics unless they're crisp and on-brand.</div></div>
+        <div class="dd-item dont"><div class="dd-icon">✗</div><div>Post motivational quotes with generic backgrounds: "Success is a journey, not a destination 🔥"</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <div style="background:var(--navy);padding:3rem 4rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1.5rem;">
+    <div>
+      <div style="font-family:var(--serif);font-size:1.5rem;color:var(--white);font-weight:500;margin-bottom:0.25rem;">fitted.</div>
+      <div style="font-size:0.75rem;color:var(--taupe-light);letter-spacing:0.08em;">Design System v1.0 · May 2026</div>
+    </div>
+    <div style="font-size:0.8125rem;color:rgba(244,242,237,0.45);max-width:400px;line-height:1.6;">This document governs all visual decisions for fitted. When in doubt: quiet, spacious, specific, and always Garamond.</div>
+    <div style="font-size:0.75rem;color:var(--taupe-light);">© 2026 fitted. All rights reserved.</div>
+  </div>
+
+</main>
+
+<script>
+  // Active nav link on scroll
+  const sections = document.querySelectorAll('section[id], div[id]');
+  const navLinks = document.querySelectorAll('.nav-link');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === '#' + entry.target.id) {
+            link.classList.add('active');
+          }
+        });
+      }
+    });
+  }, { threshold: 0.25, rootMargin: '-80px 0px -40% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>

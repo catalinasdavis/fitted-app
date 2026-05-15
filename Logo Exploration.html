@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fitted. — Logo Exploration</title>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #2f3e5c;
+      --taupe: #b8a99a;
+      --taupe-light: #d9cfc7;
+      --taupe-pale: #ede8e3;
+      --bg: #f4f2ed;
+      --white: #faf9f6;
+      --ink: #1e2530;
+      --sans: 'DM Sans', Helvetica, sans-serif;
+    }
+
+    html, body { background: #1a1d24; font-family: var(--sans); color: #fff; min-height: 100vh; }
+
+    /* ── CANVAS HEADER ── */
+    .canvas-header {
+      padding: 3rem 4rem 2.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .canvas-title {
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: 2rem;
+      font-weight: 500;
+      color: #faf9f6;
+      letter-spacing: -0.02em;
+    }
+
+    .canvas-subtitle {
+      font-size: 0.8125rem;
+      color: rgba(244,242,237,0.45);
+      margin-top: 0.375rem;
+      font-weight: 300;
+    }
+
+    .canvas-meta {
+      font-size: 0.75rem;
+      color: rgba(244,242,237,0.3);
+      text-align: right;
+      line-height: 1.6;
+    }
+
+    /* ── DIRECTION SECTIONS ── */
+    .direction {
+      padding: 4rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .direction-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .direction-letter {
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: 3rem;
+      font-weight: 400;
+      color: rgba(184,169,154,0.3);
+      line-height: 1;
+      width: 48px;
+      flex-shrink: 0;
+    }
+
+    .direction-info {}
+
+    .direction-name {
+      font-size: 1.125rem;
+      font-weight: 500;
+      color: #faf9f6;
+      margin-bottom: 0.2rem;
+    }
+
+    .direction-desc {
+      font-size: 0.8125rem;
+      color: rgba(244,242,237,0.45);
+      font-weight: 300;
+      line-height: 1.5;
+    }
+
+    /* ── LOGO GRID ── */
+    .logo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+    }
+
+    .logo-grid-2 {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 1.25rem;
+    }
+
+    .logo-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.25rem;
+    }
+
+    .logo-cell {
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2.5rem;
+      position: relative;
+      overflow: hidden;
+      min-height: 200px;
+    }
+
+    .logo-cell.tall { min-height: 280px; }
+    .logo-cell.icon { min-height: 180px; }
+
+    /* Backgrounds */
+    .bg-off-white { background: #f4f2ed; }
+    .bg-white { background: #faf9f6; }
+    .bg-navy { background: #2f3e5c; }
+    .bg-ink { background: #1e2530; }
+    .bg-taupe-pale { background: #ede8e3; }
+    .bg-dark-canvas { background: #242830; }
+    .bg-taupe-warm { background: #cbbdaf; }
+    .bg-near-black { background: #111318; }
+
+    .cell-label {
+      position: absolute;
+      bottom: 0.875rem;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 0.625rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 600;
+      opacity: 0.45;
+    }
+
+    .cell-label.dark { color: #1e2530; }
+    .cell-label.light { color: #faf9f6; }
+
+    /* ════════════════════════════════════════
+       DIRECTION A — Refined Drop-Shadow
+    ════════════════════════════════════════ */
+
+    .logo-a {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      position: relative;
+      line-height: 1;
+    }
+
+    /* navy on off-white — taupe shadow */
+    .logo-a.on-light {
+      font-size: 4rem;
+      color: #2f3e5c;
+      text-shadow: 3px 3px 0 #c4b5a8, 4px 4px 0 #c4b5a8;
+    }
+
+    .logo-a.on-navy {
+      font-size: 4rem;
+      color: #f4f2ed;
+      text-shadow: 3px 3px 0 rgba(0,0,0,0.25), 4px 4px 0 rgba(0,0,0,0.15);
+    }
+
+    .logo-a.on-dark {
+      font-size: 4rem;
+      color: #faf9f6;
+      text-shadow: 3px 3px 0 rgba(184,169,154,0.4), 4px 4px 0 rgba(184,169,154,0.2);
+    }
+
+    /* Lockup with tagline */
+    .lockup-a {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0;
+    }
+
+    .tagline-a {
+      font-family: var(--sans);
+      font-size: 0.6875rem;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 0.5rem;
+    }
+
+    /* ── DIRECTION A: BADGE LOCKUP ── */
+    .badge-lockup {
+      border-radius: 14px;
+      padding: 1.25rem 1.75rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .badge-lockup.navy-badge { background: #2f3e5c; }
+    .badge-lockup.dark-badge { background: #1a1d24; }
+
+    /* ════════════════════════════════════════
+       DIRECTION B — Clean Minimal
+    ════════════════════════════════════════ */
+
+    .logo-b {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .logo-b.on-light { color: #2f3e5c; font-size: 3.75rem; }
+    .logo-b.on-navy { color: #f4f2ed; font-size: 3.75rem; }
+    .logo-b.on-dark { color: #faf9f6; font-size: 3.75rem; }
+    .logo-b.sm { font-size: 1.75rem; }
+
+    .logo-b-tag {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 0.875rem;
+    }
+
+    .logo-b-rule { width: 24px; height: 1px; background: #b8a99a; }
+
+    .logo-b-text {
+      font-size: 0.625rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #b8a99a;
+      font-weight: 500;
+      font-family: var(--sans);
+    }
+
+    /* ════════════════════════════════════════
+       DIRECTION C — Fine-line Editorial
+    ════════════════════════════════════════ */
+
+    .logo-c-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+    }
+
+    .logo-c-rule-top {
+      width: 100%;
+      height: 1px;
+      background: currentColor;
+      opacity: 0.3;
+      margin-bottom: 0.5rem;
+    }
+
+    .logo-c {
+      font-family: 'EB Garamond', Georgia, serif;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      line-height: 1;
+      font-size: 3.25rem;
+    }
+
+    .logo-c-sub {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+
+    .logo-c-rule-bottom {
+      width: 100%;
+      height: 1px;
+      background: currentColor;
+      opacity: 0.3;
+      margin-top: 0.5rem;
+    }
+
+    .logo-c-tagline {
+      font-size: 0.5625rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 500;
+      font-family: var(--sans);
+      opacity: 0.55;
+    }
+
+    .logo-c-year {
+      font-size: 0.5625rem;
+      letter-spacing: 0.1em;
+      font-family: 'Courier New', monospace;
+      opacity: 0.35;
+    }
+
+    .logo-c.on-light { color: #2f3e5c; }
+    .logo-c.on-navy { color: #f4f2ed; }
+    .logo-c.on-dark { color: #faf9f6; }
+    .logo-c.on-taupe { color: #2f3e5c; }
+
+    /* ════════════════════════════════════════
+       DIRECTION D — Monogram System
+    ════════════════════════════════════════ */
+
+    /* App icon */
+    .icon-d {
+      width: 100px;
+      height: 100px;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .icon-d.navy-bg { background: #2f3e5c; }
+    .icon-d.ink-bg { background: #1e2530; }
+    .icon-d.off-white-bg { background: #f4f2ed; border: 1px solid rgba(47,62,92,0.15); }
+    .icon-d.taupe-bg { background: #b8a99a; }
+
+    .icon-d-letter {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
+      line-height: 1;
+      position: relative;
+    }
+
+    .icon-d-letter.white { color: #faf9f6; font-size: 3.5rem; }
+    .icon-d-letter.navy { color: #2f3e5c; font-size: 3.5rem; }
+    .icon-d-letter.off-white { color: #f4f2ed; font-size: 3.5rem; }
+
+    /* Dot accent */
+    .icon-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      position: absolute;
+      bottom: 18px;
+      right: 22px;
+    }
+
+    .icon-dot.taupe { background: #b8a99a; }
+    .icon-dot.navy { background: #2f3e5c; }
+    .icon-dot.white { background: #faf9f6; }
+    .icon-dot.off-white { background: #f4f2ed; }
+
+    /* Wordmark with monogram */
+    .logo-d-lockup {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo-d-divider {
+      width: 1px;
+      height: 2.5rem;
+      background: currentColor;
+      opacity: 0.2;
+    }
+
+    .logo-d-wordmark {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
+      font-size: 2rem;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .logo-d-wordmark.on-light { color: #2f3e5c; }
+    .logo-d-wordmark.on-dark { color: #faf9f6; }
+
+    /* ════════════════════════════════════════
+       DIRECTION E — Ink Editorial (quiet luxury)
+    ════════════════════════════════════════ */
+
+    .logo-e {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: -0.01em;
+    }
+
+    .logo-e.on-light { color: #1e2530; font-size: 3.75rem; }
+    .logo-e.on-light em { font-style: italic; color: #b8a99a; }
+    .logo-e.on-navy { color: #f4f2ed; font-size: 3.75rem; }
+    .logo-e.on-navy em { font-style: italic; color: #cbbdaf; }
+    .logo-e.on-dark { color: #faf9f6; font-size: 3.75rem; }
+    .logo-e.on-dark em { font-style: italic; color: #b8a99a; }
+
+    .logo-e-sub {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      margin-top: 0.75rem;
+    }
+
+    .logo-e-line { height: 1px; flex: 1; max-width: 32px; }
+    .logo-e-line.taupe { background: #b8a99a; }
+    .logo-e-line.off-white { background: rgba(244,242,237,0.4); }
+
+    .logo-e-tag {
+      font-family: var(--sans);
+      font-size: 0.5625rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .logo-e-tag.taupe { color: #b8a99a; }
+    .logo-e-tag.off-white { color: rgba(244,242,237,0.5); }
+
+    /* ════════════════════════════════════════
+       SYSTEM SHEET
+    ════════════════════════════════════════ */
+    .system-section {
+      padding: 4rem;
+      background: #f4f2ed;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .system-header {
+      margin-bottom: 3rem;
+    }
+
+    .system-title {
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: 2rem;
+      font-weight: 500;
+      color: #2f3e5c;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .system-desc {
+      font-size: 0.875rem;
+      color: #6b7280;
+      font-weight: 300;
+    }
+
+    .system-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    .sys-cell {
+      border-radius: 8px;
+      padding: 2.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 160px;
+      position: relative;
+    }
+
+    .sys-label {
+      position: absolute;
+      bottom: 0.75rem;
+      font-size: 0.5625rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 600;
+      opacity: 0.4;
+    }
+
+    /* ── APPROVED DIRECTION CALLOUT ── */
+    .approved-band {
+      background: #2f3e5c;
+      padding: 3rem 4rem;
+      display: flex;
+      align-items: center;
+      gap: 4rem;
+    }
+
+    .approved-label {
+      font-size: 0.6875rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #b8a99a;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .approved-title {
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: 1.5rem;
+      color: #faf9f6;
+      font-weight: 500;
+    }
+
+    .approved-note {
+      font-size: 0.875rem;
+      color: rgba(244,242,237,0.55);
+      font-weight: 300;
+      line-height: 1.65;
+      max-width: 420px;
+    }
+
+    /* ── SIZE DEMOS ── */
+    .size-demo-row {
+      display: flex;
+      align-items: center;
+      gap: 2.5rem;
+      flex-wrap: wrap;
+      padding: 1.5rem 0;
+      border-bottom: 1px solid rgba(47,62,92,0.1);
+    }
+
+    .size-demo-row:last-child { border-bottom: none; }
+
+    .size-label {
+      font-size: 0.625rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #b8a99a;
+      font-weight: 600;
+      width: 80px;
+      flex-shrink: 0;
+    }
+
+    /* ── DIRECTION LABEL ── */
+    .dir-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      background: rgba(184,169,154,0.15);
+      border: 1px solid rgba(184,169,154,0.3);
+      border-radius: 20px;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.6875rem;
+      color: #b8a99a;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      margin-top: 0.75rem;
+    }
+
+    /* ── CLEARSPACE DEMO ── */
+    .clearspace-demo {
+      position: relative;
+      display: inline-flex;
+      padding: 1.5rem;
+    }
+
+    .clearspace-demo::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 1px dashed rgba(184,169,154,0.4);
+      border-radius: 2px;
+    }
+
+    /* ── COLOR ON COLOR ── */
+    .usage-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.75rem;
+      margin-top: 2rem;
+    }
+
+    .usage-cell {
+      border-radius: 6px;
+      padding: 1.25rem 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-family: 'Playfair Display', serif;
+      font-weight: 900;
+    }
+
+    .usage-status {
+      font-size: 0.5625rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-family: var(--sans);
+      font-weight: 600;
+    }
+
+    .usage-ok { opacity: 1; }
+    .usage-no { opacity: 0.4; }
+
+    @media (max-width: 900px) {
+      .logo-grid, .logo-grid-2, .logo-grid-4, .system-grid { grid-template-columns: 1fr 1fr; }
+      .direction { padding: 2rem; }
+      .canvas-header { padding: 2rem; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+      .approved-band { flex-direction: column; gap: 1.5rem; padding: 2rem; }
+      .system-section { padding: 2rem; }
+      .usage-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CANVAS HEADER -->
+  <div class="canvas-header">
+    <div>
+      <div class="canvas-title">fitted. — Logo Exploration</div>
+      <div class="canvas-subtitle">5 directions · Full system · May 2026</div>
+    </div>
+    <div class="canvas-meta">
+      Exploration only — for review<br/>
+      fitted. Brand Studio · v1.0
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       DIRECTION A — Refined Drop-Shadow
+  ══════════════════════════════════════════ -->
+  <div class="direction">
+    <div class="direction-header">
+      <div class="direction-letter">A</div>
+      <div class="direction-info">
+        <div class="direction-name">Refined Depth — evolved from the original</div>
+        <div class="direction-desc">Honors the existing drop-shadow DNA. Tighter letterforms, more precise offset, cleaner badge geometry. Feels premium rather than loud.</div>
+      </div>
+    </div>
+
+    <div class="logo-grid">
+      <!-- A1: Primary wordmark on off-white -->
+      <div class="logo-cell tall bg-off-white">
+        <div class="lockup-a">
+          <div class="logo-a on-light">fitted.</div>
+          <div class="tagline-a" style="color:#b8a99a;">a career tailor-made for you</div>
+        </div>
+        <div class="cell-label dark">Primary · Light background</div>
+      </div>
+
+      <!-- A2: Badge lockup on navy -->
+      <div class="logo-cell tall bg-navy">
+        <div class="badge-lockup navy-badge" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);">
+          <div class="logo-a on-navy" style="font-size:3rem;">fitted.</div>
+          <div class="tagline-a" style="color:#cbbdaf;margin-top:0.5rem;">a career tailor-made for you</div>
+        </div>
+        <div class="cell-label light">Badge lockup · Navy</div>
+      </div>
+
+      <!-- A3: Wordmark on dark -->
+      <div class="logo-cell tall bg-ink">
+        <div class="logo-a on-dark">fitted.</div>
+        <div class="cell-label light">Reversed · Dark</div>
+      </div>
+
+      <!-- A4: Compact horizontal lockup -->
+      <div class="logo-cell bg-white">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;">
+          <div class="logo-a on-light" style="font-size:2.5rem;">fitted.</div>
+          <div style="display:flex;align-items:center;gap:8px;padding-left:2px;">
+            <div style="width:20px;height:1px;background:#b8a99a;"></div>
+            <span style="font-size:0.5625rem;letter-spacing:0.14em;text-transform:uppercase;color:#b8a99a;font-weight:500;font-family:var(--sans);">AI career guidance</span>
+          </div>
+        </div>
+        <div class="cell-label dark">Compact + tagline rule</div>
+      </div>
+
+      <!-- A5: Taupe-warm background -->
+      <div class="logo-cell bg-taupe-pale">
+        <div class="logo-a on-light" style="text-shadow: 3px 3px 0 #c4b5a8, 4px 4px 0 #c4b5a8;font-size:3.5rem;">fitted.</div>
+        <div class="cell-label dark">Warm taupe bg</div>
+      </div>
+
+      <!-- A6: Just the period mark — icon treatment -->
+      <div class="logo-cell bg-navy">
+        <div style="display:flex;align-items:baseline;gap:0;">
+          <div style="font-family:'Playfair Display',Georgia,serif;font-weight:900;font-size:5rem;color:#f4f2ed;line-height:1;text-shadow:3px 3px 0 rgba(0,0,0,0.2);">f</div>
+          <div style="width:18px;height:18px;border-radius:50%;background:#b8a99a;margin-bottom:6px;flex-shrink:0;"></div>
+        </div>
+        <div class="cell-label light">Monogram variant A</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       DIRECTION B — Clean Minimal
+  ══════════════════════════════════════════ -->
+  <div class="direction">
+    <div class="direction-header">
+      <div class="direction-letter">B</div>
+      <div class="direction-info">
+        <div class="direction-name">Cormorant Minimal — stripped, confident</div>
+        <div class="direction-desc">No shadow. Pure letterform confidence. Cormorant Garamond has a more delicate, fashion-editorial feel — closer to Vogue or The Row than a tech product.</div>
+      </div>
+    </div>
+
+    <div class="logo-grid">
+      <!-- B1 -->
+      <div class="logo-cell tall bg-off-white">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;">
+          <div class="logo-b on-light">fitted.</div>
+          <div class="logo-b-tag">
+            <div class="logo-b-rule"></div>
+            <div class="logo-b-text">career intelligence</div>
+          </div>
+        </div>
+        <div class="cell-label dark">Primary · minimal</div>
+      </div>
+
+      <!-- B2 -->
+      <div class="logo-cell tall bg-navy">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;">
+          <div class="logo-b on-navy">fitted.</div>
+          <div class="logo-b-tag">
+            <div class="logo-b-rule"></div>
+            <div class="logo-b-text" style="color:#cbbdaf;">career intelligence</div>
+          </div>
+        </div>
+        <div class="cell-label light">Navy reversed</div>
+      </div>
+
+      <!-- B3 -->
+      <div class="logo-cell tall bg-near-black">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;">
+          <div class="logo-b on-dark">fitted.</div>
+          <div class="logo-b-tag">
+            <div class="logo-b-rule"></div>
+            <div class="logo-b-text">career intelligence</div>
+          </div>
+        </div>
+        <div class="cell-label light">Dark mode</div>
+      </div>
+
+      <!-- B4: Italic variant -->
+      <div class="logo-cell bg-white">
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-weight:400;font-style:italic;font-size:3.75rem;color:#2f3e5c;letter-spacing:-0.01em;line-height:1;">fitted.</div>
+        <div class="cell-label dark">Italic variant</div>
+      </div>
+
+      <!-- B5: With period emphasized -->
+      <div class="logo-cell bg-taupe-pale">
+        <div style="display:flex;align-items:baseline;line-height:1;">
+          <span style="font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;font-size:3.75rem;color:#2f3e5c;letter-spacing:-0.02em;">fitted</span>
+          <span style="font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;font-size:3.75rem;color:#b8a99a;">.</span>
+        </div>
+        <div class="cell-label dark">Taupe period accent</div>
+      </div>
+
+      <!-- B6: All-caps small -->
+      <div class="logo-cell bg-off-white">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:0.25rem;">
+          <div style="font-size:0.625rem;letter-spacing:0.2em;text-transform:uppercase;color:#b8a99a;font-weight:600;font-family:var(--sans);">by fitted.</div>
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;font-size:1.75rem;color:#2f3e5c;letter-spacing:-0.01em;">Career<br/>Intelligence</div>
+        </div>
+        <div class="cell-label dark">Editorial sub-brand</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       DIRECTION C — Fine-Line Editorial
+  ══════════════════════════════════════════ -->
+  <div class="direction">
+    <div class="direction-header">
+      <div class="direction-letter">C</div>
+      <div class="direction-info">
+        <div class="direction-name">Fine-Line Editorial — magazine-grade authority</div>
+        <div class="direction-desc">Horizontal rules above and below. EB Garamond in regular weight — understated confidence. Feels like a masthead from The Economist or FT Weekend.</div>
+      </div>
+    </div>
+
+    <div class="logo-grid">
+      <!-- C1 light -->
+      <div class="logo-cell tall bg-off-white">
+        <div class="logo-c-wrap" style="color:#2f3e5c;max-width:280px;">
+          <div class="logo-c-rule-top"></div>
+          <div class="logo-c on-light">fitted.</div>
+          <div class="logo-c-sub">
+            <div class="logo-c-tagline" style="color:#b8a99a;">career intelligence</div>
+            <div class="logo-c-year">est. 2025</div>
+          </div>
+          <div class="logo-c-rule-bottom"></div>
+        </div>
+        <div class="cell-label dark">Masthead · light</div>
+      </div>
+
+      <!-- C2 navy -->
+      <div class="logo-cell tall bg-navy">
+        <div class="logo-c-wrap" style="color:#f4f2ed;max-width:280px;">
+          <div class="logo-c-rule-top"></div>
+          <div class="logo-c on-navy">fitted.</div>
+          <div class="logo-c-sub">
+            <div class="logo-c-tagline" style="color:#cbbdaf;">career intelligence</div>
+            <div class="logo-c-year" style="color:#f4f2ed;">est. 2025</div>
+          </div>
+          <div class="logo-c-rule-bottom"></div>
+        </div>
+        <div class="cell-label light">Masthead · navy</div>
+      </div>
+
+      <!-- C3 dark -->
+      <div class="logo-cell tall bg-ink">
+        <div class="logo-c-wrap" style="color:#faf9f6;max-width:280px;">
+          <div class="logo-c-rule-top"></div>
+          <div class="logo-c on-dark">fitted.</div>
+          <div class="logo-c-sub">
+            <div class="logo-c-tagline" style="color:#b8a99a;">career intelligence</div>
+            <div class="logo-c-year" style="color:#faf9f6;">est. 2025</div>
+          </div>
+          <div class="logo-c-rule-bottom"></div>
+        </div>
+        <div class="cell-label light">Masthead · dark</div>
+      </div>
+
+      <!-- C4: compact top-rule only -->
+      <div class="logo-cell bg-white">
+        <div style="color:#2f3e5c;display:flex;flex-direction:column;align-items:flex-start;max-width:240px;width:100%;">
+          <div style="width:100%;height:2px;background:#2f3e5c;margin-bottom:0.5rem;"></div>
+          <div style="font-family:'EB Garamond',serif;font-weight:500;font-size:2.5rem;color:#2f3e5c;letter-spacing:-0.01em;line-height:1;">fitted.</div>
+        </div>
+        <div class="cell-label dark">Top-rule only · compact</div>
+      </div>
+
+      <!-- C5: taupe bg -->
+      <div class="logo-cell bg-taupe-warm">
+        <div class="logo-c-wrap" style="color:#1e2530;max-width:240px;">
+          <div class="logo-c-rule-top"></div>
+          <div class="logo-c on-taupe" style="font-size:2.75rem;">fitted.</div>
+          <div class="logo-c-rule-bottom"></div>
+        </div>
+        <div class="cell-label dark">Taupe warm bg</div>
+      </div>
+
+      <!-- C6: all-rules decorative -->
+      <div class="logo-cell bg-off-white">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0.375rem;color:#2f3e5c;">
+          <div style="font-size:0.5rem;letter-spacing:0.24em;text-transform:uppercase;font-family:var(--sans);font-weight:600;opacity:0.4;">career guidance</div>
+          <div style="width:120px;height:1px;background:#b8a99a;opacity:0.5;"></div>
+          <div style="font-family:'EB Garamond',serif;font-weight:500;font-size:3rem;color:#2f3e5c;letter-spacing:0.02em;line-height:1;">fitted.</div>
+          <div style="width:120px;height:1px;background:#b8a99a;opacity:0.5;"></div>
+          <div style="font-size:0.5rem;letter-spacing:0.24em;text-transform:uppercase;font-family:var(--sans);font-weight:600;opacity:0.4;">since 2025</div>
+        </div>
+        <div class="cell-label dark">Centered masthead</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       DIRECTION D — Monogram System
+  ══════════════════════════════════════════ -->
+  <div class="direction">
+    <div class="direction-header">
+      <div class="direction-letter">D</div>
+      <div class="direction-info">
+        <div class="direction-name">Monogram System — icon-first brand</div>
+        <div class="direction-desc">The "f." becomes a system: app icon, favicon, social avatar, embossed mark. Combined with a clean wordmark for full lockups. Very scalable, very modern.</div>
+      </div>
+    </div>
+
+    <div class="logo-grid-2">
+      <!-- D1: Icon family -->
+      <div class="logo-cell tall bg-dark-canvas" style="flex-direction:column;gap:1.5rem;align-items:flex-start;padding:2.5rem;">
+        <div style="display:flex;gap:1rem;align-items:flex-end;">
+          <!-- 100px -->
+          <div class="icon-d navy-bg" style="width:100px;height:100px;border-radius:22px;">
+            <div class="icon-d-letter white">f</div>
+            <div class="icon-dot taupe"></div>
+          </div>
+          <!-- 72px -->
+          <div class="icon-d navy-bg" style="width:72px;height:72px;border-radius:16px;">
+            <div class="icon-d-letter white" style="font-size:2.5rem;">f</div>
+            <div class="icon-dot taupe" style="width:7px;height:7px;bottom:13px;right:16px;"></div>
+          </div>
+          <!-- 48px -->
+          <div class="icon-d navy-bg" style="width:48px;height:48px;border-radius:11px;">
+            <div class="icon-d-letter white" style="font-size:1.75rem;">f</div>
+            <div class="icon-dot taupe" style="width:5px;height:5px;bottom:8px;right:10px;"></div>
+          </div>
+          <!-- 32px -->
+          <div class="icon-d navy-bg" style="width:32px;height:32px;border-radius:7px;">
+            <div class="icon-d-letter white" style="font-size:1.125rem;">f</div>
+            <div class="icon-dot taupe" style="width:4px;height:4px;bottom:5px;right:7px;"></div>
+          </div>
+        </div>
+        <div style="font-size:0.625rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(244,242,237,0.3);font-weight:600;">Navy icon · all sizes</div>
+        <div class="cell-label light" style="position:relative;bottom:auto;left:auto;right:auto;text-align:left;">App icon scale</div>
+      </div>
+
+      <!-- D2: ink icon -->
+      <div class="logo-cell icon bg-off-white">
+        <div class="icon-d ink-bg" style="width:96px;height:96px;border-radius:22px;">
+          <div class="icon-d-letter off-white">f</div>
+          <div class="icon-dot taupe"></div>
+        </div>
+        <div class="cell-label dark">Dark icon · light bg</div>
+      </div>
+
+      <!-- D3: taupe icon -->
+      <div class="logo-cell icon bg-navy">
+        <div class="icon-d off-white-bg" style="width:96px;height:96px;border-radius:22px;">
+          <div class="icon-d-letter navy">f</div>
+          <div class="icon-dot navy"></div>
+        </div>
+        <div class="cell-label light">Reversed icon</div>
+      </div>
+    </div>
+
+    <!-- Lockup rows -->
+    <div style="margin-top:1.25rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;">
+      <!-- Horizontal lockup light -->
+      <div class="logo-cell bg-white">
+        <div class="logo-d-lockup" style="color:#2f3e5c;">
+          <div class="icon-d navy-bg" style="width:48px;height:48px;border-radius:11px;flex-shrink:0;">
+            <div class="icon-d-letter white" style="font-size:1.75rem;">f</div>
+            <div class="icon-dot taupe" style="width:5px;height:5px;bottom:8px;right:10px;"></div>
+          </div>
+          <div class="logo-d-divider"></div>
+          <div class="logo-d-wordmark on-light">fitted.</div>
+        </div>
+        <div class="cell-label dark">Horizontal lockup</div>
+      </div>
+
+      <!-- Horizontal lockup navy -->
+      <div class="logo-cell bg-navy">
+        <div class="logo-d-lockup" style="color:#faf9f6;">
+          <div class="icon-d off-white-bg" style="width:48px;height:48px;border-radius:11px;flex-shrink:0;">
+            <div class="icon-d-letter navy" style="font-size:1.75rem;">f</div>
+            <div class="icon-dot navy" style="width:5px;height:5px;bottom:8px;right:10px;"></div>
+          </div>
+          <div class="logo-d-divider" style="background:#faf9f6;"></div>
+          <div class="logo-d-wordmark on-dark">fitted.</div>
+        </div>
+        <div class="cell-label light">Horizontal lockup · navy</div>
+      </div>
+
+      <!-- Stacked lockup -->
+      <div class="logo-cell bg-off-white">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0.625rem;">
+          <div class="icon-d navy-bg" style="width:64px;height:64px;border-radius:15px;flex-shrink:0;">
+            <div class="icon-d-letter white" style="font-size:2.25rem;">f</div>
+            <div class="icon-dot taupe" style="width:7px;height:7px;bottom:11px;right:14px;"></div>
+          </div>
+          <div style="font-family:'Playfair Display',Georgia,serif;font-weight:900;font-size:1.5rem;color:#2f3e5c;letter-spacing:-0.02em;line-height:1;">fitted.</div>
+          <div style="font-size:0.5625rem;letter-spacing:0.14em;text-transform:uppercase;color:#b8a99a;font-weight:500;font-family:var(--sans);">career intelligence</div>
+        </div>
+        <div class="cell-label dark">Stacked lockup</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       DIRECTION E — Ink Editorial
+  ══════════════════════════════════════════ -->
+  <div class="direction">
+    <div class="direction-header">
+      <div class="direction-letter">E</div>
+      <div class="direction-info">
+        <div class="direction-name">Ink Editorial — DM Serif Display, quiet authority</div>
+        <div class="direction-desc">DM Serif Display is more refined and current than Playfair. The italic dot is the signature. No shadow — pure form. This reads closest to a premium fintech or editorial brand of 2025–26.</div>
+      </div>
+    </div>
+
+    <div class="logo-grid">
+      <!-- E1 -->
+      <div class="logo-cell tall bg-off-white">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;">
+          <div style="display:flex;align-items:baseline;line-height:1;">
+            <span style="font-family:'DM Serif Display',Georgia,serif;font-size:4rem;color:#2f3e5c;letter-spacing:-0.01em;font-weight:400;">fitted</span>
+            <span style="font-family:'DM Serif Display',Georgia,serif;font-size:4rem;font-style:italic;color:#b8a99a;letter-spacing:-0.01em;">.</span>
+          </div>
+          <div class="logo-e-sub">
+            <div class="logo-e-line taupe"></div>
+            <div class="logo-e-tag taupe">career intelligence</div>
+          </div>
+        </div>
+        <div class="cell-label dark">Italic dot accent</div>
+      </div>
+
+      <!-- E2 navy -->
+      <div class="logo-cell tall bg-navy">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;">
+          <div style="display:flex;align-items:baseline;line-height:1;">
+            <span style="font-family:'DM Serif Display',Georgia,serif;font-size:4rem;color:#f4f2ed;letter-spacing:-0.01em;">fitted</span>
+            <span style="font-family:'DM Serif Display',Georgia,serif;font-size:4rem;font-style:italic;color:#cbbdaf;letter-spacing:-0.01em;">.</span>
+          </div>
+          <div class="logo-e-sub">
+            <div class="logo-e-line off-white"></div>
+            <div class="logo-e-tag off-white">career intelligence</div>
+          </div>
+        </div>
+        <div class="cell-label light">Navy reversed</div>
+      </div>
+
+      <!-- E3 dark -->
+      <div class="logo-cell tall bg-ink">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;">
+          <div style="display:flex;align-items:baseline;line-height:1;">
+            <span style="font-family:'DM Serif Display',Georgia,serif;font-size:4rem;color:#faf9f6;letter-spacing:-0.01em;">fitted</span>
+            <span style="font-family:'DM Serif Display',Georgia,serif;font-size:4rem;font-style:italic;color:#b8a99a;letter-spacing:-0.01em;">.</span>
+          </div>
+          <div class="logo-e-sub">
+            <div class="logo-e-line taupe"></div>
+            <div class="logo-e-tag taupe">career intelligence</div>
+          </div>
+        </div>
+        <div class="cell-label light">Dark mode</div>
+      </div>
+
+      <!-- E4: compact nav size -->
+      <div class="logo-cell bg-white">
+        <div style="display:flex;align-items:baseline;line-height:1;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.75rem;color:#2f3e5c;letter-spacing:-0.01em;">fitted</span>
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.75rem;font-style:italic;color:#b8a99a;letter-spacing:-0.01em;">.</span>
+        </div>
+        <div class="cell-label dark">Nav size · 28px</div>
+      </div>
+
+      <!-- E5: taupe background -->
+      <div class="logo-cell bg-taupe-pale">
+        <div style="display:flex;align-items:baseline;line-height:1;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:3.5rem;color:#2f3e5c;letter-spacing:-0.01em;">fitted</span>
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:3.5rem;font-style:italic;color:#b8a99a;letter-spacing:-0.01em;">.</span>
+        </div>
+        <div class="cell-label dark">Taupe pale background</div>
+      </div>
+
+      <!-- E6: with taupe-warm icon combo -->
+      <div class="logo-cell bg-near-black">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:0.75rem;">
+          <div style="display:flex;align-items:baseline;line-height:1;">
+            <span style="font-family:'DM Serif Display',Georgia,serif;font-size:3.5rem;color:#faf9f6;letter-spacing:-0.01em;">fitted</span>
+            <span style="font-family:'DM Serif Display',Georgia,serif;font-size:3.5rem;font-style:italic;color:#b8a99a;letter-spacing:-0.01em;">.</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <div style="width:16px;height:1px;background:#b8a99a;opacity:0.5;"></div>
+            <span style="font-size:0.5625rem;letter-spacing:0.18em;text-transform:uppercase;color:#b8a99a;font-weight:500;font-family:var(--sans);opacity:0.7;">AI career guidance</span>
+          </div>
+        </div>
+        <div class="cell-label light">Premium dark</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SYSTEM SHEET — Direction E (Recommended)
+  ══════════════════════════════════════════ -->
+  <div class="approved-band">
+    <div>
+      <div class="approved-label">Recommended direction</div>
+      <div class="approved-title">Direction E — Ink Editorial</div>
+    </div>
+    <div class="approved-note">
+      DM Serif Display's refined proportions and the italic taupe period give fitted. a signature mark that's immediately distinctive and current. It works at every scale from favicon to billboard. The italic dot is the brand's punctuation — both literally and conceptually.
+    </div>
+  </div>
+
+  <div class="system-section">
+    <div class="system-header">
+      <div class="system-title">Logo System — Direction E</div>
+      <div class="system-desc">Full usage across backgrounds, sizes, and contexts.</div>
+    </div>
+
+    <!-- Size scale -->
+    <div style="margin-bottom:2rem;font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:#b8a99a;font-weight:600;">Size scale</div>
+    <div style="background:#faf9f6;border-radius:10px;border:1px solid rgba(184,169,154,0.2);padding:2rem;margin-bottom:2rem;">
+      <div class="size-demo-row">
+        <div class="size-label">Display · 72px</div>
+        <div style="display:flex;align-items:baseline;line-height:1;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:4.5rem;color:#2f3e5c;letter-spacing:-0.01em;">fitted</span>
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:4.5rem;font-style:italic;color:#b8a99a;">.</span>
+        </div>
+      </div>
+      <div class="size-demo-row">
+        <div class="size-label">Hero · 48px</div>
+        <div style="display:flex;align-items:baseline;line-height:1;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:3rem;color:#2f3e5c;letter-spacing:-0.01em;">fitted</span>
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:3rem;font-style:italic;color:#b8a99a;">.</span>
+        </div>
+      </div>
+      <div class="size-demo-row">
+        <div class="size-label">Nav · 28px</div>
+        <div style="display:flex;align-items:baseline;line-height:1;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.75rem;color:#2f3e5c;letter-spacing:-0.01em;">fitted</span>
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.75rem;font-style:italic;color:#b8a99a;">.</span>
+        </div>
+      </div>
+      <div class="size-demo-row">
+        <div class="size-label">Caption · 18px</div>
+        <div style="display:flex;align-items:baseline;line-height:1;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.125rem;color:#2f3e5c;letter-spacing:-0.01em;">fitted</span>
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.125rem;font-style:italic;color:#b8a99a;">.</span>
+        </div>
+      </div>
+      <div class="size-demo-row">
+        <div class="size-label">Minimum · 14px</div>
+        <div style="display:flex;align-items:baseline;line-height:1;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:0.875rem;color:#2f3e5c;">fitted</span>
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:0.875rem;font-style:italic;color:#b8a99a;">.</span>
+        </div>
+        <div style="font-size:0.6875rem;color:#b8a99a;font-weight:500;">← minimum size. Below 14px, use plain "fitted." without italic period.</div>
+      </div>
+    </div>
+
+    <!-- Background usage -->
+    <div style="margin-bottom:1rem;font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:#b8a99a;font-weight:600;">Approved on-background pairings</div>
+    <div class="usage-grid">
+      <div class="usage-cell usage-ok" style="background:#f4f2ed;">
+        <div style="display:flex;align-items:baseline;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.5rem;color:#2f3e5c;">fitted</span>
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.5rem;font-style:italic;color:#b8a99a;">.</span>
+        </div>
+        <div class="usage-status" style="color:#3d7a3d;">✓ Use</div>
+      </div>
+      <div class="usage-cell usage-ok" style="background:#faf9f6;">
+        <div style="display:flex;align-items:baseline;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.5rem;color:#2f3e5c;">fitted</span>
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.5rem;font-style:italic;color:#b8a99a;">.</span>
+        </div>
+        <div class="usage-status" style="color:#3d7a3d;">✓ Use</div>
+      </div>
+      <div class="usage-cell usage-ok" style="background:#2f3e5c;">
+        <div style="display:flex;align-items:baseline;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.5rem;color:#f4f2ed;">fitted</span>
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.5rem;font-style:italic;color:#cbbdaf;">.</span>
+        </div>
+        <div class="usage-status" style="color:#d9cfc7;">✓ Use</div>
+      </div>
+      <div class="usage-cell usage-ok" style="background:#1e2530;">
+        <div style="display:flex;align-items:baseline;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.5rem;color:#faf9f6;">fitted</span>
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.5rem;font-style:italic;color:#b8a99a;">.</span>
+        </div>
+        <div class="usage-status" style="color:#d9cfc7;">✓ Use</div>
+      </div>
+      <div class="usage-cell usage-ok" style="background:#ede8e3;">
+        <div style="display:flex;align-items:baseline;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.5rem;color:#2f3e5c;">fitted</span>
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.5rem;font-style:italic;color:#b8a99a;">.</span>
+        </div>
+        <div class="usage-status" style="color:#3d7a3d;">✓ Use</div>
+      </div>
+      <div class="usage-cell usage-no" style="background:#4a90d9;border:2px dashed rgba(255,255,255,0.3);">
+        <div style="display:flex;align-items:baseline;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.5rem;color:#fff;">fitted</span>
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.5rem;font-style:italic;color:#fff;">.</span>
+        </div>
+        <div class="usage-status" style="color:#ff9999;">✗ Never</div>
+      </div>
+    </div>
+
+    <!-- Clearspace -->
+    <div style="margin-top:2.5rem;margin-bottom:1rem;font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:#b8a99a;font-weight:600;">Clearspace rule</div>
+    <div style="background:#faf9f6;border-radius:10px;border:1px solid rgba(184,169,154,0.2);padding:2rem;display:flex;align-items:center;gap:3rem;">
+      <div class="clearspace-demo">
+        <div style="display:flex;align-items:baseline;line-height:1;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:2.5rem;color:#2f3e5c;">fitted</span>
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:2.5rem;font-style:italic;color:#b8a99a;">.</span>
+        </div>
+      </div>
+      <div style="font-size:0.875rem;color:#6b7280;line-height:1.7;max-width:360px;">
+        Minimum clearspace = the cap-height of the "f" on all four sides. Never crowd the wordmark against other elements, borders, or photography edges. The dashed border shows the minimum clear zone.
+      </div>
+    </div>
+
+    <!-- Don'ts -->
+    <div style="margin-top:2.5rem;margin-bottom:1rem;font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;color:#b8a99a;font-weight:600;">Logo don'ts</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;">
+      <div style="background:#faf9f6;border-radius:8px;padding:1.5rem;display:flex;flex-direction:column;align-items:center;gap:1rem;border:1px solid rgba(184,169,154,0.2);">
+        <div style="display:flex;align-items:baseline;opacity:0.4;filter:blur(0px);">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:2rem;color:#2f3e5c;letter-spacing:0.1em;">FITTED.</span>
+        </div>
+        <div style="font-size:0.6875rem;color:#b8a99a;text-align:center;">Don't all-caps</div>
+      </div>
+      <div style="background:#faf9f6;border-radius:8px;padding:1.5rem;display:flex;flex-direction:column;align-items:center;gap:1rem;border:1px solid rgba(184,169,154,0.2);">
+        <div style="display:flex;align-items:baseline;transform:scaleX(1.4);transform-origin:left center;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:2rem;color:#2f3e5c;opacity:0.4;">fitted.</span>
+        </div>
+        <div style="font-size:0.6875rem;color:#b8a99a;text-align:center;">Don't stretch</div>
+      </div>
+      <div style="background:#faf9f6;border-radius:8px;padding:1.5rem;display:flex;flex-direction:column;align-items:center;gap:1rem;border:1px solid rgba(184,169,154,0.2);">
+        <div style="display:flex;align-items:baseline;">
+          <span style="font-family:'Arial',sans-serif;font-size:2rem;color:#2f3e5c;opacity:0.4;">fitted.</span>
+        </div>
+        <div style="font-size:0.6875rem;color:#b8a99a;text-align:center;">Don't retype in other fonts</div>
+      </div>
+      <div style="background:#faf9f6;border-radius:8px;padding:1.5rem;display:flex;flex-direction:column;align-items:center;gap:1rem;border:1px solid rgba(184,169,154,0.2);">
+        <div style="display:flex;align-items:baseline;">
+          <span style="font-family:'DM Serif Display',Georgia,serif;font-size:2rem;background:linear-gradient(to right,#4a90d9,#9b59b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;opacity:0.6;">fitted.</span>
+        </div>
+        <div style="font-size:0.6875rem;color:#b8a99a;text-align:center;">Don't add gradients</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="background:#111318;padding:2.5rem 4rem;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:baseline;">
+      <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.25rem;color:#faf9f6;">fitted</span>
+      <span style="font-family:'DM Serif Display',Georgia,serif;font-size:1.25rem;font-style:italic;color:#b8a99a;">.</span>
+    </div>
+    <div style="font-size:0.75rem;color:rgba(244,242,237,0.25);">Logo Exploration · May 2026 · For review only</div>
+    <div style="font-size:0.75rem;color:rgba(244,242,237,0.25);">5 directions · Direction E recommended</div>
+  </div>
+
+</body>
+</html>
