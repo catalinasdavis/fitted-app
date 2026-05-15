@@ -1457,21 +1457,24 @@
 
     /* Accessibility button + modal stay dark when HC active */
     body.a11y-high-contrast #a11y-btn {
-      background: #2f3e5c !important;
-      color: #f4f2ed !important;
-      border-color: rgba(47,62,92,0.6) !important;
+      background: rgba(244,242,237,0.97) !important;
+      color: #1a1a1f !important;
+      border-color: rgba(47,62,92,0.35) !important;
+      box-shadow: 0 2px 8px rgba(47,62,92,0.12) !important;
     }
     body.a11y-high-contrast #a11y-modal {
-      background: #1a1a1f !important;
-      border-color: rgba(244,242,237,0.15) !important;
+      background: #f4f2ed !important;
+      border-color: rgba(47,62,92,0.2) !important;
+      box-shadow: 0 8px 32px rgba(47,62,92,0.12) !important;
     }
-    body.a11y-high-contrast .a11y-title { color: #f4f2ed !important; }
-    body.a11y-high-contrast .a11y-label { color: #f4f2ed !important; }
-    body.a11y-high-contrast .a11y-toggle-track { background: rgba(244,242,237,0.15) !important; }
-    body.a11y-high-contrast .a11y-toggle input:checked + .a11y-toggle-track { background: #b8a99a !important; }
-    body.a11y-high-contrast .a11y-divider { border-top-color: rgba(244,242,237,0.1) !important; }
-    body.a11y-high-contrast .a11y-reset { color: rgba(244,242,237,0.4) !important; }
-    body.a11y-high-contrast .a11y-close { color: rgba(244,242,237,0.45) !important; }
+    body.a11y-high-contrast .a11y-title { color: #1a1a1f !important; }
+    body.a11y-high-contrast .a11y-label { color: #1a1a1f !important; }
+    body.a11y-high-contrast .a11y-toggle-track { background: rgba(47,62,92,0.14) !important; }
+    body.a11y-high-contrast .a11y-toggle input:checked + .a11y-toggle-track { background: #5171BF !important; }
+    body.a11y-high-contrast .a11y-divider { border-top-color: rgba(47,62,92,0.12) !important; }
+    body.a11y-high-contrast .a11y-reset { color: rgba(47,62,92,0.45) !important; }
+    body.a11y-high-contrast .a11y-close { color: rgba(47,62,92,0.45) !important; }
+    body.a11y-high-contrast .a11y-close:hover { color: #1a1a1f !important; background: rgba(47,62,92,0.08) !important; }
 
     /* Reduce motion */
     @media (prefers-reduced-motion: reduce) {
