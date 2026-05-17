@@ -1263,18 +1263,6 @@
       html { scroll-behavior: auto; }
     }
 
-    /* ── Coming-soon hero fix ──
-       The flex parent stretches hero-stage to full viewport height, then
-       place-items:center vertically centers everything, pushing the wordmark
-       ~22% down. Pack grid rows to the top instead; keep horizontal centering. */
-    .hero-stage {
-      align-content: start;
-      justify-items: center;
-    }
-    /* Tighten hero top padding so wordmark sits close to the top edge */
-    .hero {
-      padding-top: clamp(0.75rem, 1.5vh, 1.25rem);
-    }
   </style>
 </head>
 
