@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#15151a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -749,6 +749,19 @@
       .waitlist-row { flex-direction: column; }
       .waitlist-input { border-radius: 8px 8px 0 0; }
       .waitlist-btn { border-left: none; border-top: 1px solid rgba(81,113,191,0.3); border-radius: 0 0 8px 8px; width: 100%; }
+    }
+
+    /* ─── mobile countdown: tighter gaps + smaller numbers so it doesn't overflow ─── */
+    @media (max-width: 560px) {
+      .countdown { gap: 0.625rem; }
+      .countdown-num { font-size: 2rem; }
+      .countdown-sep { font-size: 1.625rem; padding-top: 0.08em; }
+      .countdown-label { letter-spacing: 0.1em; }
+    }
+
+    /* ─── avoid FAB overlapping "SCROLL FOR THE FULL READING" ─── */
+    @media (max-width: 720px) {
+      .hero-foot { right: calc(var(--page-x) + 3.75rem); }
     }
 
     /* hero foot */
