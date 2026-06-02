@@ -15,9 +15,20 @@ export function proxy(request: NextRequest) {
   const { pathname } = new URL(request.url)
   const token = request.cookies.get('fitted-token')?.value
 
-  // Authenticated users always go to the app.
-  if (token) {
-    return NextResponse.redirect(new URL('/home', request.url))
+  // Only act on the root path. All other paths (including /auth, /api/*, and
+  // static assets) must pass through untouched — Next.js 16 matcher patterns
+  // are prefix-anchored, so without this guard every path would be caught.
+  if (pathname === '/') {
+    if (token) {
+      // Authenticated users go to the app.
+      return NextResponse.redirect(new URL('/home', request.url))
+    }
+    if (new Date() < LAUNCH_DATE) {
+      // Pre-launch gate: unauthenticated visitors see the coming-soon page.
+      return NextResponse.redirect(new URL('/coming-soon.html', request.url))
+    }
+    // Post-launch: serve app/page.tsx (the landing page).
+    return NextResponse.next()
   }
 
   // FOUNDER BYPASS — delete this block after launch
@@ -25,15 +36,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/landing.html', request.url))
   }
 
-  // Pre-launch gate: everyone else sees the coming-soon page.
-  if (new Date() < LAUNCH_DATE) {
-    return NextResponse.redirect(new URL('/coming-soon.html', request.url))
-  }
-
-  // Post-launch: serve the landing page.
+  // Everything else passes through.
   return NextResponse.next()
 }
 
 export const config = {
+  // Regex that matches only the exact root '/' and '/founder-preview'.
+  // Using (.*) would prefix-match all paths — avoid that pattern at '/'.
   matcher: ['/', '/founder-preview'],
 }
