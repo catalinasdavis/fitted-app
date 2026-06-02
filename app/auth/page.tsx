@@ -40,7 +40,7 @@ export default function AuthPage() {
     if (mode === 'signup') {
       router.push('/quiz')
     } else {
-      router.push('/')
+      router.push('/home')
     }
   }
 
@@ -51,10 +51,10 @@ export default function AuthPage() {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <div style={{ fontFamily: 'Georgia, serif', fontSize: '48px', letterSpacing: '-2px', color: '#1a1a1f', lineHeight: 1 }}>
-            fitted<span style={{ color: '#2d5be3' }}>.</span>
+            fitted<span style={{ color: '#5171bf' }}>.</span>
           </div>
           <div style={{ fontSize: '13px', color: '#b8a99a', fontWeight: 300, marginTop: '6px' }}>
-            get a career tailor-made for you
+            work that actually fits your life
           </div>
         </div>
 
@@ -64,7 +64,7 @@ export default function AuthPage() {
             {mode === 'signin' ? 'Welcome back' : 'Create your account'}
           </h2>
           <p style={{ fontSize: '13px', color: '#7a7a85', margin: '0 0 24px' }}>
-            {mode === 'signin' ? 'Sign in to your fitted. account' : 'Start building your tailor-made career'}
+            {mode === 'signin' ? 'Good to have you back.' : 'Tell us where you are. We\'ll show you what fits.'}
           </p>
 
           <form onSubmit={handleSubmit}>
@@ -93,7 +93,7 @@ export default function AuthPage() {
             )}
 
             <button type="submit" disabled={loading}
-              style={{ width: '100%', padding: '12px', background: '#2d5be3', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'sans-serif', opacity: loading ? .7 : 1 }}>
+              style={{ width: '100%', padding: '12px', background: '#2f3e5c', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'sans-serif', opacity: loading ? .7 : 1 }}>
               {loading ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
             </button>
           </form>
@@ -102,14 +102,14 @@ export default function AuthPage() {
             {mode === 'signin' ? (
               <>Don't have an account?{' '}
                 <button onClick={() => { setMode('signup'); setError(''); setSuccess('') }}
-                  style={{ background: 'none', border: 'none', color: '#2d5be3', cursor: 'pointer', fontFamily: 'sans-serif', fontSize: '13px', fontWeight: 500 }}>
+                  style={{ background: 'none', border: 'none', color: '#2f3e5c', cursor: 'pointer', fontFamily: 'sans-serif', fontSize: '13px', fontWeight: 500 }}>
                   Sign up free
                 </button>
               </>
             ) : (
               <>Already have an account?{' '}
                 <button onClick={() => { setMode('signin'); setError(''); setSuccess('') }}
-                  style={{ background: 'none', border: 'none', color: '#2d5be3', cursor: 'pointer', fontFamily: 'sans-serif', fontSize: '13px', fontWeight: 500 }}>
+                  style={{ background: 'none', border: 'none', color: '#2f3e5c', cursor: 'pointer', fontFamily: 'sans-serif', fontSize: '13px', fontWeight: 500 }}>
                   Sign in
                 </button>
               </>

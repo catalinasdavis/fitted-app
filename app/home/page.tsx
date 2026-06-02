@@ -1,0 +1,1782 @@
+'use client'
+// fitted. — main dashboard
+// Static job feed, correct career_field filtering
+// Discover: Browse | Tracker | Disliked (all in left sidebar)
+// No MCP, no external API calls
+
+import { useState, useEffect, useRef, useCallback, useDeferredValue, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import type { Job } from '../../lib/jobs'
+import { scoreJob } from '../../lib/score'
+
+interface User    { email: string; id: string }
+interface Profile {
+  plan: string; career_field: string | null; career_stage: string | null; about_me: string | null
+  locations: string[] | null; pay_target: string | null
+  portfolio_files: any[] | null; extra_resume_slot?: boolean
+  stripe_customer_id?: string | null
+  subscription_status?: string | null
+  current_period_end?: string | null
+  cancelled_at?: string | null
+  grace_period_ends_at?: string | null
+  ai_prefs?: { autoMatch?: boolean; autoTailor?: boolean; autoStandout?: boolean; autoFittedThinks?: boolean; autoInterviewPrep?: boolean; autoNegotiate?: boolean } | null
+  coach_memory?: { actionCount?: { saved: number; applied: number; tailored: number; healthChecked: number } } | null
+}
+interface Resume  { id: string; name: string; filename: string; is_active: boolean; resume_text: string; created_at: string }
+interface TrackerEntry {
+  id: string; job_id: string; job_title: string; job_company: string
+  job_logo: string; job_logo_bg: string; job_logo_color: string
+  job_pay: string; column_id: string; resume_name: string | null
+  notes: string; added_at: string; deleted_at: string | null
+}
+interface DislikedJob {
+  jobId: string; jobTitle: string; jobCompany: string
+  jobLogo: string; jobLogoBg: string; jobLogoColor: string
+  reason: string; dislikedAt: string
+}
+interface NLFilters {
+  include:         string[]
+  exclude:         string[]
+  remote:          boolean | null
+  seniority:       'entry' | 'mid' | 'senior' | null
+  roleSuggestions: string[]
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  marketing:'Marketing & Comms', business:'Business & Sales', tech:'Technology',
+  creative:'Creative & Design', healthcare:'Healthcare', legal:'Legal',
+  engineering:'Engineering', finance:'Finance & Accounting', hr:'Human Resources',
+  nonprofit:'Nonprofit & Education',
+}
+
+function mc(n: number) {
+  if (n >= 74) return '#1a7a4a'
+  if (n >= 62) return '#5171bf'
+  if (n >= 50) return '#b8750a'
+  return '#7a7a85'
+}
+function mcLabel(n: number) {
+  if (n >= 74) return 'Strong fit'
+  if (n >= 62) return 'Good fit'
+  if (n >= 50) return 'Fair fit'
+  return 'Low fit'
+}
+function seniorityOf(title: string): 'entry' | 'mid' | 'senior' {
+  const t = title.toLowerCase()
+  if (/\b(vp|vice president|director|head of|chief|executive|principal|staff)\b/.test(t)) return 'senior'
+  if (/\b(senior|sr\b|lead|manager)\b/.test(t)) return 'senior'
+  if (/\b(junior|jr\b|entry.level|associate|coordinator|intern|assistant)\b/.test(t)) return 'entry'
+  return 'mid'
+}
+function typeTag(t: string) {
+  if (t === 'Remote') return { bg: '#e6f5ed', color: '#1a7a4a' }
+  if (t === 'Hybrid') return { bg: '#fdf3e3', color: '#b8750a' }
+  return { bg: '#fdf0ec', color: '#e85d3a' }
+}
+function MatchRing({ pct, size = 52, stroke = 4 }: { pct: number; size?: number; stroke?: number }) {
+  const r = (size - stroke * 2) / 2; const circ = 2 * Math.PI * r
+  const fill = (pct / 100) * circ; const color = mc(pct); const cx = size / 2
+  return (
+    <div title={`${pct}% match — ${mcLabel(pct)}`} style={{ position: 'relative', width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <svg width={size} height={size} style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }}>
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke="#e8e4db" strokeWidth={stroke} />
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={`${fill.toFixed(1)} ${circ.toFixed(1)}`} strokeLinecap="round" />
+      </svg>
+      <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 600, color, position: 'relative', zIndex: 1 }}>{pct}%</span>
+    </div>
+  )
+}
+function getLimit(profile: Profile | null, count: number) {
+  if (!profile)                  return { atLimit: true,       showSlotUpsell: false }
+  if (profile.plan === 'pro')    return { atLimit: false,       showSlotUpsell: false }
+  if (profile.extra_resume_slot) return { atLimit: count >= 2, showSlotUpsell: false }
+  return                                { atLimit: count >= 1, showSlotUpsell: true  }
+}
+
+// Cancellation flow helpers
+function formatEndDate(iso: string | null | undefined): string {
+  if (!iso) return ''
+  try { return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) }
+  catch { return '' }
+}
+function daysUntil(iso: string | null | undefined): number {
+  if (!iso) return 0
+  try { return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000)) }
+  catch { return 0 }
+}
+
+const TCOLS = [
+  { id: 'saved',     label: 'Saved',        color: '#2f3e5c', bg: '#e8edf5' },
+  { id: 'applied',   label: 'Applied',      color: '#b8750a', bg: '#fdf3e3' },
+  { id: 'phone',     label: 'Phone Screen', color: '#6d28d9', bg: '#ede9fe' },
+  { id: 'interview', label: 'Interview',    color: '#1a7a4a', bg: '#e6f5ed' },
+  { id: 'offer',     label: 'Offer 🎉',     color: '#1a7a4a', bg: '#d4edda' },
+  { id: 'rejected',  label: 'Rejected',     color: '#c0392b', bg: '#fdecea' },
+]
+const DREASONS = ['Pay too low','Not remote enough',"Role doesn't match my skills","Company culture doesn't appeal","Location doesn't work for me",'Not the right seniority level','Other']
+const FEEDBACK = 'https://docs.google.com/forms/d/1eGLhittpd7Ez6V0rTna-us3ubkCXS_RbqDhbOseQ1jw/edit'
+const TTL = 14
+
+interface HA { keywords: string[]; title: string; answer: string }
+const HAS: HA[] = [
+  { keywords: ['save','star','tracker','bookmark'], title: 'How to save a job', answer: 'Click the ☆ star icon at the bottom of any job card. It turns gold (★) and appears in your Tracker under "Saved." On desktop click Tracker in the sidebar. On mobile tap the Tracker tab at the bottom.' },
+  { keywords: ['resume','upload','cv'], title: 'How to upload a resume', answer: 'On desktop, click the upload zone in the left sidebar under "My Resumes." On mobile, go to the Profile tab. fitted. accepts PDF, DOCX, and TXT. Free accounts get 1 resume — pay $4.99 one-time for a second slot, or upgrade to Pro for unlimited.' },
+  { keywords: ['match','score','percent','%'], title: 'How the match score works', answer: 'The match % shows how well your active resume aligns with each job, calculated by comparing your resume keywords against the job description. Green = 74%+, Blue = 62–74%, Amber = 50–62%.' },
+  { keywords: ['best','badge','best match'], title: 'The Best Match badge', answer: 'When you have 2+ active resumes, fitted. automatically picks the best one for each job using keyword overlap. The green "Best: [Resume Name]" badge shows which resume we recommend.' },
+  { keywords: ['active','toggle','dot','activate'], title: 'Activating a resume', answer: 'Click the colored dot next to any resume name to toggle it active/inactive. Blue = active, grey = inactive. Multiple resumes can be active at the same time.' },
+  { keywords: ['tracker','kanban','applied','move'], title: 'Using the Tracker', answer: 'The Tracker is a kanban board with columns: Saved, Applied, Phone Screen, Interview, Offer, Rejected. Drag cards between columns or use the arrow buttons. Click 🗑 to delete — items are recoverable for 14 days.' },
+  { keywords: ['dislike','thumbs down','not interested','disliked'], title: 'Disliking a job', answer: 'Click 👎 on any job card. A popup asks why — pick a reason and the job is hidden from your feed. Find it again in the Disliked tab in the left sidebar for 14 days.' },
+  { keywords: ['pro','upgrade','price','cost','subscription'], title: 'Upgrading to Pro', answer: 'Click the Upgrade button in the top nav. Pro is $9/month or $89/year. Pro unlocks unlimited resumes, salary scripts, career path, interview prep, portfolio uploads, and company search.' },
+  { keywords: ['paste','paste a job','job description'], title: 'Pasting a job', answer: 'Click "Paste a Job" at the bottom of the left sidebar. Paste any job description and fitted. will parse it with AI and add it to your feed with a match score.' },
+  { keywords: ['about me','what fitted thinks','vibes'], title: 'About Me & What fitted. thinks', answer: 'Fill in the About Me section in the right sidebar — it saves automatically. Once you\'ve written a sentence or more, a "✦ What fitted. thinks" button appears for AI analysis.' },
+  { keywords: ['pay','salary','target'], title: 'Setting your pay target', answer: 'Enter your pay target in the right sidebar (e.g. "$26/hr" or "$55,000/yr"). Jobs below your target show a red "Below target" badge.' },
+]
+function fh(q: string): HA | null {
+  const ql = q.toLowerCase(); let best: HA | null = null; let top = 0
+  for (const a of HAS) { const s = a.keywords.filter(k => ql.includes(k)).length; if (s > top) { top = s; best = a } }
+  return top > 0 ? best : null
+}
+
+// ── TrackerView — standalone component so useState is never called conditionally ──
+interface TViewProps {
+  activeE:    TrackerEntry[]
+  trashedE:   TrackerEntry[]
+  moveEntry:  (id: string, col: string) => void
+  restore:    (id: string) => void
+  softDel:    (id: string) => void
+  onBrowse:   () => void
+  onJobClick: (jobId: string) => void
+}
+
+function TView({ activeE, trashedE, moveEntry, restore, softDel, onBrowse, onJobClick }: TViewProps) {
+  const [trash, setTrash] = useState(false)
+  const [drag,  setDrag]  = useState<string | null>(null)
+
+  const NEXT: Record<string, string[]> = {
+    saved: ['applied', 'phone'], applied: ['phone', 'interview'],
+    phone: ['interview', 'offer'], interview: ['offer', 'rejected'],
+    offer: [], rejected: ['applied'],
+  }
+
+  function fmtAdded(iso: string) {
+    try { return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(iso)) } catch { return '' }
+  }
+
+  return (
+    <div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+        <span style={{fontFamily:'Georgia, serif',fontSize:19}}>My Applications</span>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <span style={{fontSize:12,color:'#7a7a85'}}>{activeE.length} tracked</span>
+          {trashedE.length>0&&<button onClick={()=>setTrash(s=>!s)} style={{fontSize:12,color:trash?'#c0392b':'#b0b0b8',background:'none',border:'none',cursor:'pointer',fontFamily:'sans-serif'}}>🗑 Trash ({trashedE.length})</button>}
+        </div>
+      </div>
+      {trash&&<div style={{background:'#fdecea',borderRadius:10,padding:14,marginBottom:16}}>
+        <div style={{fontSize:12,fontWeight:600,color:'#c0392b',marginBottom:10}}>Deleted — restorable within 14 days</div>
+        {trashedE.map(e=>{const dl=Math.max(0,14-Math.floor((Date.now()-new Date(e.deleted_at!).getTime())/86400000));return(
+          <div key={e.id} style={{display:'flex',alignItems:'center',gap:10,background:'#fff',borderRadius:8,padding:'10px 12px',marginBottom:6}}>
+            <div style={{width:28,height:28,borderRadius:6,background:e.job_logo_bg,color:e.job_logo_color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontFamily:'Georgia, serif',flexShrink:0}}>{e.job_logo}</div>
+            <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.job_title}</div><div style={{fontSize:11,color:'#7a7a85'}}>{e.job_company} · {dl}d left</div></div>
+            <button onClick={()=>restore(e.id)} style={{fontSize:12,color:'#2f3e5c',background:'#e8edf5',border:'none',borderRadius:6,padding:'4px 10px',cursor:'pointer',fontFamily:'sans-serif'}}>Restore</button>
+          </div>
+        )})}
+      </div>}
+      {activeE.length === 0 && !trash
+        ? <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:280,gap:10,textAlign:'center'}}>
+            <div style={{fontSize:38,lineHeight:1,marginBottom:4}}>📋</div>
+            <h3 style={{fontFamily:'Georgia,serif',fontSize:18,color:'#1a1a1f',fontWeight:400,margin:0}}>Nothing tracked yet</h3>
+            <p style={{fontSize:13,color:'#7a7a85',maxWidth:260,lineHeight:1.6,margin:0}}>Save jobs from the Browse tab and they'll appear here — track every stage of your search in one place.</p>
+            <button onClick={onBrowse} style={{background:'#2f3e5c',color:'#fff',border:'none',borderRadius:8,padding:'9px 18px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif',marginTop:4}}>Browse jobs →</button>
+          </div>
+        : <div className="tracker-board" style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:16}}>
+            {TCOLS.map(col=>{const ce=activeE.filter(e=>e.column_id===col.id);const nextIds=NEXT[col.id]??[];return(
+              <div key={col.id} className={`tracker-col${ce.length===0?' tracker-col-empty':''}`} style={{flexShrink:0,width:220}} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(drag)moveEntry(drag,col.id)}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:col.bg,borderRadius:8,padding:'8px 12px',marginBottom:8}}>
+                  <span style={{fontSize:11.5,fontWeight:600,color:col.color,textTransform:'uppercase' as const,letterSpacing:'.06em'}}>{col.label}</span>
+                  <span style={{fontSize:11,fontWeight:600,color:col.color,background:'rgba(255,255,255,.7)',padding:'1px 7px',borderRadius:20}}>{ce.length}</span>
+                </div>
+                <div style={{minHeight:80,borderRadius:10,padding:4,display:'flex',flexDirection:'column',gap:8}}>
+                  {ce.length===0
+                    ? <div style={{textAlign:'center',padding:'20px 10px',fontSize:12,color:'#b0b0b8',fontStyle:'italic'}}>Drop jobs here</div>
+                    : ce.map(e=>{
+                        const added = fmtAdded(e.added_at)
+                        const nextCols = nextIds.map(id=>TCOLS.find(c=>c.id===id)).filter(Boolean) as typeof TCOLS
+                        return (
+                          <div key={e.id} className="tracker-card" draggable onDragStart={()=>setDrag(e.id)} onDragEnd={()=>setDrag(null)} onClick={()=>onJobClick(e.job_id)} style={{background:'#fff',border:'1px solid rgba(0,0,0,.07)',borderRadius:10,padding:'12px 14px',cursor:'grab'}}>
+                            <div style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:6}}>
+                              <div style={{width:28,height:28,borderRadius:6,background:e.job_logo_bg,color:e.job_logo_color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontFamily:'Georgia, serif',flexShrink:0}}>{e.job_logo}</div>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:12.5,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.job_title}</div>
+                                <div style={{fontSize:11,color:'#7a7a85'}}>{e.job_company}</div>
+                              </div>
+                              {e.notes&&<span title="Has notes" style={{fontSize:11,color:'#b0b0b8',flexShrink:0,marginTop:1}}>📝</span>}
+                            </div>
+                            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6,flexWrap:'wrap' as const}}>
+                              {e.resume_name&&<div style={{fontSize:10.5,color:'#2f3e5c',background:'#e8edf5',padding:'2px 7px',borderRadius:20}}>{e.resume_name}</div>}
+                              {added&&<div style={{fontSize:10.5,color:'#b0b0b8'}}>{added}</div>}
+                            </div>
+                            <div className="tracker-card-actions" style={{display:'flex',gap:4,marginTop:4}} onClick={ev=>ev.stopPropagation()}>
+                              {nextCols.map(c=><button key={c.id} onClick={()=>moveEntry(e.id,c.id)} style={{flex:1,padding:'4px',border:'1px solid rgba(0,0,0,.1)',borderRadius:6,fontSize:10,fontFamily:'sans-serif',cursor:'pointer',background:'#fff',color:'#7a7a85',textAlign:'center' as const}}>→ {c.label.split(' ')[0]}</button>)}
+                              <button onClick={()=>softDel(e.id)} style={{padding:'4px 8px',border:'1px solid rgba(0,0,0,.1)',borderRadius:6,fontSize:10,cursor:'pointer',background:'#fff',color:'#c0392b'}}>🗑</button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                </div>
+              </div>
+            )})}
+          </div>
+      }
+    </div>
+  )
+}
+
+export default function Home() {
+  const router = useRouter()
+  const [user,    setUser]    = useState<User | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [resumes, setResumes] = useState<Resume[]>([])
+  const [tracker, setTracker] = useState<TrackerEntry[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const [view,      setView]      = useState<'browse'|'tracker'|'disliked'>('browse')
+  const [mobileTab, setMobileTab] = useState<'browse'|'tracker'|'profile'>('browse')
+
+  const [filter,    setFilter]    = useState('all')
+  const [sortBy,    setSortBy]    = useState('match')
+  const [cSearch,   setCSearch]   = useState('')
+  const [kwSearch,  setKwSearch]  = useState('')
+  const [seniority, setSeniority] = useState('all')
+  const [nlFilters, setNlFilters] = useState<NLFilters | null>(null)
+  const [nlLoading, setNlLoading] = useState(false)
+  const [liked,    setLiked]    = useState<Set<string>>(new Set())
+  const [pasted,   setPasted]   = useState<Job[]>([])
+
+  const [jobs,        setJobs]        = useState<Job[]>([])
+  const [broaderJobs, setBroaderJobs] = useState<Job[]>([])
+  const [showBroader, setShowBroader] = useState(false)
+  const [jobsLoad,    setJobsLoad]    = useState(true)
+  const [jobsSource,  setJobsSource]  = useState<'fantastic'|'cache'|'static'|''>('')
+
+  const [dislikes, setDislikes] = useState<DislikedJob[]>([])
+  const [dTarget,  setDTarget]  = useState<Job | null>(null)
+  const [dReason,  setDReason]  = useState('')
+
+  const [careerField, setCareerField] = useState('')
+  const [careerStage, setCareerStage] = useState('')
+  const [aboutMe,   setAboutMe]   = useState('')
+  const [locs,      setLocs]      = useState<string[]>([])
+  const [locIn,     setLocIn]     = useState('')
+  const [payTgt,    setPayTgt]    = useState('')
+  const [pfFiles,   setPfFiles]   = useState<any[]>([])
+  const [saveInd,   setSaveInd]   = useState('')
+  const [vibes,     setVibes]     = useState('')
+  const [analyzing, setAnalyzing] = useState(false)
+  const [showVibes, setShowVibes] = useState(false)
+
+  const [uploading,  setUploading]  = useState(false)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameVal,  setRenameVal]  = useState('')
+
+  const [showUp,    setShowUp]    = useState(false)
+  const [showLim,   setShowLim]   = useState(false)
+  const [showPaste, setShowPaste] = useState(false)
+  const [pasteText, setPasteText] = useState('')
+  const [pasteHint, setPasteHint] = useState('')
+  const [parsing,   setParsing]   = useState(false)
+  const [promo,     setPromo]     = useState('')
+  const [promoMsg,  setPromoMsg]  = useState('')
+  const [promoLoad, setPromoLoad] = useState(false)
+  const [showHelp,  setShowHelp]  = useState(false)
+  const [helpQ,     setHelpQ]     = useState('')
+  const [helpR,     setHelpR]     = useState<HA | null>(null)
+  const [helpS,     setHelpS]     = useState(false)
+  const [stripeL,   setStripeL]   = useState<string | null>(null)
+  const [pSuccess,  setPSuccess]  = useState<string | null>(null)
+  const [welcome,   setWelcome]   = useState(false)
+  const [showCancel,  setShowCancel]  = useState(false)
+  const [cancelStep,  setCancelStep]  = useState<'intent'|'checking'|'offer'|'confirm'|'cancelling'>('intent')
+  const [cancelOffer, setCancelOffer] = useState<{tier:number;percent:number;label:string}|null>(null)
+  const [cancelErr,   setCancelErr]   = useState('')
+  const [showExtend,  setShowExtend]  = useState(false)
+  const [showAccount, setShowAccount] = useState(false)
+  const [acctInvoices, setAcctInvoices] = useState<Array<{id:string;amount:number;currency:string;date:number;description:string;url:string|null;pdf:string|null}>|null>(null)
+  const [acctInvLoad, setAcctInvLoad] = useState(false)
+  const [coachNudge,  setCoachNudge]  = useState<string | null>(null)
+  const [aiPrefSave,  setAiPrefSave]  = useState('')
+
+  const stRef = useRef<NodeJS.Timeout | null>(null)
+  const fRef  = useRef<HTMLInputElement>(null)
+
+  const isPremium   = profile?.plan === 'premium'
+  const isPro       = profile?.plan === 'pro' || isPremium
+  const isCancelled = isPro && (profile?.subscription_status === 'cancelled' || profile?.subscription_status === 'canceling')
+  const isExtended  = isPro && profile?.subscription_status === 'extended'
+  const isPastDue   = isPro && profile?.subscription_status === 'past_due'
+  const graceActive = isPastDue && !!profile?.grace_period_ends_at && daysUntil(profile.grace_period_ends_at) >= 0
+  const showExtendOffer = (isCancelled || isExtended) && daysUntil(profile?.current_period_end) <= 3
+  const lim         = getLimit(profile, resumes.length)
+  const activeR     = resumes.filter(r => r.is_active)
+  const activeDL = useMemo(
+    () => dislikes.filter(d => (Date.now() - new Date(d.dislikedAt).getTime()) / 86400000 < TTL),
+    [dislikes]
+  )
+
+  const deferredKwSearch = useDeferredValue(kwSearch)
+  const deferredCSearch  = useDeferredValue(cSearch)
+
+  useEffect(() => {
+    fetch('/api/me').then(r => r.json()).then(async d => {
+      setUser(d.user || null)
+      if (d.user) {
+        const [p, r, t, j] = await Promise.all([
+          fetch('/api/profile').then(r=>r.json()),
+          fetch('/api/resumes').then(r=>r.json()),
+          fetch('/api/tracker').then(r=>r.json()),
+          fetch('/api/jobs').then(r=>r.json()).catch(() => ({ jobs: [] })),
+        ])
+        const pr = p.profile || null
+        setProfile(pr); setResumes(r.resumes || []); setTracker(t.entries || [])
+        setJobs(j.strictMatches ?? j.jobs ?? []); setBroaderJobs(j.broaderMatches ?? []); setJobsSource(j.source || ''); setJobsLoad(false)
+        if (pr) { setCareerField(pr.career_field||''); setCareerStage(pr.career_stage||''); setAboutMe(pr.about_me||''); setLocs(pr.locations||[]); setPayTgt(pr.pay_target||''); setPfFiles(pr.portfolio_files||[]) }
+        // Non-blocking: update lastSeenAt; show context-aware greeting
+        fetch('/api/coach').catch(() => {})
+        const isFirst = new URLSearchParams(window.location.search).get('welcome') === '1'
+        setCoachNudge(isFirst
+          ? "Your feed is ready. Browse what's matched to you — or upload your real resume to make every score sharper."
+          : "Welcome back. Let's get you closer to the right next fit."
+        )
+      }
+      setLoading(false)
+    }).catch(() => setLoading(false))
+    try { const s = localStorage.getItem('fitted-disliked'); if (s) setDislikes(JSON.parse(s)) } catch {}
+  }, [])
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    if (p.get('welcome') === '1') { setWelcome(true); window.history.replaceState({}, '', '/') }
+    if (p.get('portal_return') === '1') {
+      window.history.replaceState({}, '', '/')
+      fetch('/api/profile').then(r => r.json()).then(d => { if (d.profile) setProfile(d.profile) })
+    }
+    const pay = p.get('payment')
+    const type = p.get('type')
+    const uid = p.get('uid')
+    const sid = p.get('session_id')
+    if (pay === 'success' && uid && sid) {
+      setPSuccess(type || 'pro')
+      window.history.replaceState({}, '', '/')
+      ;(async () => {
+        try {
+          const r = await fetch(`/api/stripe/create-checkout?session_id=${sid}&uid=${uid}&type=${type}`)
+          if (!r.ok) console.error('Stripe verify failed:', await r.text())
+          // Always fetch fresh profile — don't gate on verification success
+          const fresh = await fetch('/api/profile').then(rr => rr.json())
+          if (fresh.profile) {
+            setProfile(fresh.profile)
+            // Optimistic patch if DB update raced or failed
+            if (type === 'premium_monthly' || type === 'premium_annual') {
+              if (fresh.profile.plan !== 'premium') setProfile(pr => pr ? {...pr, plan: 'premium'} : pr)
+            } else if ((type === 'monthly' || type === 'annual') && fresh.profile.plan !== 'pro') {
+              setProfile(pr => pr ? {...pr, plan: 'pro'} : pr)
+            } else if (type === 'resume_slot' && !fresh.profile.extra_resume_slot) {
+              setProfile(pr => pr ? {...pr, extra_resume_slot: true} : pr)
+            }
+          } else {
+            if (type === 'resume_slot') setProfile(pr => pr ? {...pr, extra_resume_slot: true} : pr)
+            else if (type === 'premium_monthly' || type === 'premium_annual') setProfile(pr => pr ? {...pr, plan: 'premium'} : pr)
+            else setProfile(pr => pr ? {...pr, plan: 'pro'} : pr)
+          }
+        } catch (e) { console.error('Stripe verify error:', e) }
+      })()
+    }
+  }, [])
+
+  const savePr = useCallback(async (fields: any) => {
+    setSaveInd('Saving…')
+    try {
+      await fetch('/api/profile', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(fields) })
+      setSaveInd('Saved ✓')
+    } catch { setSaveInd('Save failed') }
+    setTimeout(() => setSaveInd(''), 2000)
+  }, [])
+
+  async function refreshJobs() {
+    setJobsLoad(true)
+    setShowBroader(false)
+    try {
+      const res = await fetch('/api/jobs?refresh=1').catch(() => null)
+      const data = res ? await res.json().catch(() => ({})) : {}
+      setJobs(data.strictMatches ?? data.jobs ?? [])
+      setBroaderJobs(data.broaderMatches ?? [])
+      setJobsSource(data.source ?? '')
+    } finally {
+      setJobsLoad(false)
+    }
+  }
+
+  function onAbout(v: string) { setAboutMe(v); if (stRef.current) clearTimeout(stRef.current); stRef.current = setTimeout(() => savePr({about_me: v}), 800) }
+  function addLoc() { const l = locIn.trim(); if (!l || locs.includes(l)) return; const n = [...locs, l]; setLocs(n); setLocIn(''); savePr({locations: n}) }
+  function remLoc(l: string) { const n = locs.filter(x => x !== l); setLocs(n); savePr({locations: n}) }
+  function onPay(v: string) { setPayTgt(v); if (stRef.current) clearTimeout(stRef.current); stRef.current = setTimeout(() => savePr({pay_target: v}), 800) }
+
+  async function analyzeVibes() {
+    if (!aboutMe.trim()) return; setAnalyzing(true); setShowVibes(true)
+    try {
+      const res = await fetch('/api/ai', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({prompt: `You are fitted., an AI career coach. Read this About Me and give 2-3 warm specific sentences on their goals, strengths, and ideal role/culture. About Me: ${aboutMe}`, type:'chat', isPro:false})})
+      const data = await res.json(); setVibes(data.text||'')
+    } catch { setVibes('') }
+    setAnalyzing(false)
+  }
+
+  function openDL(job: Job, e: React.MouseEvent) { e.stopPropagation(); setDTarget(job); setDReason('') }
+  function confirmDL() {
+    if (!dTarget || !dReason) return
+    const entry: DislikedJob = { jobId: dTarget.id, jobTitle: dTarget.title, jobCompany: dTarget.company, jobLogo: dTarget.logo, jobLogoBg: dTarget.logoBg, jobLogoColor: dTarget.logoColor, reason: dReason, dislikedAt: new Date().toISOString() }
+    const next = [entry, ...dislikes.filter(d => d.jobId !== dTarget.id)]
+    setDislikes(next); try { localStorage.setItem('fitted-disliked', JSON.stringify(next)) } catch {}
+    setDTarget(null); setDReason('')
+  }
+  function undislike(id: string) { const n = dislikes.filter(d => d.jobId !== id); setDislikes(n); try { localStorage.setItem('fitted-disliked', JSON.stringify(n)) } catch {} }
+
+  async function parsePaste() {
+    if (!pasteText.trim() || pasteText.length < 50) { setPasteHint('Please paste the full job description.'); return }
+    setParsing(true); setPasteHint('')
+    try {
+      const res = await fetch('/api/ai', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({prompt: `Extract info from this job and return ONLY a JSON object:\n{"title":"","company":"","location":"","type":"Remote|Hybrid|On-site","pay":"","payNum":0,"description":"2 sentence summary","skills":[{"name":"skill"}]}\nReturn ONLY valid JSON. No markdown.\nJob:\n${pasteText}`, type:'chat', isPro:false})})
+      const data = await res.json()
+      let parsed: any = null
+      try { parsed = JSON.parse(data.text.replace(/```json|```/g,'').trim()) } catch { setPasteHint('Could not parse. Try pasting more of the description.'); setParsing(false); return }
+      const jBase: Job = { id: `pasted-${Date.now()}`, title: parsed.title||'Pasted Job', company: parsed.company||'Unknown', location: parsed.location||'Unknown', type: (['Remote','Hybrid','On-site'].includes(parsed.type) ? parsed.type : 'On-site') as any, pay: parsed.pay||'Not listed', payNum: typeof parsed.payNum==='number' ? parsed.payNum : 0, match: 0, logo: (parsed.company||'JB').replace(/[^A-Za-z]/g,'').substring(0,2).toUpperCase()||'JB', logoBg:'#e8edf5', logoColor:'#2f3e5c', tags:['pasted'], posted:'Just now', isNew:true, url:'', description: pasteText.substring(0, 1200), skills: Array.isArray(parsed.skills) ? parsed.skills : [] }
+      const resumeText = resumes.filter(r=>r.is_active).map(r=>r.resume_text).join(' ').substring(0, 4000)
+      const pastedScore = scoreJob(jBase, { resumeText, aboutMe: profile?.about_me||'', careerField: profile?.career_field||'', careerStage: profile?.career_stage||'working', payTarget: profile?.pay_target||'', locations: profile?.locations||[] })
+      const j: Job = { ...jBase, match: pastedScore }
+      setPasted(prev => [j, ...prev]); setShowPaste(false); setPasteText(''); setPasteHint('')
+    } catch { setPasteHint('Something went wrong. Please try again.') }
+    setParsing(false)
+  }
+
+  async function upload(files: FileList | null) {
+    if (!files || files.length === 0) return
+    if (lim.atLimit) { setShowLim(true); return }
+    setUploading(true)
+    try {
+      for (const file of Array.from(files)) {
+        if (getLimit(profile, resumes.length).atLimit) break
+        const fd = new FormData(); fd.append('resume', file)
+        const res = await fetch('/api/resume', {method:'POST', body:fd})
+        if (!res.ok) continue
+        const data = await res.json()
+        if (data.success) await fetch('/api/resumes', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: file.name.replace(/\.[^/.]+$/,''), filename: file.name, resume_text: data.resumeText})})
+      }
+      const r = await fetch('/api/resumes').then(r=>r.json()); setResumes(r.resumes||[])
+    } catch { /* file already silently skipped */ }
+    finally { setUploading(false) }
+  }
+  async function updateAiPref(key: string, val: boolean) {
+    const merged = { ...(profile?.ai_prefs ?? {}), [key]: val }
+    setProfile(p => p ? { ...p, ai_prefs: merged } : p)
+    await fetch('/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ai_prefs: merged }) })
+    setAiPrefSave('Saved'); setTimeout(() => setAiPrefSave(''), 1500)
+  }
+  function dismissCoachNudge() {
+    setCoachNudge(null)
+    fetch('/api/coach', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'dismiss' }) }).catch(() => {})
+  }
+  async function toggleActive(id: string) {
+    const r = resumes.find(r => r.id === id); if (!r) return
+    await fetch('/api/resumes', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, is_active: !r.is_active})})
+    const rs = await fetch('/api/resumes').then(r=>r.json()); setResumes(rs.resumes||[])
+  }
+  async function delResume(id: string) {
+    await fetch('/api/resumes', {method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id})})
+    const r = await fetch('/api/resumes').then(r=>r.json()); setResumes(r.resumes||[])
+  }
+  async function saveRename(id: string) {
+    if (!renameVal.trim()) return
+    await fetch('/api/resumes', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, name: renameVal.trim()})})
+    setRenamingId(null); const r = await fetch('/api/resumes').then(r=>r.json()); setResumes(r.resumes||[])
+  }
+  function bestR(job: Job): Resume | null {
+    if (activeR.length === 0) return null; if (activeR.length === 1) return activeR[0]
+    const words = (job.description + ' ' + job.skills.map(s=>s.name).join(' ')).toLowerCase().split(/\W+/).filter(w=>w.length>4)
+    let best: Resume | null = null; let top = -1
+    for (const r of activeR) { const score = words.filter(w => r.resume_text.toLowerCase().includes(w)).length; if (score > top) { top = score; best = r } }
+    return best
+  }
+
+  async function addTracker(job: Job) {
+    const existing = tracker.find(e => e.job_id === job.id && !e.deleted_at)
+    if (existing) {
+      const now = new Date().toISOString()
+      await fetch('/api/tracker', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: existing.id, deleted_at: now})}).catch(()=>{})
+      setTracker(prev => prev.map(e => e.id===existing.id ? {...e, deleted_at:now} : e))
+    } else {
+      const br = bestR(job)
+      try {
+        await fetch('/api/tracker', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({job_id:job.id, job_title:job.title, job_company:job.company, job_logo:job.logo, job_logo_bg:job.logoBg, job_logo_color:job.logoColor, job_pay:job.pay, job_url:job.url, column_id:'saved', resume_name: br?.name||null})})
+        const t = await fetch('/api/tracker').then(r=>r.json())
+        setTracker(t.entries||[])
+      } catch { /* silent — star reflects actual saved state */ }
+      fetch('/api/coach', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({event:'job_saved', data:{title:job.title, company:job.company}})}).catch(()=>{})
+    }
+  }
+  async function moveEntry(id: string, col: string) {
+    await fetch('/api/tracker', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, column_id:col})})
+    setTracker(prev => prev.map(e => e.id===id ? {...e, column_id:col} : e))
+    if (col === 'applied') fetch('/api/coach', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({event:'job_applied', data:{id}})}).catch(()=>{})
+  }
+  async function softDel(id: string) {
+    const now = new Date().toISOString()
+    await fetch('/api/tracker', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, deleted_at:now})})
+    setTracker(prev => prev.map(e => e.id===id ? {...e, deleted_at:now} : e))
+  }
+  async function restore(id: string) {
+    await fetch('/api/tracker', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, restore:true})})
+    setTracker(prev => prev.map(e => e.id===id ? {...e, deleted_at:null} : e))
+  }
+
+  async function redeem() {
+    if (!promo.trim()) return; setPromoLoad(true); setPromoMsg('')
+    try {
+      const res = await fetch('/api/redeem', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code: promo.trim()})})
+      const data = await res.json()
+      if (data.success) { setProfile(p => ({...p!, plan:'pro'})); setPromoMsg('✓ Pro unlocked!'); setTimeout(() => setShowUp(false), 2000) }
+      else setPromoMsg(data.error||'Invalid code.')
+    } catch { setPromoMsg('Could not connect. Please try again.') }
+    finally { setPromoLoad(false) }
+  }
+  async function checkout(type: 'monthly'|'annual'|'resume_slot'|'portal'|'pro_extension'|'premium_monthly'|'premium_annual') {
+    setStripeL(type)
+    try { const res = await fetch('/api/stripe/create-checkout', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type})}); const data = await res.json(); if (data.url) window.location.href = data.url; else { alert(data.error||'Could not start checkout.'); setStripeL(null) } } catch { alert('Something went wrong.'); setStripeL(null) }
+  }
+  async function openAccount() {
+    setShowAccount(true)
+    if (acctInvoices !== null) return
+    setAcctInvLoad(true)
+    try {
+      const res = await fetch('/api/stripe/invoices')
+      const data = await res.json()
+      setAcctInvoices(data.invoices || [])
+    } catch { setAcctInvoices([]) }
+    finally { setAcctInvLoad(false) }
+  }
+  function startCancelFlow() {
+    setShowCancel(true); setCancelStep('intent'); setCancelErr('')
+  }
+  async function proceedToOffer() {
+    setCancelStep('checking')
+    try {
+      const res = await fetch('/api/stripe/save-offer', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'check'})})
+      const data = await res.json()
+      if (data.hasOffer) { setCancelOffer({tier:data.tier, percent:data.percent, label:data.label}); setCancelStep('offer') }
+      else { setCancelOffer(null); setCancelStep('confirm') }
+    } catch { setCancelErr('Could not connect. Please try again.'); setCancelStep('intent') }
+  }
+  async function applyOffer() {
+    setCancelStep('cancelling')
+    try {
+      const res = await fetch('/api/stripe/save-offer', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'apply'})})
+      const data = await res.json()
+      if (data.success) { setShowCancel(false); const fresh = await fetch('/api/profile').then(r=>r.json()).catch(()=>({})); if (fresh.profile) setProfile(fresh.profile) }
+      else { setCancelErr(data.error||'Something went wrong'); setCancelStep('offer') }
+    } catch { setCancelErr('Could not connect. Please try again.'); setCancelStep('offer') }
+  }
+  async function confirmCancel() {
+    setCancelStep('cancelling')
+    try {
+      const res = await fetch('/api/stripe/cancel-subscription', {method:'POST'})
+      const data = await res.json()
+      if (data.success) {
+        setShowCancel(false)
+        setProfile(pr => pr ? {...pr, subscription_status: 'canceling', current_period_end: data.cancels_at || pr.current_period_end} : pr)
+        const fresh = await fetch('/api/profile').then(r=>r.json()).catch(()=>({})); if (fresh.profile) setProfile(fresh.profile)
+      }
+      else { setCancelErr(data.error||'Something went wrong'); setCancelStep('confirm') }
+    } catch { setCancelErr('Could not connect. Please try again.'); setCancelStep('confirm') }
+  }
+
+  async function parseNLQuery(q: string) {
+    if (!q.trim()) { setNlFilters(null); return }
+    setNlLoading(true)
+    const prompt = `Parse this job search query into structured filters for a career platform.
+
+Query: "${q}"
+Career field: ${profile?.career_field || 'not specified'}
+Career stage: ${profile?.career_stage || 'not specified'}
+
+Return JSON only — no other text:
+{
+  "include": ["concrete role or skill keywords to look for — max 4 short terms"],
+  "exclude": ["terms to avoid from negative phrases like 'no X', 'not Y', 'less Z' — max 4"],
+  "remote": true or false or null,
+  "seniority": "entry" or "mid" or "senior" or null,
+  "roleSuggestions": ["2-3 adjacent job titles this person might be strong for based on their query"]
+}`
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, type: 'nlsearch' }),
+      })
+      const data = await res.json()
+      const raw = (data.text || '').replace(/```json|```/g, '').trim()
+      const s = raw.indexOf('{'); const e = raw.lastIndexOf('}')
+      if (s !== -1 && e !== -1) {
+        const p = JSON.parse(raw.substring(s, e + 1))
+        setNlFilters({
+          include:         Array.isArray(p.include) ? p.include.slice(0, 4) : [],
+          exclude:         Array.isArray(p.exclude) ? p.exclude.slice(0, 4) : [],
+          remote:          typeof p.remote === 'boolean' ? p.remote : null,
+          seniority:       ['entry','mid','senior'].includes(p.seniority) ? p.seniority : null,
+          roleSuggestions: Array.isArray(p.roleSuggestions) ? p.roleSuggestions.slice(0, 3) : [],
+        })
+      }
+    } catch { /* silently fall back to keyword search */ }
+    setNlLoading(false)
+  }
+
+  // ── JOB FEED — deferred search values keep typing instant; filter only runs when React is idle ──
+  const sorted = useMemo(() => {
+    const dlIds = new Set(activeDL.map(d => d.jobId))
+    // When showBroader is active, merge strict + broader results so the wider set is visible.
+    // Threshold is 42 (the score floor) — without descriptions, all API jobs land near 42,
+    // so a higher cut-off would hide the entire feed.
+    const sourceJobs = showBroader ? [...jobs, ...broaderJobs] : jobs
+    const baseJobs = [...pasted, ...sourceJobs.filter(j => j.match >= 55)]
+    const visible  = baseJobs.filter(j => !dlIds.has(j.id))
+
+    const nlFiltered = nlFilters
+      ? visible
+          .filter(j => {
+            const text = `${j.title} ${j.company} ${j.description} ${j.tags.join(' ')}`.toLowerCase()
+            if (nlFilters.exclude.some(ex => text.includes(ex.toLowerCase()))) return false
+            if (nlFilters.remote === true && j.type !== 'Remote') return false
+            return true
+          })
+          .map(j => {
+            const text = `${j.title} ${j.company} ${j.description} ${j.tags.join(' ')}`.toLowerCase()
+            const boost = nlFilters.include.filter(inc => text.includes(inc.toLowerCase())).length * 6
+            return boost > 0 ? { ...j, match: Math.min(99, j.match + boost) } : j
+          })
+      : visible
+
+    const kwed = (!nlFilters && deferredKwSearch.trim())
+      ? nlFiltered.filter(j => {
+          const q = deferredKwSearch.toLowerCase()
+          return j.title.toLowerCase().includes(q)
+            || j.company.toLowerCase().includes(q)
+            || j.location.toLowerCase().includes(q)
+            || j.tags.some(t => t.toLowerCase().includes(q))
+        })
+      : nlFiltered
+    const searched     = isPro && deferredCSearch.trim() ? kwed.filter(j => j.company.toLowerCase().includes(deferredCSearch.toLowerCase())) : kwed
+    const typeFiltered = filter === 'all' ? searched : searched.filter(j => j.type.toLowerCase() === filter)
+    const activeSeniority = nlFilters?.seniority ?? (seniority !== 'all' ? seniority : null)
+    const filtered     = activeSeniority ? typeFiltered.filter(j => seniorityOf(j.title) === activeSeniority) : typeFiltered
+    return [...filtered].sort((a, b) => sortBy === 'pay' ? b.payNum - a.payNum : b.match - a.match)
+  }, [activeDL, pasted, jobs, broaderJobs, showBroader, nlFilters, deferredKwSearch, deferredCSearch, isPro, filter, seniority, sortBy])
+
+  const FILTERS   = ['all', 'remote', 'hybrid', 'on-site']
+  // True when ALL visible jobs are at the scoring floor (≤55) — usually means the API
+  // returned jobs without descriptions, so keyword scoring had nothing to work with.
+  const allScoresLow = !jobsLoad && sorted.length > 0 && jobsSource !== 'static'
+    && sorted.every(j => j.match <= 55)
+  const activeE   = tracker.filter(e => !e.deleted_at)
+  const trashedE  = tracker.filter(e => e.deleted_at)
+
+  if (loading) return (
+    <div style={{minHeight:'100vh',background:'#f4f2ed',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:20}}>
+      <div style={{fontFamily:'Georgia, serif',fontSize:38,color:'#1a1a1f',letterSpacing:'-1.5px',lineHeight:1}}>
+        fitted<span style={{color:'#5171bf'}}>.</span>
+      </div>
+      <div style={{display:'flex',gap:7}}>
+        {[0,1,2].map(i => (
+          <div key={i} style={{width:7,height:7,borderRadius:'50%',background:'#b8a99a',animation:`fld-pulse 1.2s ease-in-out ${i*0.2}s infinite`}}/>
+        ))}
+      </div>
+      <style>{`@keyframes fld-pulse{0%,100%{opacity:.25;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}`}</style>
+    </div>
+  )
+
+  if (!user) return (
+    <div style={{minHeight:'100vh',background:'#f4f2ed',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+      <div style={{background:'#2f3e5c',borderRadius:'24px',padding:'48px 40px',maxWidth:'420px',width:'100%',textAlign:'center'}}>
+        <h1 style={{fontFamily:'Georgia, serif',color:'#f4f2ed',fontSize:'80px',margin:'0 0 8px',letterSpacing:'-3px',lineHeight:1}}>fitted<span style={{color:'#5171bf'}}>.</span></h1>
+        <p style={{color:'#b8a99a',fontSize:'18px',margin:'0 0 44px',fontFamily:'sans-serif',fontWeight:300}}>get a career tailor-made for you</p>
+        <a href="/auth" style={{display:'block',background:'#f4f2ed',color:'#2f3e5c',padding:'15px 32px',borderRadius:'50px',fontFamily:'sans-serif',fontWeight:700,fontSize:'15px',textDecoration:'none',marginBottom:'12px'}}>Get Started</a>
+        <a href="/auth" style={{display:'block',color:'#b8a99a',fontFamily:'sans-serif',fontSize:'13px',textDecoration:'none'}}>Already have an account? Sign in</a>
+      </div>
+    </div>
+  )
+
+  const CAREER_FIELDS = [
+    { value: 'marketing',   label: 'Marketing & Comms' },
+    { value: 'business',    label: 'Business & Sales' },
+    { value: 'tech',        label: 'Technology' },
+    { value: 'creative',    label: 'Creative & Design' },
+    { value: 'healthcare',  label: 'Healthcare' },
+    { value: 'legal',       label: 'Legal' },
+    { value: 'engineering', label: 'Engineering' },
+    { value: 'finance',     label: 'Finance & Accounting' },
+    { value: 'hr',          label: 'Human Resources' },
+    { value: 'nonprofit',   label: 'Nonprofit & Education' },
+  ]
+  const CAREER_STAGES = [
+    { value: 'college',   label: 'Still in school' },
+    { value: 'recent',    label: 'New to my field (0–2 yrs)' },
+    { value: 'working',   label: 'Mid-level professional (2–7 yrs)' },
+    { value: 'senior',    label: 'Senior professional (7+ yrs)' },
+    { value: 'executive', label: 'Executive / Director level' },
+    { value: 'changing',  label: 'Changing careers' },
+    { value: 'returning', label: 'Returning from a break' },
+  ]
+  const selStyle = {width:'100%',padding:'6px 9px',border:'1px solid rgba(0,0,0,.13)',borderRadius:6,fontFamily:'sans-serif',fontSize:12.5,color:'#1a1a1f',background:'#f4f2ed',outline:'none',boxSizing:'border-box' as const,cursor:'pointer'}
+
+  const RP = ({ mob = false }: { mob?: boolean }) => (
+    <div className={mob?'rp-mob':'rp-desktop'} style={{padding:'18px 16px',display:'flex',flexDirection:'column',overflowY:'auto',height:'100%',boxSizing:'border-box' as const}}>
+      <div style={{paddingBottom:18,marginBottom:18,borderBottom:'1px solid rgba(0,0,0,.07)'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+          <span style={{fontFamily:'Georgia, serif',fontSize:16}}>Career</span>
+          {saveInd && <span style={{fontSize:11,color:saveInd.includes('✓')?'#1a7a4a':'#b0b0b8'}}>{saveInd}</span>}
+        </div>
+        <div style={{marginBottom:8}}>
+          <label style={{display:'block',fontSize:11,color:'#7a7a85',marginBottom:4}}>Field</label>
+          <select value={careerField} onChange={async e => { const v=e.target.value; setCareerField(v); setProfile(pr=>pr?{...pr,career_field:v}:pr); await savePr({career_field:v}); refreshJobs() }} style={selStyle}>
+            <option value="">Select a field…</option>
+            {CAREER_FIELDS.map(f=><option key={f.value} value={f.value}>{f.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{display:'block',fontSize:11,color:'#7a7a85',marginBottom:4}}>Career stage</label>
+          <select value={careerStage} onChange={e => { const v=e.target.value; setCareerStage(v); setProfile(pr=>pr?{...pr,career_stage:v}:pr); savePr({career_stage:v}) }} style={selStyle}>
+            <option value="">Select a stage…</option>
+            {CAREER_STAGES.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+        </div>
+      </div>
+      <div style={{paddingBottom:18,marginBottom:18,borderBottom:'1px solid rgba(0,0,0,.07)'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+          <span style={{fontFamily:'Georgia, serif',fontSize:16}}>About me</span>
+        </div>
+        <textarea value={aboutMe} onChange={e=>onAbout(e.target.value)}
+          onInput={e=>{const t=e.currentTarget;t.style.height='auto';t.style.height=t.scrollHeight+'px'}}
+          onFocus={e=>{const t=e.currentTarget;t.style.height='auto';t.style.height=t.scrollHeight+'px'}}
+          onBlur={e=>{const t=e.currentTarget;if(!aboutMe.trim()){t.style.height='88px'}}}
+          placeholder="Tell us about yourself — your experience, dream companies, what kind of role you want…"
+          style={{width:'100%',minHeight:88,padding:8,border:'1px solid rgba(0,0,0,.13)',borderRadius:6,fontFamily:'sans-serif',fontSize:12.5,color:'#1a1a1f',background:'#f4f2ed',resize:'none',outline:'none',lineHeight:1.55,boxSizing:'border-box' as const,overflow:'hidden',transition:'height 0.15s ease'}} />
+        {aboutMe.length > 30 && (
+          <div style={{marginTop:8}}>
+            <button onClick={() => showVibes ? setShowVibes(false) : analyzeVibes()} style={{background:'#e8edf5',color:'#2f3e5c',border:'1px solid #2f3e5c',borderRadius:20,padding:'3px 10px',fontSize:11,fontWeight:500,cursor:'pointer',fontFamily:'sans-serif',display:'inline-flex',alignItems:'center',gap:5}}>
+              {analyzing ? '…' : showVibes ? '▲ Hide' : '✦ What fitted. thinks'}
+            </button>
+            {showVibes && <div style={{marginTop:8,background:'#e8edf5',borderRadius:8,padding:'10px 12px',fontSize:12.5,color:'#185fa5',lineHeight:1.6}}>{analyzing ? <span style={{color:'#7a7a85',fontStyle:'italic'}}>Reading…</span> : vibes}</div>}
+          </div>
+        )}
+      </div>
+      <div style={{paddingBottom:18,marginBottom:18,borderBottom:'1px solid rgba(0,0,0,.07)'}}>
+        <div style={{fontFamily:'Georgia, serif',fontSize:16,marginBottom:10}}>Location</div>
+        {locs.map(l => <div key={l} style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}><input type="checkbox" defaultChecked readOnly style={{width:14,height:14,accentColor:'#2f3e5c'}}/><span style={{fontSize:12.5,color:'#3d3d45',flex:1}}>{l}</span><button onClick={()=>remLoc(l)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:14}}>×</button></div>)}
+        <div style={{display:'flex',gap:6,marginTop:8}}>
+          <input value={locIn} onChange={e=>setLocIn(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addLoc()} placeholder="Add a location…" style={{flex:1,padding:'5px 8px',border:'1px solid rgba(0,0,0,.13)',borderRadius:6,fontFamily:'sans-serif',fontSize:12,color:'#1a1a1f',background:'#f4f2ed',outline:'none'}}/>
+          <button onClick={addLoc} style={{padding:'5px 10px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:6,fontSize:12,cursor:'pointer'}}>+</button>
+        </div>
+      </div>
+      <div style={{paddingBottom:18,marginBottom:18,borderBottom:'1px solid rgba(0,0,0,.07)'}}>
+        <div style={{fontFamily:'Georgia, serif',fontSize:16,marginBottom:10}}>Pay target</div>
+        <input value={payTgt} onChange={e=>onPay(e.target.value)} placeholder="e.g. $26/hr or $55,000/yr" style={{width:'100%',padding:'6px 9px',border:'1px solid rgba(0,0,0,.13)',borderRadius:6,fontFamily:'monospace',fontSize:13,color:'#1a1a1f',background:'#f4f2ed',outline:'none',boxSizing:'border-box' as const,marginBottom:6}}/>
+        <div style={{fontSize:11.5,color:'#7a7a85'}}>Jobs below your target will be flagged.</div>
+      </div>
+      {mob && (
+        <div style={{paddingBottom:18,marginBottom:18,borderBottom:'1px solid rgba(0,0,0,.07)'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+            <div style={{fontFamily:'Georgia, serif',fontSize:16}}>My Resumes</div>
+            <button onClick={openAccount} style={{fontSize:12,color:'#7a7a85',background:'#f4f2ed',border:'1px solid rgba(0,0,0,.1)',borderRadius:8,padding:'5px 11px',cursor:'pointer',fontFamily:'sans-serif',display:'flex',alignItems:'center',gap:5}}>
+              <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M1.5 11.5c0-2.2 2.2-4 5-4s5 1.8 5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+              Account
+            </button>
+          </div>
+          <div onClick={()=>lim.atLimit?setShowLim(true):fRef.current?.click()} className="resume-upload-zone" style={{border:'1.5px dashed rgba(0,0,0,.15)',borderRadius:10,padding:'16px 12px',textAlign:'center',cursor:'pointer',marginBottom:10,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+            {uploading
+              ? <><div style={{fontSize:14}}>⏳</div><div style={{fontSize:13,color:'#7a7a85'}}>Reading…</div></>
+              : <><div style={{fontSize:22,lineHeight:1}}>📄</div><div style={{fontSize:13,color:'#7a7a85',fontWeight:500}}>Upload a resume</div><div style={{fontSize:11,color:'#b0b0b8'}}>PDF · DOCX · TXT</div></>}
+          </div>
+          {resumes.map(r=>(
+            <div key={r.id} style={{padding:'10px 12px',borderRadius:10,border:`1px solid ${r.is_active?'#2f3e5c':'rgba(0,0,0,.07)'}`,background:r.is_active?'#e8edf5':'#f4f2ed',marginBottom:8}}>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <div onClick={()=>toggleActive(r.id)} style={{width:9,height:9,borderRadius:'50%',background:r.is_active?'#2f3e5c':'#b0b0b8',cursor:'pointer',flexShrink:0}}/>
+                <span style={{fontSize:13,color:r.is_active?'#2f3e5c':'#3d3d45',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:r.is_active?500:400}}>{r.name}</span>
+                <button onClick={()=>delResume(r.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:18,lineHeight:1,minWidth:32,minHeight:32,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+              </div>
+              <div style={{display:'flex',gap:6,marginTop:8}}>
+                <a href={`/resume-health?r=${r.id}`} style={{fontSize:11.5,color:'#7c5cbf',background:'rgba(124,92,191,0.08)',padding:'4px 10px',borderRadius:20,textDecoration:'none',fontWeight:500}}>✦ Health Score</a>
+              </div>
+            </div>
+          ))}
+          <button onClick={()=>router.push('/explore')} style={{width:'100%',marginTop:4,padding:'10px 14px',background:'#f4f2ed',color:'#3d3d45',border:'1px solid rgba(0,0,0,.1)',borderRadius:10,fontFamily:'sans-serif',fontSize:13,cursor:'pointer',textAlign:'left' as const,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <span>✦ Explore career paths</span><span style={{color:'#b0b0b8'}}>→</span>
+          </button>
+        </div>
+      )}
+      <div>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+          <span style={{fontFamily:'Georgia, serif',fontSize:16}}>My Portfolio</span>
+          {!isPro && <span onClick={()=>setShowUp(true)} style={{fontSize:11,color:'#b8750a',fontWeight:500,background:'#fdf3e3',padding:'3px 9px',borderRadius:20,cursor:'pointer'}}>✦ Pro</span>}
+        </div>
+        {!isPro ? (
+          <div style={{textAlign:'center',padding:'16px 8px',background:'#f4f2ed',borderRadius:10}}>
+            <div style={{fontSize:22,marginBottom:8}}>✦</div>
+            <div style={{fontSize:13,fontWeight:500,color:'#1a1a1f',marginBottom:6}}>Portfolio is a Pro feature</div>
+            <div style={{fontSize:12,color:'#7a7a85',lineHeight:1.6,marginBottom:12}}>Upload writing samples, moodboards, and projects.</div>
+            <button onClick={()=>setShowUp(true)} style={{width:'100%',padding:8,background:'#b8750a',color:'#fff',border:'none',borderRadius:8,fontFamily:'sans-serif',fontSize:13,fontWeight:500,cursor:'pointer'}}>Unlock with Pro</button>
+          </div>
+        ) : (
+          <div>
+            <label style={{display:'block',border:'1.5px dashed rgba(0,0,0,.15)',borderRadius:8,padding:'12px 10px',textAlign:'center',cursor:'pointer',marginBottom:8}}>
+              <input type="file" accept="*/*" multiple style={{display:'none'}} onChange={e=>{if(!e.target.files)return;const nf=Array.from(e.target.files).map(f=>({name:f.name,type:f.type,addedAt:new Date().toISOString()}));const nx=[...pfFiles,...nf];setPfFiles(nx);savePr({portfolio_files:nx})}}/>
+              <div style={{fontSize:12,color:'#7a7a85'}}>+ Add a file</div><small style={{fontSize:10,color:'#b0b0b8'}}>PDF · Images · Docs</small>
+            </label>
+            {pfFiles.map(f=><div key={f.name} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',background:'#f4f2ed',border:'1px solid rgba(0,0,0,.07)',borderRadius:8,marginBottom:6}}><span>📄</span><span style={{flex:1,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.name}</span><button onClick={()=>{const n=pfFiles.filter(p=>p.name!==f.name);setPfFiles(n);savePr({portfolio_files:n})}} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:14}}>×</button></div>)}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  const SkeletonCard = () => (
+    <div style={{background:'#fff',border:'1px solid rgba(0,0,0,.07)',borderRadius:14,padding:'15px 16px',marginBottom:10,display:'grid',gridTemplateColumns:'40px 1fr 52px',gap:'0 12px',alignItems:'start'}}>
+      <div style={{width:40,height:40,borderRadius:9,background:'#ede9e0',animation:'sk 1.5s ease-in-out infinite'}}/>
+      <div>
+        <div style={{height:14,borderRadius:20,background:'#ede9e0',width:'60%',marginBottom:9,animation:'sk 1.5s ease-in-out .1s infinite'}}/>
+        <div style={{height:12,borderRadius:20,background:'#ede9e0',width:'78%',marginBottom:10,animation:'sk 1.5s ease-in-out .15s infinite'}}/>
+        <div style={{display:'flex',gap:6}}>
+          <div style={{height:20,borderRadius:20,background:'#ede9e0',width:55,animation:'sk 1.5s ease-in-out .2s infinite'}}/>
+          <div style={{height:20,borderRadius:20,background:'#ede9e0',width:85,animation:'sk 1.5s ease-in-out .25s infinite'}}/>
+        </div>
+      </div>
+      <div style={{width:52,height:52,borderRadius:'50%',background:'#ede9e0',animation:'sk 1.5s ease-in-out infinite'}}/>
+    </div>
+  )
+
+  const JC = ({ job }: { job: Job }) => {
+    const tt = typeTag(job.type); const isl = liked.has(job.id); const tEntry = activeE.find(e=>e.job_id===job.id); const ist = !!tEntry; const br = bestR(job); const isp = job.tags.includes('pasted')
+    const bt = !!(payTgt && job.payNum > 0 && (() => { const n = parseFloat(payTgt.replace(/[^0-9.]/g,'')); if(!n) return false; return job.payNum*1000 < (payTgt.toLowerCase().includes('hr') ? n*2080 : n) })())
+    return (
+      <div onClick={()=>!isp&&router.push(`/jobs/${job.id}`)} className="job-card" style={{background:'#fff',border:`1px solid ${isp?'#2f3e5c':bt?'#f5c6c6':'rgba(0,0,0,.07)'}`,borderLeft:isp?'3px solid #2f3e5c':undefined,borderRadius:14,padding:'15px 16px',cursor:isp?'default':'pointer',display:'grid',gridTemplateColumns:'40px 1fr auto',gap:'0 12px',alignItems:'start',marginBottom:10}}>
+        <div className="jc-logo" style={{width:40,height:40,borderRadius:9,background:job.logoBg,color:job.logoColor,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Georgia, serif',fontSize:14,border:'1px solid rgba(0,0,0,.07)',flexShrink:0}}>{job.logo}</div>
+        <div style={{minWidth:0}}>
+          <div style={{display:'flex',alignItems:'flex-start',gap:6,flexWrap:'wrap',marginBottom:2}}>
+            <span style={{fontSize:14,fontWeight:500,color:'#1a1a1f',lineHeight:1.3}}>{job.title}</span>
+            {job.isNew&&!isp&&<span style={{background:'#fdf0ec',color:'#e85d3a',fontSize:9.5,fontWeight:600,padding:'2px 7px',borderRadius:20,textTransform:'uppercase' as const}}>New</span>}
+            {isp&&<span style={{background:'#e8edf5',color:'#2f3e5c',fontSize:9.5,fontWeight:600,padding:'2px 7px',borderRadius:20}}>Pasted</span>}
+            {bt&&<span style={{background:'#fdecea',color:'#c0392b',fontSize:9.5,fontWeight:600,padding:'2px 7px',borderRadius:20}}>Below target</span>}
+          </div>
+          <div style={{fontSize:12.5,color:'#7a7a85',marginBottom:7}}><strong style={{color:'#3d3d45',fontWeight:500}}>{job.company}</strong> · {job.location} · {job.pay}</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:5,alignItems:'center'}}>
+            <span style={{background:tt.bg,color:tt.color,padding:'2px 8px',borderRadius:20,fontSize:11}}>{job.type}</span>
+            {br&&activeR.length>1&&<span style={{background:'#e6f5ed',color:'#1a7a4a',padding:'2px 8px',borderRadius:20,fontSize:10.5,fontWeight:500}}>Best: {br.name}</span>}
+          </div>
+          <div className="jc-actions" style={{display:'flex',gap:2,marginTop:8,alignItems:'center'}} onClick={e=>e.stopPropagation()}>
+            <button onClick={()=>{const n=new Set(liked);isl?n.delete(job.id):n.add(job.id);setLiked(n)}} className="jc-action-btn" style={{background:'none',border:'none',cursor:'pointer',color:isl?'#1a7a4a':'#b0b0b8',fontSize:14,padding:'2px 4px'}}>👍</button>
+            <button onClick={e=>openDL(job,e)} className="jc-action-btn" style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:14,padding:'2px 4px'}}>👎</button>
+            <button onClick={()=>addTracker(job)} className="jc-action-btn" style={{background:'none',border:'none',cursor:'pointer',color:ist?'#b8750a':'#b0b0b8',fontSize:14,padding:'2px 4px'}}>{ist?'★':'☆'}</button>
+            {tEntry && tEntry.column_id !== 'saved' && (()=>{const col=TCOLS.find(c=>c.id===tEntry.column_id);return col?<span style={{background:col.bg,color:col.color,fontSize:10,fontWeight:600,padding:'2px 8px',borderRadius:20}}>{col.label}</span>:null})()}
+            <span style={{fontSize:10.5,color:'#b0b0b8',marginLeft:4}}>{job.posted}</span>
+            {isp&&<button onClick={()=>setPasted(p=>p.filter(j=>j.id!==job.id))} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:11,fontFamily:'sans-serif'}}>Remove</button>}
+          </div>
+        </div>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2}}><MatchRing pct={job.match}/><span style={{fontSize:9,color:'#b0b0b8',textTransform:'uppercase' as const,letterSpacing:'.05em'}}>match</span></div>
+      </div>
+    )
+  }
+
+  const Feed = () => (
+    <div>
+      {/* NL Search bar */}
+      <div style={{position:'relative',marginBottom:10}}>
+        {nlLoading
+          ? <div style={{position:'absolute',left:10,top:'50%',marginTop:-7,width:14,height:14,border:'2px solid #ede9fe',borderTop:'2px solid #6d28d9',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
+          : <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:nlFilters?'#6d28d9':'#b0b0b8',pointerEvents:'none'}}><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.4"/><path d="M9 9L12.5 12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+        }
+        <input
+          value={kwSearch}
+          onChange={e => { setKwSearch(e.target.value); if (nlFilters) setNlFilters(null) }}
+          onKeyDown={e => { if (e.key === 'Enter' && kwSearch.trim()) parseNLQuery(kwSearch) }}
+          placeholder="Search jobs or try 'remote PM, no startups'…"
+          className="nl-search-input"
+          style={{width:'100%',padding:'8px 74px 8px 32px',border:`1px solid ${nlFilters?'rgba(109,40,217,.35)':'rgba(0,0,0,.12)'}`,borderRadius:10,fontFamily:'sans-serif',fontSize:13,background:nlFilters?'#faf8ff':'#fff',color:'#1a1a1f',outline:'none',boxSizing:'border-box' as const}}
+        />
+        <div style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',display:'flex',alignItems:'center',gap:4}}>
+          {!nlFilters && kwSearch.trim() && !nlLoading && (
+            <button onClick={()=>parseNLQuery(kwSearch)} title="Smart search with fitted. AI"
+              style={{background:'#6d28d9',color:'#fff',border:'none',borderRadius:6,padding:'3px 8px',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif',lineHeight:1.4}}>✦ Search</button>
+          )}
+          {(kwSearch || nlFilters) && (
+            <button onClick={()=>{ setKwSearch(''); setNlFilters(null) }}
+              style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:17,lineHeight:1,padding:2}}>×</button>
+          )}
+        </div>
+      </div>
+      {/* NL filter summary banner */}
+      {nlFilters && (
+        <div style={{background:'#faf8ff',border:'1px solid rgba(109,40,217,.2)',borderRadius:10,padding:'10px 14px',marginBottom:10}}>
+          <div style={{fontSize:11.5,fontWeight:600,color:'#6d28d9',marginBottom:7,display:'flex',alignItems:'center',gap:6}}>
+            ✦ Smart search active
+            <button onClick={()=>{ setNlFilters(null) }} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:13,padding:0}}>✕ Clear</button>
+          </div>
+          <div style={{display:'flex',flexWrap:'wrap' as const,gap:5,marginBottom:nlFilters.roleSuggestions.length>0?8:0}}>
+            {nlFilters.include.map(t=><span key={t} style={{background:'#e6f5ed',color:'#1a7a4a',fontSize:11,padding:'2px 8px',borderRadius:20,fontWeight:500}}>+{t}</span>)}
+            {nlFilters.exclude.map(t=><span key={t} style={{background:'#fdecea',color:'#a32d2d',fontSize:11,padding:'2px 8px',borderRadius:20,fontWeight:500}}>−{t}</span>)}
+            {nlFilters.remote===true&&<span style={{background:'#e6f5ed',color:'#1a7a4a',fontSize:11,padding:'2px 8px',borderRadius:20}}>Remote only</span>}
+            {nlFilters.seniority&&<span style={{background:'#ede9fe',color:'#6d28d9',fontSize:11,padding:'2px 8px',borderRadius:20}}>{nlFilters.seniority}</span>}
+          </div>
+          {nlFilters.roleSuggestions.length>0&&(
+            <div style={{fontSize:11.5,color:'#7a7a85',lineHeight:1.5}}>
+              <span style={{color:'#6d28d9',fontWeight:500}}>You might also be strong for:</span>{' '}
+              {nlFilters.roleSuggestions.map((r,i)=><span key={r}>{i>0?<span style={{color:'#b0b0b8'}}> · </span>:null}<strong style={{color:'#3d3d45'}}>{r}</strong></span>)}
+            </div>
+          )}
+        </div>
+      )}
+      {/* Filter row: type + seniority */}
+      <div className="feed-filters" style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:14}}>
+        {FILTERS.map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'5px 12px',border:`1px solid ${filter===f?'#2f3e5c':'rgba(0,0,0,.12)'}`,borderRadius:20,fontSize:12,color:filter===f?'#2f3e5c':'#7a7a85',background:filter===f?'#e8edf5':'#fff',cursor:'pointer',fontFamily:'sans-serif',fontWeight:filter===f?500:400}}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>)}
+        <div style={{width:1,background:'rgba(0,0,0,.1)',margin:'2px 2px'}}/>
+        {(['all','entry','mid','senior'] as const).map(s=>{
+          const isActive = nlFilters?.seniority ? nlFilters.seniority===s : seniority===s
+          return <button key={s} onClick={()=>setSeniority(s)} style={{padding:'5px 12px',border:`1px solid ${isActive?'#6d28d9':'rgba(0,0,0,.12)'}`,borderRadius:20,fontSize:12,color:isActive?'#6d28d9':'#7a7a85',background:isActive?'#ede9fe':'#fff',cursor:'pointer',fontFamily:'sans-serif',fontWeight:isActive?500:400}}>{s==='all'?'Any level':s.charAt(0).toUpperCase()+s.slice(1)}</button>
+        })}
+      </div>
+      {isPro&&cSearch.trim()&&<div style={{background:'#e8edf5',border:'1px solid #2f3e5c',borderRadius:8,padding:'10px 14px',marginBottom:12,fontSize:12.5,color:'#2f3e5c',display:'flex',alignItems:'center',gap:8}}><span>Showing jobs at <strong>{cSearch}</strong></span><button onClick={()=>setCSearch('')} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'#7a7a85',fontSize:13}}>✕</button></div>}
+      {/* Demo-resume notice: shown when all active resumes are demo files */}
+      {!jobsLoad && activeR.length > 0 && activeR.every(r => r.name.endsWith('(Demo)')) && (
+        <div style={{background:'#fdf3e3',border:'1px solid rgba(184,117,10,.18)',borderRadius:10,padding:'10px 14px',marginBottom:14,display:'flex',gap:10,alignItems:'center'}}>
+          <span style={{fontSize:16,lineHeight:1,flexShrink:0}}>✦</span>
+          <div style={{flex:1,fontSize:12.5,color:'#7a7a85',lineHeight:1.55}}>
+            Scores are based on your <strong style={{color:'#3d3d45'}}>demo resume</strong>.{' '}
+            <button onClick={()=>fRef.current?.click()} style={{background:'none',border:'none',padding:0,color:'#b8750a',cursor:'pointer',fontFamily:'sans-serif',fontSize:12.5,fontWeight:500,textDecoration:'underline'}}>Upload yours</button>
+            {' '}to see how you actually match.
+          </div>
+        </div>
+      )}
+      {!jobsLoad && activeR.length === 0 && (
+        <div style={{background:'#fdf3e3',border:'1px solid rgba(184,117,10,.2)',borderRadius:10,padding:'10px 14px',marginBottom:14,display:'flex',gap:10,alignItems:'flex-start'}}>
+          <span style={{fontSize:18,lineHeight:1}}>✦</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:500,color:'#1a1a1f',marginBottom:3}}>Get accurate match scores</div>
+            <div style={{fontSize:12,color:'#7a7a85',lineHeight:1.5}}>
+              {!profile?.career_field && <span>Set your <button onClick={()=>setMobileTab('profile')} style={{background:'none',border:'none',padding:0,color:'#b8750a',cursor:'pointer',fontFamily:'sans-serif',fontSize:12,fontWeight:500,textDecoration:'underline'}}>career field</button>{activeR.length===0?' and ':' '}</span>}
+              {activeR.length===0 && <span>upload a <button onClick={()=>fRef.current?.click()} style={{background:'none',border:'none',padding:0,color:'#b8750a',cursor:'pointer',fontFamily:'sans-serif',fontSize:12,fontWeight:500,textDecoration:'underline'}}>resume</button> </span>}
+              to see your real match scores.
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="feed-header-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+          <span style={{fontFamily:'Georgia, serif',fontSize:19}}>Matched for you</span>
+          <span style={{fontSize:12,color:'#7a7a85'}}>{sorted.length} roles</span>
+          {profile?.career_field&&<span style={{fontSize:11,color:'#2f3e5c',background:'#e8edf5',padding:'2px 8px',borderRadius:20,fontWeight:500}}>{FIELD_LABELS[profile.career_field]||profile.career_field}</span>}
+        </div>
+        <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{border:'1px solid rgba(0,0,0,.12)',borderRadius:6,padding:'4px 8px',fontFamily:'sans-serif',fontSize:12,color:'#3d3d45',background:'#fff',cursor:'pointer',outline:'none'}}><option value="match">Best match</option><option value="pay">Pay ↑</option></select>
+      </div>
+      {jobsSource==='static'
+        ? <div style={{fontSize:12,color:'#7a7a85',background:'#f4f2ed',border:'1px solid rgba(0,0,0,.08)',borderRadius:8,padding:'6px 12px',marginBottom:14,display:'inline-flex',alignItems:'center',gap:6}}>Sample jobs — real listings load once your API key activates</div>
+        : (jobsSource==='fantastic' || jobsSource==='cache')
+          ? <div style={{fontSize:12,color:'#1a7a4a',background:'#e6f5ed',borderRadius:8,padding:'6px 12px',marginBottom:14,display:'inline-flex',alignItems:'center',gap:8}}>
+              {jobsSource==='cache' ? '✦ Live jobs · Curated for your field' : '✦ Live jobs · Matched for your field'}
+              <button onClick={refreshJobs} disabled={jobsLoad} style={{background:'none',border:'none',color:'#1a7a4a',cursor:'pointer',fontSize:11,padding:0,fontFamily:'inherit',opacity:.65,letterSpacing:.2}}>↻ Refresh</button>
+            </div>
+          : <div style={{fontSize:12,color:'#b8750a',background:'#fdf3e3',borderRadius:8,padding:'6px 12px',marginBottom:14,display:'inline-flex',alignItems:'center',gap:6}}>✦ Curated for your field</div>
+      }
+      {jobsLoad
+        ? <>{[0,1,2,3,4].map(i=><SkeletonCard key={i}/>)}</>
+        : sorted.length === 0 && broaderJobs.length > 0 && !showBroader
+          /* ── Broader-results banner: strict filters produced 0 jobs but wider pool exists ── */
+          ? <div style={{borderRadius:12,border:'1px solid rgba(47,62,92,.18)',background:'#f0f3f8',padding:'22px 20px',marginBottom:8}}>
+              <div style={{fontFamily:'Georgia, serif',fontSize:17,color:'#1a1a1f',marginBottom:7}}>Not many exact matches right now</div>
+              <p style={{fontSize:13,color:'#5a5a6a',lineHeight:1.7,margin:'0 0 18px'}}>
+                We couldn't find live roles matching all your current filters. The jobs below are the strongest openings in your field right now — broaden your view to explore them.
+              </p>
+              <button
+                onClick={()=>{ setShowBroader(true); setFilter('all'); setSeniority('all') }}
+                style={{display:'block',width:'100%',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:10,padding:'13px 20px',fontSize:15,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif',boxShadow:'0 2px 12px rgba(47,62,92,.28)',letterSpacing:'.01em',marginBottom:10}}
+              >
+                Show all in {FIELD_LABELS[careerField] || careerField || 'your field'} →
+              </button>
+              {(filter !== 'all' || seniority !== 'all') && (
+                <button
+                  onClick={()=>{ setFilter('all'); setSeniority('all') }}
+                  style={{display:'block',width:'100%',background:'none',border:'1px solid rgba(0,0,0,.13)',borderRadius:10,padding:'10px 20px',fontSize:13,color:'#5a5a6a',cursor:'pointer',fontFamily:'sans-serif'}}
+                >
+                  Just clear my filters
+                </button>
+              )}
+            </div>
+          : sorted.length === 0
+            ? jobs.length === 0 && pasted.length === 0
+              ? <div style={{textAlign:'center',padding:'52px 20px',color:'#7a7a85'}}>
+                  <div style={{fontFamily:'Georgia, serif',fontSize:18,color:'#3d3d45',marginBottom:10}}>No jobs loaded yet</div>
+                  <p style={{fontSize:13,color:'#b0b0b8',lineHeight:1.6,maxWidth:280,margin:'0 auto 18px'}}>
+                    Set your career field in the Profile tab and we'll pull live roles matched to you.
+                  </p>
+                  <button onClick={()=>setMobileTab('profile')} style={{background:'#2f3e5c',color:'#fff',border:'none',borderRadius:8,padding:'8px 20px',fontSize:13,fontWeight:500,cursor:'pointer',fontFamily:'sans-serif'}}>Update profile →</button>
+                </div>
+              : <div style={{textAlign:'center',padding:'52px 20px',color:'#7a7a85'}}>
+                  <div style={{fontFamily:'Georgia, serif',fontSize:18,color:'#3d3d45',marginBottom:8}}>No jobs match this filter</div>
+                  <p style={{fontSize:13,color:'#b0b0b8',lineHeight:1.6,maxWidth:260,margin:'0 auto 16px'}}>
+                    Try adjusting the type or seniority filter, or clear them to see everything available.
+                  </p>
+                  <div style={{display:'flex',justifyContent:'center',gap:10,flexWrap:'wrap' as const}}>
+                    <button onClick={()=>{ setFilter('all'); setSeniority('all') }} style={{background:'#2f3e5c',color:'#fff',border:'none',borderRadius:8,padding:'7px 16px',fontSize:13,fontWeight:500,cursor:'pointer',fontFamily:'sans-serif'}}>Clear filters</button>
+                    {broaderJobs.length > 0 && <button onClick={()=>{ setShowBroader(true); setFilter('all'); setSeniority('all') }} style={{background:'none',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,padding:'7px 14px',fontSize:13,color:'#5a5a6a',cursor:'pointer',fontFamily:'sans-serif'}}>Widen search</button>}
+                  </div>
+                </div>
+            : <>
+                {showBroader && (
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#f0f3f8',border:'1px solid rgba(47,62,92,.12)',borderRadius:8,padding:'8px 14px',marginBottom:12,fontSize:12}}>
+                    <span style={{color:'#5a5a6a'}}>Showing wider results for <strong style={{color:'#2f3e5c'}}>{FIELD_LABELS[careerField] || careerField}</strong></span>
+                    <button onClick={()=>{ setShowBroader(false); setFilter('all') }} style={{background:'none',border:'none',color:'#7a7a85',cursor:'pointer',fontSize:12,fontFamily:'sans-serif',padding:0}}>Best match only</button>
+                  </div>
+                )}
+                {allScoresLow && (
+                  <div style={{background:'#fdf8ed',border:'1px solid rgba(184,117,10,.18)',borderRadius:8,padding:'10px 14px',marginBottom:12,display:'flex',gap:10,alignItems:'flex-start'}}>
+                    <span style={{fontSize:16,lineHeight:1,flexShrink:0}}>✦</span>
+                    <p style={{fontSize:12,color:'#7a5c10',lineHeight:1.6,margin:0}}>
+                      These are real roles worth knowing about. Match scores get sharper once your resume is uploaded — fitted. will keep refining from there.
+                    </p>
+                  </div>
+                )}
+                {sorted.map(job=><JC key={job.id} job={job}/>)}
+              </>
+      }
+    </div>
+  )
+
+  const DLView = () => (
+    <div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+        <span style={{fontFamily:'Georgia, serif',fontSize:19}}>Previously Disliked</span>
+        <span style={{fontSize:12,color:'#7a7a85'}}>{activeDL.length} · held 14 days</span>
+      </div>
+      {activeDL.length===0?(
+        <div style={{textAlign:'center',padding:'48px 20px',color:'#7a7a85'}}>
+          <div style={{fontSize:32,marginBottom:12}}>👍</div>
+          <div style={{fontFamily:'Georgia, serif',fontSize:18,color:'#3d3d45',marginBottom:8}}>No disliked jobs</div>
+          <p style={{fontSize:13,lineHeight:1.6}}>Jobs you 👎 thumbs-down will appear here for 14 days.</p>
+          <button onClick={()=>setView('browse')} style={{marginTop:16,background:'none',border:'none',color:'#2f3e5c',cursor:'pointer',fontSize:14,fontFamily:'sans-serif'}}>← Back to browse</button>
+        </div>
+      ):activeDL.map(d=>{
+        const left = TTL - Math.floor((Date.now()-new Date(d.dislikedAt).getTime())/86400000)
+        return (
+          <div key={d.jobId} style={{background:'#fff',border:'1px solid rgba(0,0,0,.07)',borderRadius:12,padding:'14px 16px',marginBottom:8,display:'flex',alignItems:'center',gap:12}}>
+            <div style={{width:36,height:36,borderRadius:8,background:d.jobLogoBg,color:d.jobLogoColor,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Georgia, serif',fontSize:12,border:'1px solid rgba(0,0,0,.07)',flexShrink:0}}>{d.jobLogo}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:13.5,fontWeight:500,color:'#1a1a1f',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2}}>{d.jobTitle}</div>
+              <div style={{fontSize:12,color:'#7a7a85',marginBottom:5}}>{d.jobCompany}</div>
+              <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                <span style={{background:'#fdecea',color:'#c0392b',fontSize:10.5,padding:'2px 8px',borderRadius:20}}>👎 {d.reason}</span>
+                <span style={{fontSize:11,color:'#b0b0b8'}}>{left}d left</span>
+              </div>
+            </div>
+            <button onClick={()=>undislike(d.jobId)} style={{padding:'6px 12px',background:'#e8edf5',color:'#2f3e5c',border:'none',borderRadius:6,fontFamily:'sans-serif',fontSize:11.5,fontWeight:500,cursor:'pointer',flexShrink:0}}>Restore</button>
+          </div>
+        )
+      })}
+    </div>
+  )
+
+  return (
+    <div style={{height:'100vh',display:'flex',flexDirection:'column',background:'#f4f2ed',fontFamily:'sans-serif',overflow:'hidden'}}>
+
+      {/* TOP NAV */}
+      <nav style={{height:60,background:'#fff',borderBottom:'1px solid rgba(0,0,0,.07)',display:'flex',alignItems:'center',padding:'0 18px',gap:14,flexShrink:0,zIndex:20}}>
+        <div style={{display:'flex',flexDirection:'column',flexShrink:0,lineHeight:1}}>
+          <span style={{fontFamily:'Georgia, serif',fontSize:22,letterSpacing:'-.02em',color:'#1a1a1f'}}>fitted<span style={{color:'#5171bf'}}>.</span></span>
+          <span className="nav-subtitle" style={{fontSize:11.5,color:'#b8a99a',fontFamily:'sans-serif',fontWeight:300,marginTop:2}}>get a career tailor-made for you</span>
+        </div>
+        <div className="nav-divider" style={{width:1,height:32,background:'rgba(0,0,0,.1)',flexShrink:0}}/>
+        <div className="nav-search" style={{flex:1,maxWidth:460,position:'relative'}}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'#b0b0b8',pointerEvents:'none'}}><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.4"/><path d="M9 9L12.5 12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+          <input value={isPro?cSearch:''} onChange={e=>isPro&&setCSearch(e.target.value)} onClick={()=>!isPro&&setShowUp(true)} placeholder={isPro?'Search companies…':'Search companies… (Pro)'} readOnly={!isPro} style={{width:'100%',padding:'7px 12px 7px 32px',border:'1px solid rgba(0,0,0,.12)',borderRadius:10,fontFamily:'sans-serif',fontSize:13,background:'#f4f2ed',color:'#1a1a1f',outline:'none',cursor:isPro?'text':'pointer'}}/>
+        </div>
+        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:9}}>
+          <a href={FEEDBACK} target="_blank" rel="noopener noreferrer" className="hide-mobile" style={{padding:'6px 12px',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,background:'none',fontFamily:'sans-serif',fontSize:12,color:'#7a7a85',textDecoration:'none',display:'inline-flex',alignItems:'center',gap:5}}>
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M11 1.5H2C1.7 1.5 1.5 1.7 1.5 2V8.5C1.5 8.8 1.7 9 2 9H4.5V11.5L7.5 9H11C11.3 9 11.5 8.8 11.5 8.5V2C11.5 1.7 11.3 1.5 11 1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/></svg>
+            Feedback
+          </a>
+          {!isPro ? (
+            <button onClick={()=>setShowUp(true)} style={{padding:'7px 13px',background:'#b8750a',color:'#fff',border:'none',borderRadius:8,fontFamily:'sans-serif',fontSize:13,fontWeight:500,cursor:'pointer'}}>Upgrade</button>
+          ) : isCancelled ? (
+            <span style={{background:'rgba(26, 122, 74, 0.45)',color:'#fff',fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:20,whiteSpace:'nowrap'}}>✦ {isPremium?'Premium':'Pro'} · {daysUntil(profile?.current_period_end)}d left</span>
+          ) : (
+            <span style={{background:isPremium?'#6d28d9':'#1a7a4a',color:'#fff',fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:20}}>✦ {isPremium?'Premium':'Pro'}</span>
+          )}
+          <button onClick={openAccount} className="hide-mobile" style={{padding:'6px 12px',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,background:'none',fontFamily:'sans-serif',fontSize:12,color:'#7a7a85',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}>
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M1.5 11.5c0-2.2 2.2-4 5-4s5 1.8 5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+            Account
+          </button>
+          <button className="hide-mobile" onClick={async()=>{await fetch('/api/signout',{method:'POST'});window.location.href='/'}} style={{padding:'7px 13px',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,background:'none',fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Sign out</button>
+        </div>
+      </nav>
+
+      {/* 3-COLUMN GRID */}
+      <div style={{flex:1,overflow:'hidden',display:'grid',gridTemplateColumns:'230px 1fr 270px'}} className="dashboard-grid">
+
+        {/* LEFT SIDEBAR */}
+        <aside className="desktop-only" style={{background:'#fff',borderRight:'1px solid rgba(0,0,0,.07)',display:'flex',flexDirection:'column',overflowY:'auto',padding:'14px 8px',gap:2}}>
+          <div style={{fontSize:9.5,fontWeight:600,letterSpacing:'.16em',textTransform:'uppercase' as const,color:'#b0b0b8',padding:'0 10px 4px'}}>Discover</div>
+          {[{id:'browse',label:'Browse',count:sorted.length,bg:'#2f3e5c'},{id:'tracker',label:'Tracker',count:activeE.length,bg:'#1a7a4a'},{id:'disliked',label:'Disliked',count:activeDL.length,bg:'#c0392b'}].map(item=>(
+            <button key={item.id} onClick={()=>setView(item.id as any)} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',borderRadius:8,color:view===item.id?'#2f3e5c':'#3d3d45',fontSize:13,cursor:'pointer',border:'none',background:view===item.id?'#e8edf5':'none',width:'100%',textAlign:'left' as const,fontFamily:'sans-serif',fontWeight:view===item.id?500:400}}>
+              {item.label}
+              {item.count>0&&<span style={{marginLeft:'auto',background:item.bg,color:'#fff',fontSize:10,fontWeight:600,padding:'1px 6px',borderRadius:20}}>{item.count}</span>}
+            </button>
+          ))}
+          <div style={{fontSize:9.5,fontWeight:600,letterSpacing:'.16em',textTransform:'uppercase' as const,color:'#b0b0b8',padding:'12px 10px 4px',marginTop:4}}>My Resumes</div>
+          <div onClick={()=>lim.atLimit?setShowLim(true):fRef.current?.click()} style={{border:'1.5px dashed rgba(0,0,0,.15)',borderRadius:8,padding:10,textAlign:'center',cursor:'pointer',margin:'2px 2px 4px'}}>
+            <div style={{fontSize:12,color:uploading?'#2f3e5c':'#7a7a85',display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+              <span style={{fontSize:16}}>{uploading?'⏳':'+'}</span><span>{uploading?'Reading…':'Upload a resume'}</span><small style={{fontSize:10,color:'#b0b0b8'}}>PDF · DOCX · TXT</small>
+            </div>
+          </div>
+          {resumes.map(r=>(
+            <div key={r.id} style={{padding:'8px 10px',borderRadius:8,border:`1px solid ${r.is_active?'#2f3e5c':'transparent'}`,background:r.is_active?'#e8edf5':'none',marginBottom:2}}>
+              {renamingId===r.id?(
+                <div style={{display:'flex',gap:4}}>
+                  <input value={renameVal} onChange={e=>setRenameVal(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveRename(r.id);if(e.key==='Escape')setRenamingId(null)}} autoFocus style={{flex:1,padding:'3px 6px',border:'1px solid #2f3e5c',borderRadius:5,fontSize:12,fontFamily:'sans-serif',outline:'none'}}/>
+                  <button onClick={()=>saveRename(r.id)} style={{background:'#2f3e5c',color:'#fff',border:'none',borderRadius:5,padding:'3px 7px',fontSize:11,cursor:'pointer'}}>✓</button>
+                </div>
+              ):(
+                <>
+                  <div style={{display:'flex',alignItems:'center',gap:7}}>
+                    <div onClick={()=>toggleActive(r.id)} style={{width:7,height:7,borderRadius:'50%',background:r.is_active?'#2f3e5c':'#b0b0b8',flexShrink:0,cursor:'pointer'}} title={r.is_active?'Active':'Click to activate'}/>
+                    <span onClick={()=>toggleActive(r.id)} style={{fontSize:12.5,color:r.is_active?'#2f3e5c':'#3d3d45',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:r.is_active?500:400,cursor:'pointer'}}>{r.name}</span>
+                    <button onClick={()=>{setRenamingId(r.id);setRenameVal(r.name)}} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:12,padding:'0 2px'}}>✎</button>
+                    <button onClick={()=>delResume(r.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:14,lineHeight:1}}>×</button>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingLeft:14,marginTop:2}}>
+                    <span style={{fontSize:10.5,color:r.is_active?'#2f3e5c':'#b0b0b8',opacity:.8}}>{r.is_active?'● Active':'○ Inactive'}</span>
+                    <button onClick={()=>router.push(`/resume-health?r=${r.id}`)} style={{background:'none',border:'none',cursor:'pointer',fontSize:10.5,color:'#7c5cbf',fontFamily:'sans-serif',padding:0,opacity:.9}}>✦ Health Score</button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+          {activeR.length>1&&<div style={{fontSize:10.5,color:'#1a7a4a',background:'#e6f5ed',borderRadius:6,padding:'4px 10px',margin:'4px 2px',textAlign:'center'}}>{activeR.length} active — best match shown per job</div>}
+          {!isPro&&<div style={{fontSize:10.5,color:'#b0b0b8',padding:'4px 10px',textAlign:'center'}}>{resumes.length}/{profile?.extra_resume_slot?2:1} resume{profile?.extra_resume_slot?'s':' (free)'}</div>}
+          {resumes.length===0&&<p style={{fontSize:11.5,color:'#b0b0b8',padding:'4px 10px',fontStyle:'italic',lineHeight:1.5}}>Upload a resume and we'll find matching jobs.</p>}
+          <div style={{marginTop:'auto',paddingTop:12,display:'flex',flexDirection:'column',gap:6}}>
+            <button onClick={()=>setView('browse')} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'9px 12px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:8,fontFamily:'sans-serif',fontSize:13,fontWeight:500,cursor:'pointer',width:'100%'}}>Find Jobs</button>
+            <button onClick={()=>setShowPaste(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'9px 12px',background:'#f4f2ed',color:'#2f3e5c',border:'1px solid #2f3e5c',borderRadius:8,fontFamily:'sans-serif',fontSize:13,cursor:'pointer',width:'100%'}}>Paste a Job</button>
+            <button onClick={()=>router.push('/optimize')} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'9px 12px',background:'#f4f2ed',color:'#3d3d45',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,fontFamily:'sans-serif',fontSize:13,cursor:'pointer',width:'100%'}}>✦ Optimize Resume</button>
+            <button onClick={()=>router.push('/explore')} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'9px 12px',background:'#f4f2ed',color:'#3d3d45',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,fontFamily:'sans-serif',fontSize:13,cursor:'pointer',width:'100%'}}>✦ Explore Roles</button>
+          </div>
+        </aside>
+
+        {/* CENTER */}
+        <main className="main-feed" style={{overflowY:'auto',padding:'18px 20px'}}>
+          {graceActive && (
+            <div style={{background:'rgba(184,117,10,0.07)',border:'1px solid rgba(184,117,10,0.25)',borderLeft:'3px solid #b8750a',borderRadius:'0 10px 10px 0',padding:'12px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:12,fontSize:13,color:'#5a3a00',lineHeight:1.5}}>
+              <span style={{flex:1}}><strong style={{fontWeight:600}}>Payment failed.</strong> Update your payment details to keep Pro access — grace period ends {formatEndDate(profile!.grace_period_ends_at)} ({daysUntil(profile!.grace_period_ends_at)} days left).</span>
+              <button onClick={()=>checkout('portal')} disabled={stripeL==='portal'} style={{background:'#b8750a',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',fontSize:12,fontWeight:600,cursor:stripeL==='portal'?'wait':'pointer',fontFamily:'sans-serif',flexShrink:0,opacity:stripeL==='portal'?.7:1}}>{stripeL==='portal'?'…':'Update payment'}</button>
+            </div>
+          )}
+          {isCancelled && profile?.current_period_end && (
+            <div style={{background:'rgba(26, 122, 74, 0.08)',border:'1px solid rgba(26, 122, 74, 0.20)',borderLeft:'3px solid rgba(26, 122, 74, 0.55)',borderRadius:'0 10px 10px 0',padding:'12px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:12,fontSize:13,color:'#1a3d2a',lineHeight:1.5}}>
+              <span style={{flex:1}}><strong style={{fontWeight:600}}>Your fitted. Pro</strong> ends {formatEndDate(profile.current_period_end)} ({daysUntil(profile.current_period_end)} days)</span>
+              <div style={{display:'flex',gap:8,flexShrink:0}}>
+                {showExtendOffer&&<button onClick={()=>setShowExtend(true)} style={{background:'none',color:'#1a7a4a',border:'1.5px solid rgba(26,122,74,.4)',borderRadius:8,padding:'6px 12px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif'}}>Extend 24h — $1.99</button>}
+                <button onClick={()=>checkout('portal')} disabled={stripeL==='portal'} style={{background:'#1a7a4a',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',fontSize:12,fontWeight:600,cursor:stripeL==='portal'?'wait':'pointer',fontFamily:'sans-serif',opacity:stripeL==='portal'?.7:1}}>{stripeL==='portal'?'…':'Restore Pro'}</button>
+              </div>
+            </div>
+          )}
+          {isExtended && profile?.current_period_end && (
+            <div style={{background:'rgba(47,62,92,0.06)',border:'1px solid rgba(47,62,92,0.18)',borderLeft:'3px solid #2f3e5c',borderRadius:'0 10px 10px 0',padding:'12px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:12,fontSize:13,color:'#1a1a4a',lineHeight:1.5}}>
+              <span style={{flex:1}}><strong style={{fontWeight:600}}>24-hour extension active.</strong> Pro access expires {formatEndDate(profile.current_period_end)} ({daysUntil(profile.current_period_end)} days). Upgrade to keep it permanently.</span>
+              <div style={{display:'flex',gap:8,flexShrink:0}}>
+                {showExtendOffer&&<button onClick={()=>setShowExtend(true)} style={{background:'none',color:'#2f3e5c',border:'1.5px solid rgba(47,62,92,.35)',borderRadius:8,padding:'6px 12px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif'}}>Extend again</button>}
+                <button onClick={()=>setShowUp(true)} style={{background:'#2f3e5c',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'sans-serif'}}>Upgrade</button>
+              </div>
+            </div>
+          )}
+          {coachNudge && (
+            <div style={{background:'rgba(124,92,191,0.06)',border:'1px solid rgba(124,92,191,0.18)',borderLeft:'3px solid rgba(124,92,191,0.5)',borderRadius:'0 10px 10px 0',padding:'11px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:10,fontSize:13,color:'#2d1a4a',lineHeight:1.5}}>
+              <span style={{fontSize:12,opacity:.6,flexShrink:0}}>✦</span>
+              <span style={{flex:1}}>{coachNudge}</span>
+              <button onClick={dismissCoachNudge} style={{background:'none',border:'none',cursor:'pointer',color:'#b0a0c8',fontSize:17,lineHeight:1,padding:'0 2px',flexShrink:0}}>×</button>
+            </div>
+          )}
+          <div className="desktop-view">
+            {view==='browse'   && Feed()}
+            {view==='tracker'  && <TView activeE={activeE} trashedE={trashedE} moveEntry={moveEntry} restore={restore} softDel={softDel} onBrowse={()=>setView('browse')} onJobClick={id=>router.push(`/jobs/${id}`)}/>}
+            {view==='disliked' && DLView()}
+          </div>
+          <div className="mobile-view" style={{display:'none'}}>
+            {mobileTab==='browse'  && Feed()}
+            {mobileTab==='tracker' && <TView activeE={activeE} trashedE={trashedE} moveEntry={moveEntry} restore={restore} softDel={softDel} onBrowse={()=>setView('browse')} onJobClick={id=>router.push(`/jobs/${id}`)}/>}
+            {mobileTab==='profile' && RP({mob: true})}
+          </div>
+        </main>
+
+        {/* RIGHT SIDEBAR */}
+        <aside className="desktop-only" style={{background:'#fff',borderLeft:'1px solid rgba(0,0,0,.07)',overflowY:'auto'}}>{RP({})}</aside>
+      </div>
+
+      {/* MOBILE BOTTOM NAV */}
+      <div className="mobile-bottom-nav" style={{display:'none',position:'fixed',bottom:0,left:0,right:0,background:'#fff',borderTop:'1px solid rgba(0,0,0,.07)',zIndex:50,justifyContent:'space-around',padding:'6px 0 max(6px, env(safe-area-inset-bottom))'}}>
+        {[{id:'tracker',label:'Tracker',svg:<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="3" width="3.5" height="14" rx="1.5" fill="currentColor" opacity=".5"/><rect x="7.5" y="2" width="3.5" height="15" rx="1.5" fill="currentColor" opacity=".8"/><rect x="13.5" y="6" width="3.5" height="11" rx="1.5" fill="currentColor"/></svg>},
+          {id:'browse',label:'Browse',svg:<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="currentColor" opacity=".8"/><rect x="13" y="2" width="7" height="7" rx="1.5" fill="currentColor" opacity=".8"/><rect x="2" y="13" width="7" height="7" rx="1.5" fill="currentColor" opacity=".4"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="currentColor" opacity=".4"/></svg>},
+          {id:'profile',label:'Profile',svg:<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.6"/><path d="M4 19c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>}]
+          .map(tab=><button key={tab.id} onClick={()=>setMobileTab(tab.id as any)} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,background:'none',border:'none',cursor:'pointer',fontFamily:'sans-serif',color:mobileTab===tab.id?'#2f3e5c':'#b0b0b8',flex:1,padding:'4px 0',minHeight:44}}>{tab.svg}<span style={{fontSize:10,fontWeight:mobileTab===tab.id?600:400}}>{tab.label}</span></button>)}
+      </div>
+
+      <input ref={fRef} type="file" multiple accept=".pdf,.docx,.txt" style={{display:'none'}} onChange={e=>upload(e.target.files)}/>
+
+      <button onClick={()=>{setShowHelp(true);setHelpQ('');setHelpR(null);setHelpS(false)}} className="hide-mobile" style={{position:'fixed',bottom:24,right:24,width:44,height:44,borderRadius:'50%',background:'#2f3e5c',color:'#fff',border:'none',cursor:'pointer',fontSize:18,display:'inline-flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 12px rgba(0,0,0,.2)',zIndex:40}} title="Get help">?</button>
+
+      {/* WELCOME MODAL — first-run only */}
+      {welcome&&(
+        <div
+          style={{position:'fixed',inset:0,background:'rgba(15,15,18,.5)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:24}}
+          onClick={e=>{if(e.target===e.currentTarget)setWelcome(false)}}
+        >
+          <div style={{background:'#fff',borderRadius:20,padding:'36px 32px',maxWidth:460,width:'100%',boxShadow:'0 32px 80px rgba(0,0,0,.22)',position:'relative'}}>
+            <button onClick={()=>setWelcome(false)} style={{position:'absolute',top:16,right:16,background:'none',border:'none',color:'#b0b0b8',cursor:'pointer',fontSize:20,lineHeight:1,padding:4}}>×</button>
+
+            <div style={{fontFamily:'Georgia, serif',fontSize:26,color:'#1a1a1f',marginBottom:6,lineHeight:1.1}}>
+              You&apos;re in<span style={{color:'#a86347'}}>.</span>
+            </div>
+            <p style={{fontSize:14,lineHeight:1.75,color:'#7a7a85',margin:'0 0 22px',maxWidth:360}}>
+              We&apos;ve loaded a demo resume so your feed has real match scores from day one. Swap it for yours when you&apos;re ready — it takes about 30 seconds.
+            </p>
+
+            {(resumes.find(r => r.name.endsWith('(Demo)')) || profile?.career_field) && (() => {
+              const demoR = resumes.find(r => r.name.endsWith('(Demo)'))
+              const label = demoR ? demoR.name.replace(' (Demo)', '') : (FIELD_LABELS[profile!.career_field!]||profile!.career_field!)
+              return (
+                <div style={{background:'#f4f2ed',borderRadius:10,padding:'12px 16px',marginBottom:22,display:'flex',alignItems:'center',gap:12,border:'1px solid rgba(0,0,0,.06)'}}>
+                  <div style={{width:36,height:36,borderRadius:8,background:'#2f3e5c',color:'#f4f2ed',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Georgia, serif',fontSize:13,flexShrink:0}}>
+                    {label.split(' ').map((w: string) => w[0]).slice(0,2).join('').toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{fontSize:10.5,color:'#b0b0b8',fontFamily:'sans-serif',textTransform:'uppercase' as const,letterSpacing:'.1em',marginBottom:1}}>Demo resume active</div>
+                    <div style={{fontSize:13.5,color:'#1a1a1f',fontWeight:500}}>{label}</div>
+                  </div>
+                </div>
+              )
+            })()}
+
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              <button
+                onClick={()=>{setWelcome(false);fRef.current?.click()}}
+                style={{padding:'13px 20px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:10,fontFamily:'sans-serif',fontSize:14,fontWeight:600,cursor:'pointer',width:'100%',textAlign:'left' as const,display:'flex',alignItems:'center',justifyContent:'space-between'}}
+              >
+                <span>Upload my real resume</span>
+                <span style={{opacity:.6}}>→</span>
+              </button>
+              <button
+                onClick={()=>setWelcome(false)}
+                style={{padding:'11px 20px',background:'none',color:'#7a7a85',border:'1px solid rgba(0,0,0,.11)',borderRadius:10,fontFamily:'sans-serif',fontSize:13,cursor:'pointer',width:'100%'}}
+              >
+                Explore the feed first
+              </button>
+            </div>
+
+            <p style={{fontSize:11.5,color:'#b0b0b8',margin:'16px 0 0',lineHeight:1.6,textAlign:'center' as const}}>
+              Your demo resume stays active until you upload your own.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* STRIPE SUCCESS */}
+      {pSuccess&&(
+        <div style={{position:'fixed',top:16,left:'50%',transform:'translateX(-50%)',background:'#1a7a4a',color:'#fff',borderRadius:12,padding:'12px 20px',fontSize:14,fontWeight:500,zIndex:200,display:'flex',alignItems:'center',gap:10,boxShadow:'0 4px 20px rgba(0,0,0,.2)',whiteSpace:'nowrap'}}>
+          ✓ {pSuccess==='resume_slot'?'Second resume slot unlocked!':pSuccess==='pro_extension'?'24-hour Pro extension activated!':'fitted. Pro is now active — welcome!'}
+          <button onClick={()=>setPSuccess(null)} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:18,opacity:.7,marginLeft:4}}>×</button>
+        </div>
+      )}
+
+      {/* THUMBS-DOWN MODAL */}
+      {dTarget&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget)setDTarget(null)}}>
+          <div style={{background:'#fff',borderRadius:16,padding:28,width:420,maxWidth:'92vw'}}>
+            <div style={{fontFamily:'Georgia, serif',fontSize:19,marginBottom:4}}>Why didn't you like this job?</div>
+            <div style={{fontSize:12.5,color:'#7a7a85',marginBottom:18,lineHeight:1.5}}><strong style={{color:'#3d3d45'}}>{dTarget.title}</strong> at {dTarget.company}</div>
+            <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
+              {DREASONS.map(r=>(
+                <button key={r} onClick={()=>setDReason(r)} style={{display:'flex',alignItems:'center',gap:10,padding:'11px 14px',border:`1.5px solid ${dReason===r?'#2f3e5c':'rgba(0,0,0,.1)'}`,borderRadius:10,background:dReason===r?'#e8edf5':'#fff',cursor:'pointer',fontFamily:'sans-serif',fontSize:13.5,color:dReason===r?'#2f3e5c':'#1a1a1f',textAlign:'left' as const,fontWeight:dReason===r?500:400}}>
+                  <div style={{width:16,height:16,borderRadius:'50%',border:`2px solid ${dReason===r?'#2f3e5c':'rgba(0,0,0,.2)'}`,background:dReason===r?'#2f3e5c':'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {dReason===r&&<div style={{width:6,height:6,borderRadius:'50%',background:'#fff'}}/>}
+                  </div>
+                  {r}
+                </button>
+              ))}
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>setDTarget(null)} style={{flex:1,padding:'10px',background:'none',border:'1px solid rgba(0,0,0,.12)',borderRadius:10,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Cancel</button>
+              <button onClick={confirmDL} disabled={!dReason} style={{flex:2,padding:'10px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:10,fontFamily:'sans-serif',fontSize:13,fontWeight:600,cursor:dReason?'pointer':'not-allowed',opacity:dReason?1:.4}}>Got it — hide this job</button>
+            </div>
+            <p style={{fontSize:11.5,color:'#b0b0b8',textAlign:'center',marginTop:10,lineHeight:1.5}}>Hidden for 14 days. Restore it from the Disliked tab in the sidebar.</p>
+          </div>
+        </div>
+      )}
+
+      {/* PASTE MODAL */}
+      {showPaste&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget){setShowPaste(false);setPasteText('');setPasteHint('')}}}>
+          <div style={{background:'#fff',borderRadius:16,padding:28,width:540,maxWidth:'92vw',maxHeight:'80vh',overflowY:'auto'}}>
+            <div style={{fontFamily:'Georgia, serif',fontSize:20,marginBottom:4}}>Paste a Job</div>
+            <div style={{fontSize:12.5,color:'#7a7a85',marginBottom:16,lineHeight:1.6}}>Paste the full job description and fitted. will add it to your feed with a match score.</div>
+            <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)}
+              onInput={e=>{const t=e.currentTarget;t.style.height='auto';t.style.height=Math.min(t.scrollHeight,360)+'px'}}
+              placeholder="Paste job description here…" style={{width:'100%',minHeight:150,maxHeight:360,padding:10,border:'1px solid rgba(0,0,0,.13)',borderRadius:8,fontFamily:'sans-serif',fontSize:13,color:'#1a1a1f',background:'#f4f2ed',resize:'none',outline:'none',lineHeight:1.6,boxSizing:'border-box' as const,overflow:'auto'}}/>
+            {pasteHint&&<p style={{fontSize:12,color:'#e85d3a',marginTop:6}}>{pasteHint}</p>}
+            <div style={{display:'flex',gap:8,marginTop:14,justifyContent:'flex-end'}}>
+              <button onClick={()=>{setShowPaste(false);setPasteText('');setPasteHint('')}} style={{padding:'8px 16px',background:'none',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Cancel</button>
+              <button onClick={parsePaste} disabled={parsing} style={{padding:'8px 20px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:8,fontFamily:'sans-serif',fontSize:13,fontWeight:500,cursor:parsing?'wait':'pointer',opacity:parsing?.7:1}}>{parsing?'Analyzing…':'Analyze →'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HELP MODAL */}
+      {showHelp&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget)setShowHelp(false)}}>
+          <div style={{background:'#fff',borderRadius:16,padding:28,width:480,maxWidth:'92vw'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+              <div style={{fontFamily:'Georgia, serif',fontSize:20}}>How can we help?</div>
+              <button onClick={()=>setShowHelp(false)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:20,lineHeight:1}}>×</button>
+            </div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:16}}>
+              {['Save a job','Upload resume','Match score','Tracker','Disliked jobs','Upgrade to Pro','Paste a job'].map(t=><button key={t} onClick={()=>{setHelpQ(t);setHelpR(fh(t));setHelpS(true)}} style={{padding:'4px 10px',border:'1px solid rgba(0,0,0,.12)',borderRadius:20,fontSize:12,color:'#7a7a85',background:'#f4f2ed',cursor:'pointer',fontFamily:'sans-serif'}}>{t}</button>)}
+            </div>
+            <div style={{display:'flex',gap:8,marginBottom:16}}>
+              <input value={helpQ} onChange={e=>{setHelpQ(e.target.value);setHelpS(false)}} onKeyDown={e=>e.key==='Enter'&&(setHelpR(fh(helpQ)),setHelpS(true))} placeholder="Type your question…" style={{flex:1,padding:'9px 12px',border:'1px solid rgba(0,0,0,.13)',borderRadius:8,fontFamily:'sans-serif',fontSize:13,color:'#1a1a1f',background:'#f4f2ed',outline:'none'}}/>
+              <button onClick={()=>{setHelpR(fh(helpQ));setHelpS(true)}} disabled={!helpQ.trim()} style={{padding:'9px 16px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:8,fontFamily:'sans-serif',fontSize:13,fontWeight:500,cursor:helpQ.trim()?'pointer':'not-allowed',opacity:helpQ.trim()?1:.4}}>Search</button>
+            </div>
+            {helpS&&helpR&&<div style={{background:'#e8edf5',borderRadius:10,padding:'14px 16px'}}><div style={{fontSize:11,fontWeight:600,color:'#2f3e5c',textTransform:'uppercase' as const,letterSpacing:'.06em',marginBottom:6}}>{helpR.title}</div><div style={{fontSize:13.5,color:'#1a1a1f',lineHeight:1.7}}>{helpR.answer}</div></div>}
+            {helpS&&!helpR&&<div style={{background:'#f4f2ed',borderRadius:10,padding:'14px 16px'}}><div style={{fontSize:13.5,color:'#3d3d45',lineHeight:1.7,marginBottom:12}}>We couldn't find an answer for that. Let us know what you need.</div><a href={FEEDBACK} target="_blank" rel="noopener noreferrer" style={{display:'inline-block',padding:'8px 16px',background:'#2f3e5c',color:'#fff',borderRadius:8,fontFamily:'sans-serif',fontSize:13,fontWeight:500,textDecoration:'none'}}>Submit feedback →</a></div>}
+            {!helpS&&<div style={{fontSize:12,color:'#b0b0b8',textAlign:'center',marginTop:8}}>Pick a topic above or type your question.</div>}
+          </div>
+        </div>
+      )}
+
+      {/* RESUME LIMIT MODAL */}
+      {showLim&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget)setShowLim(false)}}>
+          <div style={{background:'#fff',borderRadius:20,padding:32,maxWidth:400,width:'100%'}}>
+            <div style={{fontFamily:'Georgia, serif',fontSize:22,marginBottom:8}}>Resume limit reached</div>
+            <p style={{color:'#7a7a85',fontSize:13,marginBottom:24,lineHeight:1.6}}>{profile?.extra_resume_slot?'You have 2 resume slots. Upgrade to Pro for unlimited.':'Free accounts include 1 resume. Unlock more below.'}</p>
+            {lim.showSlotUpsell&&<div style={{background:'#f4f2ed',borderRadius:12,padding:16,marginBottom:12,border:'1px solid rgba(0,0,0,.07)'}}>
+              <div style={{fontSize:15,fontWeight:600,color:'#1a1a1f',marginBottom:4}}>$4.99 one-time</div>
+              <div style={{fontSize:13,color:'#7a7a85',marginBottom:12,lineHeight:1.5}}>Unlock a second resume slot permanently.</div>
+              <button onClick={()=>{setShowLim(false);checkout('resume_slot')}} disabled={!!stripeL} style={{width:'100%',padding:10,background:'#2f3e5c',color:'#fff',border:'none',borderRadius:10,fontFamily:'sans-serif',fontSize:13,fontWeight:600,cursor:stripeL?'wait':'pointer',opacity:stripeL?.7:1}}>{stripeL==='resume_slot'?'Redirecting…':'Unlock second slot — $4.99'}</button>
+            </div>}
+            <div style={{background:'#fdf3e3',borderRadius:12,padding:16,marginBottom:16,border:'1px solid rgba(0,0,0,.07)'}}>
+              <div style={{fontSize:15,fontWeight:600,color:'#b8750a',marginBottom:4}}>fitted. Pro — $9/mo</div>
+              <div style={{fontSize:13,color:'#7a7a85',marginBottom:12,lineHeight:1.5}}>Unlimited resumes plus salary scripts, career path, interview feedback, and more.</div>
+              <button onClick={()=>{setShowLim(false);setShowUp(true)}} style={{width:'100%',padding:10,background:'#b8750a',color:'#fff',border:'none',borderRadius:10,fontFamily:'sans-serif',fontSize:13,fontWeight:600,cursor:'pointer'}}>Upgrade to Pro</button>
+            </div>
+            <button onClick={()=>setShowLim(false)} style={{width:'100%',padding:10,background:'none',border:'1px solid rgba(0,0,0,.12)',borderRadius:10,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Maybe later</button>
+          </div>
+        </div>
+      )}
+
+      {/* UPGRADE MODAL */}
+      {showUp&&(
+        <div className="up-overlay" style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget)setShowUp(false)}}>
+          <div className="up-card" style={{background:'#fff',borderRadius:20,padding:28,maxWidth:520,width:'100%',maxHeight:'90vh',overflowY:'auto'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+              <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:0}}>fitted<span style={{color:'#5171bf'}}>.</span> Plans</h2>
+              <button onClick={()=>setShowUp(false)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:22,lineHeight:1,padding:4}}>×</button>
+            </div>
+
+            {/* Two-tier grid */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+              {/* Pro */}
+              <div style={{border:'1.5px solid #e8e4db',borderRadius:14,padding:'16px 14px',display:'flex',flexDirection:'column',gap:0}}>
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:'.1em',color:'#1a7a4a',textTransform:'uppercase' as const,marginBottom:6}}>Pro</div>
+                <div style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',marginBottom:2}}>$9<span style={{fontSize:13,color:'#7a7a85',fontWeight:400}}>/mo</span></div>
+                <div style={{fontSize:11,color:'#b0b0b8',marginBottom:12}}>or $89/yr · save 2 months</div>
+                <div style={{display:'flex',flexDirection:'column',gap:5,flex:1,marginBottom:14}}>
+                  {['30 AI Actions/month','Unlimited resumes','Resume optimizer','Interview prep','Salary scripts','Career coach','Full job feed + tracker'].map(f=>(
+                    <div key={f} style={{display:'flex',alignItems:'flex-start',gap:7,fontSize:12,color:'#3d3d45'}}><span style={{color:'#1a7a4a',fontWeight:700,flexShrink:0,marginTop:1}}>✓</span>{f}</div>
+                  ))}
+                </div>
+                <button onClick={()=>checkout('annual')} disabled={!!stripeL} style={{width:'100%',padding:'9px 12px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:9,fontFamily:'sans-serif',fontSize:12.5,fontWeight:600,cursor:stripeL?'wait':'pointer',marginBottom:6,opacity:stripeL&&stripeL!=='annual'?.5:1}}>
+                  {stripeL==='annual'?'Redirecting…':'$89 / year'}
+                </button>
+                <button onClick={()=>checkout('monthly')} disabled={!!stripeL} style={{width:'100%',padding:'9px 12px',background:'none',color:'#2f3e5c',border:'1.5px solid #2f3e5c',borderRadius:9,fontFamily:'sans-serif',fontSize:12.5,fontWeight:600,cursor:stripeL?'wait':'pointer',opacity:stripeL&&stripeL!=='monthly'?.5:1}}>
+                  {stripeL==='monthly'?'Redirecting…':'$9 / month'}
+                </button>
+              </div>
+
+              {/* Premium */}
+              <div style={{border:'1.5px solid #6d28d9',borderRadius:14,padding:'16px 14px',display:'flex',flexDirection:'column',gap:0,background:'rgba(109,40,217,.025)'}}>
+                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+                  <div style={{fontSize:11,fontWeight:700,letterSpacing:'.1em',color:'#6d28d9',textTransform:'uppercase' as const}}>Premium</div>
+                  <span style={{fontSize:9,fontWeight:700,background:'#6d28d9',color:'#fff',borderRadius:20,padding:'1px 6px',letterSpacing:'.04em'}}>NEW</span>
+                </div>
+                <div style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',marginBottom:2}}>$18<span style={{fontSize:13,color:'#7a7a85',fontWeight:400}}>/mo</span></div>
+                <div style={{fontSize:11,color:'#b0b0b8',marginBottom:12}}>or $180/yr · save 2 months</div>
+                <div style={{display:'flex',flexDirection:'column',gap:5,flex:1,marginBottom:14}}>
+                  {['Unlimited AI Actions','Everything in Pro','Unlimited optimizations','Unlimited interview prep','Unlimited negotiation scripts','Unlimited coach chats','Priority support + early access'].map(f=>(
+                    <div key={f} style={{display:'flex',alignItems:'flex-start',gap:7,fontSize:12,color:'#3d3d45'}}><span style={{color:'#6d28d9',fontWeight:700,flexShrink:0,marginTop:1}}>✓</span>{f}</div>
+                  ))}
+                </div>
+                <button onClick={()=>checkout('premium_annual')} disabled={!!stripeL} style={{width:'100%',padding:'9px 12px',background:'#6d28d9',color:'#fff',border:'none',borderRadius:9,fontFamily:'sans-serif',fontSize:12.5,fontWeight:600,cursor:stripeL?'wait':'pointer',marginBottom:6,opacity:stripeL&&stripeL!=='premium_annual'?.5:1}}>
+                  {stripeL==='premium_annual'?'Redirecting…':'$180 / year'}
+                </button>
+                <button onClick={()=>checkout('premium_monthly')} disabled={!!stripeL} style={{width:'100%',padding:'9px 12px',background:'none',color:'#6d28d9',border:'1.5px solid #6d28d9',borderRadius:9,fontFamily:'sans-serif',fontSize:12.5,fontWeight:600,cursor:stripeL?'wait':'pointer',opacity:stripeL&&stripeL!=='premium_monthly'?.5:1}}>
+                  {stripeL==='premium_monthly'?'Redirecting…':'$18 / month'}
+                </button>
+              </div>
+            </div>
+
+            {!isPro&&!profile?.extra_resume_slot&&(<>
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}><div style={{flex:1,height:1,background:'rgba(0,0,0,.08)'}}/><span style={{fontSize:11,color:'#b0b0b8',whiteSpace:'nowrap'}}>just need one more resume?</span><div style={{flex:1,height:1,background:'rgba(0,0,0,.08)'}}/></div>
+              <button onClick={()=>{setShowUp(false);checkout('resume_slot')}} disabled={!!stripeL} style={{width:'100%',padding:'10px 14px',background:'#f4f2ed',color:'#2f3e5c',border:'1.5px solid #2f3e5c',borderRadius:10,fontFamily:'sans-serif',fontSize:13,fontWeight:600,cursor:stripeL?'wait':'pointer',marginBottom:14,textAlign:'left' as const,opacity:stripeL?.7:1}}>
+                <div>{stripeL==='resume_slot'?'Redirecting…':'$4.99 one-time — Unlock second resume slot'}</div><div style={{fontSize:11,color:'#7a7a85',fontWeight:400,marginTop:2}}>No subscription. Permanent.</div>
+              </button>
+            </>)}
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}><div style={{flex:1,height:1,background:'rgba(0,0,0,.08)'}}/><span style={{fontSize:11,color:'#b0b0b8'}}>Have a promo code?</span><div style={{flex:1,height:1,background:'rgba(0,0,0,.08)'}}/></div>
+            <div style={{display:'flex',gap:8,marginBottom:8}}>
+              <input value={promo} onChange={e=>setPromo(e.target.value.toUpperCase())} onKeyDown={e=>e.key==='Enter'&&redeem()} placeholder="Enter code" style={{flex:1,padding:'10px 14px',border:'1.5px solid #e8e4db',borderRadius:10,fontFamily:'monospace',fontSize:14,letterSpacing:'.08em',outline:'none',color:'#1a1a1f',background:'#f4f2ed'}}/>
+              <button onClick={redeem} disabled={promoLoad||!!stripeL} style={{padding:'10px 18px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',opacity:promoLoad?.6:1}}>{promoLoad?'…':'Apply'}</button>
+            </div>
+            {promoMsg&&<p style={{fontSize:13,color:promoMsg.startsWith('✓')?'#1a7a4a':'#e85d3a',margin:'0 0 14px'}}>{promoMsg}</p>}
+            <button onClick={()=>setShowUp(false)} style={{width:'100%',padding:11,background:'none',border:'1.5px solid #e8e4db',borderRadius:10,fontSize:13,color:'#7a7a85',cursor:'pointer',fontFamily:'sans-serif'}}>Maybe later</button>
+          </div>
+        </div>
+      )}
+
+      {/* PRO EXTENSION MODAL */}
+      {showExtend&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget)setShowExtend(false)}}>
+          <div style={{background:'#fff',borderRadius:20,padding:32,maxWidth:400,width:'100%'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+              <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:0}}>Extend Pro access</h2>
+              <button onClick={()=>setShowExtend(false)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:22,lineHeight:1,padding:4}}>×</button>
+            </div>
+            <p style={{fontFamily:'sans-serif',fontSize:13.5,color:'#7a7a85',margin:'0 0 22px',lineHeight:1.65}}>
+              Keep all your Pro features for 24 more hours while you decide. One-time charge — no subscription.
+            </p>
+            <div style={{background:'#f4f2ed',borderRadius:14,padding:'18px 20px',marginBottom:22}}>
+              {['Unlimited resumes','AI tailor suggestions','Salary scripts','Company search','Interview feedback','Unlimited chat'].map(f=>(
+                <div key={f} style={{display:'flex',alignItems:'center',gap:8,padding:'3px 0',fontSize:13,color:'#3d3d45'}}><span style={{color:'#1a7a4a',fontWeight:700}}>✓</span> {f}</div>
+              ))}
+            </div>
+            <button onClick={()=>{setShowExtend(false);checkout('pro_extension')}} disabled={!!stripeL} style={{width:'100%',padding:'14px 16px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:15,fontWeight:600,cursor:stripeL?'wait':'pointer',display:'flex',justifyContent:'space-between',alignItems:'center',opacity:stripeL?.6:1}}>
+              <span>{stripeL==='pro_extension'?'Redirecting…':'Extend for $1.99'}</span>
+              {stripeL!=='pro_extension'&&<span style={{fontSize:12,opacity:.75,fontWeight:400}}>24 hours · one-time</span>}
+            </button>
+            <p style={{fontFamily:'sans-serif',fontSize:11.5,color:'#b0b0b8',textAlign:'center',marginTop:14,lineHeight:1.5}}>
+              Want it permanently?{' '}
+              <button onClick={()=>{setShowExtend(false);setShowUp(true)}} style={{background:'none',border:'none',padding:0,cursor:'pointer',color:'#2f3e5c',fontSize:11.5,fontFamily:'sans-serif',textDecoration:'underline'}}>Upgrade to Pro →</button>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ACCOUNT SETTINGS MODAL */}
+      {showAccount&&(
+        <div className="acct-overlay" style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={e=>{if(e.target===e.currentTarget)setShowAccount(false)}}>
+          <div className="acct-modal" style={{background:'#fff',borderRadius:20,padding:0,maxWidth:480,width:'100%',maxHeight:'85vh',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+
+            {/* Header */}
+            <div className="acct-header" style={{padding:'24px 28px 20px',borderBottom:'1px solid rgba(0,0,0,.07)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+              <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:0}}>Account Settings</h2>
+              <button onClick={()=>setShowAccount(false)} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:22,lineHeight:1,padding:4}}>×</button>
+            </div>
+
+            {/* Scrollable body */}
+            <div style={{overflowY:'auto',flex:1}}>
+
+              {/* Profile section */}
+              <div className="acct-section" style={{padding:'20px 28px 0'}}>
+                <div style={{fontSize:10.5,fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase' as const,color:'#b0b0b8',marginBottom:12}}>Profile</div>
+                <div style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:'#f9f8f5',borderRadius:12}}>
+                  <div style={{width:38,height:38,borderRadius:'50%',background:'#2f3e5c',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Georgia, serif',fontSize:15,flexShrink:0}}>
+                    {user.email?.[0]?.toUpperCase()}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13.5,fontWeight:500,color:'#1a1a1f',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user.email}</div>
+                    <div style={{fontSize:12,color:'#7a7a85',marginTop:2}}>
+                      {isPro ? (
+                        isCancelled
+                          ? <span style={{color:'#b8750a'}}>✦ {isPremium?'Premium':'Pro'} · ends {formatEndDate(profile?.current_period_end)}</span>
+                          : <span style={{color:isPremium?'#6d28d9':'#1a7a4a'}}>✦ {isPremium?'Premium':'Pro'}</span>
+                      ) : 'Free plan'}
+                    </div>
+                  </div>
+                  {!isPro&&(
+                    <button onClick={()=>{setShowAccount(false);setShowUp(true)}} style={{padding:'6px 12px',background:'#b8750a',color:'#fff',border:'none',borderRadius:8,fontFamily:'sans-serif',fontSize:12,fontWeight:600,cursor:'pointer',flexShrink:0}}>Upgrade</button>
+                  )}
+                </div>
+              </div>
+
+              {/* Subscription section — Pro only */}
+              {isPro&&(
+                <div className="acct-section" style={{padding:'20px 28px 0'}}>
+                  <div style={{fontSize:10.5,fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase' as const,color:'#b0b0b8',marginBottom:12}}>Subscription</div>
+                  <div style={{border:'1px solid rgba(0,0,0,.08)',borderRadius:12,overflow:'hidden'}}>
+                    <div style={{padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <div>
+                        <div style={{fontSize:13.5,fontWeight:500,color:'#1a1a1f'}}>fitted. Pro</div>
+                        <div style={{fontSize:12,color:'#7a7a85',marginTop:2}}>
+                          {isCancelled
+                            ? `Access until ${formatEndDate(profile?.current_period_end)}`
+                            : profile?.current_period_end ? `Renews ${formatEndDate(profile.current_period_end)}` : 'Active'}
+                        </div>
+                      </div>
+                      {isCancelled
+                        ? <span style={{fontSize:11,fontWeight:600,color:'#b8750a',background:'#fdf3e3',padding:'3px 9px',borderRadius:20}}>Cancelling</span>
+                        : <span style={{fontSize:11,fontWeight:600,color:'#1a7a4a',background:'rgba(26,122,74,.1)',padding:'3px 9px',borderRadius:20}}>Active</span>
+                      }
+                    </div>
+                    <div className="acct-sub-buttons" style={{borderTop:'1px solid rgba(0,0,0,.06)',padding:'12px 16px',display:'flex',gap:10,background:'#fafaf8'}}>
+                      <button onClick={()=>{setShowAccount(false);checkout('portal')}} disabled={stripeL==='portal'} style={{flex:1,padding:'9px 12px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:10,fontFamily:'sans-serif',fontSize:13,fontWeight:500,cursor:'pointer',opacity:stripeL==='portal'?.6:1}}>
+                        {stripeL==='portal'?'Redirecting…':'Manage subscription'}
+                      </button>
+                      {!isCancelled&&(
+                        <button onClick={()=>{setShowAccount(false);startCancelFlow()}} style={{padding:'9px 12px',background:'none',border:'1.5px solid rgba(0,0,0,.1)',borderRadius:10,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Cancel</button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* AI Preferences section */}
+              <div className="acct-section" style={{padding:'20px 28px 0'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                  <div style={{fontSize:10.5,fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase' as const,color:'#b0b0b8'}}>AI Preferences</div>
+                  {aiPrefSave&&<span style={{fontSize:11,color:'#1a7a4a'}}>{aiPrefSave}</span>}
+                </div>
+                {isPro&&profile?.coach_memory?.actionCount&&(()=>{
+                  const c = profile.coach_memory!.actionCount!
+                  const total = (c.tailored||0)+(c.healthChecked||0)+(c.applied||0)
+                  return(
+                    <div style={{background:'#f4f0fb',borderRadius:10,padding:'10px 14px',marginBottom:14,display:'flex',alignItems:'center',gap:10}}>
+                      <span style={{fontSize:20,color:'#7c5cbf'}}>✦</span>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:500,color:'#3d1a6a'}}>{total} AI action{total!==1?'s':''} used</div>
+                        <div style={{fontSize:11.5,color:'#7a7a85'}}>Approximate activity — 30 included with Pro/month</div>
+                      </div>
+                    </div>
+                  )
+                })()}
+                <div style={{border:'1px solid rgba(0,0,0,.08)',borderRadius:12,overflow:'hidden'}}>
+                  {([
+                    {key:'autoMatch',        label:'Match Insights',         desc:'Auto-analyze fit when opening a job'},
+                    {key:'autoTailor',       label:'Tailor My Resume',       desc:'Auto-generate suggestions on the Tailor tab'},
+                    {key:'autoStandout',     label:'Help Me Stand Out',      desc:'Auto-generate on the Stand Out tab'},
+                    {key:'autoFittedThinks', label:'fitted. thinks insights',desc:'Candidate snapshot in Match tab'},
+                    {key:'autoInterviewPrep',label:'Interview Prep',         desc:'Auto-generate when opening Prep tab'},
+                    {key:'autoNegotiate',    label:'Salary Negotiation',     desc:'Show negotiate button on Prep tab'},
+                  ] as const).map(({key,label,desc},i,arr)=>{
+                    const on = (profile?.ai_prefs?.[key] ?? (key==='autoInterviewPrep'||key==='autoNegotiate'?false:true))
+                    return(
+                      <div key={key} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderTop:i===0?'none':'1px solid rgba(0,0,0,.06)',background:'#fff'}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:500,color:'#1a1a1f'}}>{label}</div>
+                          <div style={{fontSize:11.5,color:'#7a7a85',marginTop:1}}>{desc}</div>
+                        </div>
+                        <button onClick={()=>updateAiPref(key,!on)} style={{flexShrink:0,width:38,height:22,borderRadius:11,background:on?'#1a7a4a':'#d0d0d8',border:'none',cursor:'pointer',position:'relative' as const,transition:'background .15s'}}>
+                          <span style={{position:'absolute' as const,top:3,left:on?18:3,width:16,height:16,borderRadius:'50%',background:'#fff',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)',display:'block'}}/>
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+                <p style={{fontSize:11,color:'#b0b0b8',margin:'8px 2px 0',lineHeight:1.5}}>Turning off auto-generation saves AI actions — you can still run any feature manually.</p>
+              </div>
+
+              {/* Receipts section */}
+              <div className="acct-section" style={{padding:'20px 28px 24px'}}>
+                <div style={{fontSize:10.5,fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase' as const,color:'#b0b0b8',marginBottom:12}}>Receipts</div>
+
+                {acctInvLoad&&(
+                  <div style={{textAlign:'center',padding:'28px 0',color:'#b0b0b8',fontFamily:'sans-serif',fontSize:13}}>Loading…</div>
+                )}
+
+                {!acctInvLoad&&acctInvoices===null&&!isPro&&(
+                  <div style={{textAlign:'center',padding:'28px 0',color:'#b0b0b8',fontFamily:'sans-serif',fontSize:13}}>No receipts yet.</div>
+                )}
+
+                {!acctInvLoad&&acctInvoices!==null&&acctInvoices.length===0&&(
+                  <div style={{textAlign:'center',padding:'28px 0',color:'#b0b0b8',fontFamily:'sans-serif',fontSize:13}}>No receipts yet.</div>
+                )}
+
+                {!acctInvLoad&&acctInvoices!==null&&acctInvoices.length>0&&(
+                  <div style={{border:'1px solid rgba(0,0,0,.08)',borderRadius:12,overflow:'hidden'}}>
+                    {acctInvoices.map((inv, i) => (
+                      <div key={inv.id} style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',borderTop:i===0?'none':'1px solid rgba(0,0,0,.06)',background:'#fff'}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:500,color:'#1a1a1f'}}>
+                            {new Intl.NumberFormat('en-US',{style:'currency',currency:inv.currency.toUpperCase()}).format(inv.amount/100)}
+                          </div>
+                          <div style={{fontSize:11.5,color:'#7a7a85',marginTop:2}}>
+                            {new Date(inv.date*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+                            {' · '}{inv.description}
+                          </div>
+                        </div>
+                        <div style={{display:'flex',gap:8,flexShrink:0}}>
+                          {inv.url&&(
+                            <a href={inv.url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:'#2f3e5c',fontWeight:500,textDecoration:'none',padding:'5px 10px',border:'1px solid rgba(47,62,92,.25)',borderRadius:8,fontFamily:'sans-serif'}}>View</a>
+                          )}
+                          {inv.pdf&&(
+                            <a href={inv.pdf} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:'#7a7a85',textDecoration:'none',padding:'5px 10px',border:'1px solid rgba(0,0,0,.1)',borderRadius:8,fontFamily:'sans-serif'}}>PDF</a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* Footer */}
+            <div style={{padding:'16px 28px',borderTop:'1px solid rgba(0,0,0,.07)',flexShrink:0}}>
+              <button onClick={async()=>{await fetch('/api/signout',{method:'POST'});window.location.href='/'}} style={{width:'100%',padding:'10px',background:'none',border:'1.5px solid #e8e4db',borderRadius:10,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Sign out</button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* CANCEL SUBSCRIPTION MODAL */}
+      {showCancel&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={e=>{if(e.target===e.currentTarget&&cancelStep!=='checking'&&cancelStep!=='cancelling'){setShowCancel(false);setCancelErr('')}}}>
+          <div style={{background:'#fff',borderRadius:20,padding:'28px 28px 30px',maxWidth:'min(420px, 92vw)',width:'100%',boxSizing:'border-box' as const}}>
+
+            {cancelStep==='intent'&&(
+              <>
+                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14}}>
+                  <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:0,lineHeight:1.25}}>Before you cancel</h2>
+                  <button onClick={()=>{setShowCancel(false);setCancelErr('')}} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:22,lineHeight:1,padding:'0 0 0 12px',flexShrink:0,marginTop:-2}}>×</button>
+                </div>
+                <p style={{fontFamily:'sans-serif',fontSize:13.5,color:'#7a7a85',margin:'0 0 26px',lineHeight:1.7}}>
+                  We'll check your account for any available offers before we proceed.
+                </p>
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  <button onClick={()=>{setShowCancel(false);setCancelErr('')}} style={{width:'100%',padding:'13px 16px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:14,fontWeight:600,cursor:'pointer'}}>Keep Pro</button>
+                  <button onClick={proceedToOffer} style={{width:'100%',padding:'11px 16px',background:'none',border:'1.5px solid #e8e4db',borderRadius:12,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Check my options →</button>
+                </div>
+              </>
+            )}
+
+            {(cancelStep==='checking'||cancelStep==='cancelling')&&(
+              <div style={{textAlign:'center',padding:'36px 0 32px'}}>
+                <div style={{display:'inline-flex',gap:7,alignItems:'center',marginBottom:18}}>
+                  <span style={{width:8,height:8,borderRadius:'50%',background:'#5171bf',display:'inline-block',animation:'fitted-dot 1.2s ease-in-out infinite'}}/>
+                  <span style={{width:8,height:8,borderRadius:'50%',background:'#5171bf',display:'inline-block',animation:'fitted-dot 1.2s ease-in-out .25s infinite'}}/>
+                  <span style={{width:8,height:8,borderRadius:'50%',background:'#5171bf',display:'inline-block',animation:'fitted-dot 1.2s ease-in-out .5s infinite'}}/>
+                </div>
+                <div style={{fontFamily:'sans-serif',fontSize:13.5,color:'#7a7a85'}}>
+                  {cancelStep==='checking'?'Checking your account…':'One moment…'}
+                </div>
+              </div>
+            )}
+
+            {cancelStep==='offer'&&cancelOffer&&(
+              <>
+                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:12}}>
+                  <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:0,lineHeight:1.25}}>A one-time offer</h2>
+                  <button onClick={()=>{setShowCancel(false);setCancelErr('')}} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:22,lineHeight:1,padding:'0 0 0 12px',flexShrink:0,marginTop:-2}}>×</button>
+                </div>
+                <p style={{fontFamily:'sans-serif',fontSize:13.5,color:'#7a7a85',margin:'0 0 20px',lineHeight:1.7}}>
+                  You're eligible for a discount on your next month. Applied automatically — no code needed.
+                </p>
+                <div style={{background:'#2f3e5c',borderRadius:14,padding:'24px 24px 20px',marginBottom:22,textAlign:'center'}}>
+                  <div style={{fontFamily:'Georgia, serif',fontSize:42,color:'#fff',letterSpacing:'-.03em',lineHeight:1,marginBottom:8}}>{cancelOffer.percent}%<span style={{fontSize:24,opacity:.7}}> off</span></div>
+                  <div style={{fontFamily:'sans-serif',fontSize:12.5,color:'rgba(255,255,255,.6)',letterSpacing:'.02em'}}>your next month</div>
+                </div>
+                {cancelErr&&<p style={{fontFamily:'sans-serif',fontSize:12.5,color:'#e85d3a',marginBottom:12,textAlign:'center'}}>{cancelErr}</p>}
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  <button onClick={applyOffer} style={{width:'100%',padding:'13px 16px',background:'#1a7a4a',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:14,fontWeight:600,cursor:'pointer'}}>Apply {cancelOffer.percent}% off →</button>
+                  <button onClick={()=>{setCancelErr('');setCancelStep('confirm')}} style={{width:'100%',padding:'11px 16px',background:'none',border:'1.5px solid #e8e4db',borderRadius:12,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>No thanks, cancel anyway</button>
+                </div>
+              </>
+            )}
+
+            {cancelStep==='confirm'&&(
+              <>
+                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:12}}>
+                  <h2 style={{fontFamily:'Georgia, serif',fontSize:22,color:'#1a1a1f',margin:0,lineHeight:1.25}}>Confirm cancellation</h2>
+                  <button onClick={()=>{setShowCancel(false);setCancelErr('')}} style={{background:'none',border:'none',cursor:'pointer',color:'#b0b0b8',fontSize:22,lineHeight:1,padding:'0 0 0 12px',flexShrink:0,marginTop:-2}}>×</button>
+                </div>
+                <p style={{fontFamily:'sans-serif',fontSize:13.5,color:'#3d3d45',margin:'0 0 6px',lineHeight:1.7}}>
+                  You'll keep full Pro access until{' '}
+                  <strong style={{color:'#1a1a1f',fontWeight:600}}>{formatEndDate(profile?.current_period_end) || 'your billing period ends'}</strong>.
+                </p>
+                <p style={{fontFamily:'sans-serif',fontSize:13,color:'#b0b0b8',margin:'0 0 24px',lineHeight:1.65}}>
+                  After that your account moves to the free plan. You can resubscribe any time.
+                </p>
+                {cancelErr&&<p style={{fontFamily:'sans-serif',fontSize:12.5,color:'#e85d3a',marginBottom:12,textAlign:'center'}}>{cancelErr}</p>}
+                <div style={{display:'flex',gap:10}}>
+                  <button onClick={()=>{setShowCancel(false);setCancelErr('')}} style={{flex:1,padding:'12px 14px',background:'#2f3e5c',color:'#fff',border:'none',borderRadius:12,fontFamily:'sans-serif',fontSize:13,fontWeight:600,cursor:'pointer'}}>Never mind</button>
+                  <button onClick={confirmCancel} style={{flex:1,padding:'12px 14px',background:'none',border:'1.5px solid #e8e4db',borderRadius:12,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Yes, cancel</button>
+                </div>
+              </>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media (min-width: 769px) {
+          .desktop-only{display:flex !important;flex-direction:column}.desktop-view{display:block !important}.mobile-view{display:none !important}.mobile-bottom-nav{display:none !important}.hide-mobile{display:inline-flex !important}
+        }
+        @media (max-width: 768px) {
+          /* Layout */
+          .dashboard-grid{grid-template-columns:1fr !important}.desktop-only{display:none !important}.desktop-view{display:none !important}.mobile-view{display:block !important}.mobile-bottom-nav{display:flex !important}.main-feed{padding:14px 14px 80px !important}.hide-mobile{display:none !important}
+
+          /* Job feed */
+          .feed-header-row{flex-wrap:wrap;gap:6px}
+          .feed-header-row select{font-size:12px}
+          .feed-filters{gap:4px !important}
+          .feed-filters button{padding:4px 10px !important;font-size:11px !important}
+
+          /* Job cards */
+          .job-card{padding:12px 12px !important;border-radius:12px !important}
+          .jc-logo{width:34px !important;height:34px !important;font-size:12px !important;border-radius:8px !important}
+          .jc-actions{gap:0 !important;margin-top:6px !important}
+          .jc-action-btn{min-width:36px !important;min-height:36px !important;display:inline-flex !important;align-items:center !important;justify-content:center !important;padding:6px 6px !important;font-size:16px !important}
+
+          /* Tracker — vertical stack on mobile */
+          .tracker-board{flex-direction:column !important;overflow-x:visible !important;gap:8px !important}
+          .tracker-col{width:100% !important;flex-shrink:1 !important}
+          .tracker-col-empty{display:none !important}
+          .tracker-card{cursor:pointer !important}
+          .tracker-card-actions button{min-height:36px !important;font-size:12px !important}
+
+          /* Account modal — bottom sheet on mobile */
+          .acct-overlay{padding:0 !important;align-items:flex-end !important}
+          .acct-modal{max-height:92vh !important;border-radius:20px 20px 0 0 !important;width:100% !important;max-width:100% !important}
+          .acct-header{padding:18px 18px 14px !important}
+          .acct-section{padding-left:18px !important;padding-right:18px !important}
+          .acct-sub-buttons{flex-direction:column !important}
+          .acct-sub-buttons button{width:100% !important}
+
+          /* Nav — clean minimal on mobile */
+          .nav-subtitle{display:none !important}
+          .nav-divider{display:none !important}
+          .nav-search{display:none !important}
+
+          /* Profile tab — fix double-padding and resize upload zone */
+          .rp-mob{padding:0 !important;height:auto !important;overflow-y:visible !important}
+          .resume-upload-zone{min-height:72px !important}
+          .nl-search-input::placeholder{font-size:12px}
+
+          /* Upgrade modal — bottom sheet on mobile */
+          .up-overlay{padding:0 !important;align-items:flex-end !important}
+          .up-card{max-height:92vh !important;border-radius:20px 20px 0 0 !important;max-width:100% !important;padding:24px 20px 32px !important}
+        }
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes fitted-dot{0%,100%{opacity:.25;transform:scale(.75)}50%{opacity:1;transform:scale(1)}}
+        @keyframes sk{0%,100%{opacity:.45}50%{opacity:.9}}
+      `}</style>
+    </div>
+  )
+}
