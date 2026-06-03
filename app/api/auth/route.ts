@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     // Supabase error formats
     if (data.error || data.error_description || data.msg) {
-      const msg = data.error_description || data.error_description || data.msg || data.error || 'Something went wrong.'
+      const msg = data.error_description || data.msg || 'Something went wrong.'
       return NextResponse.json({ error: msg }, { status: 400 })
     }
 

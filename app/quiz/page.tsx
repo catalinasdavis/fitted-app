@@ -1,9 +1,10 @@
 'use client'
 // fitted. — Quiz Page
-// Light 3-question onboarding quiz.
-// Routes to one of 10 demo resumes based on field (Q2).
-// Saves career_field + career_stage + priority to profile.
-// Loads demo resume into /api/resumes, then redirects to /?welcome=1
+// 4-question onboarding quiz.
+// Q1: gender — selects demo resume persona (female-coded for woman/nonbinary/skip, male-coded for man)
+// Q2: career stage — saved to profile as career_stage
+// Q3: field — routes demo resume + saved as career_field
+// Q4: priority — saved to profile; auto-advances on selection
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -12,18 +13,29 @@ import { getDemoResume } from '../../lib/demo-resumes'
 // ─── QUIZ DATA ────────────────────────────────────────────────────────────────
 
 const Q1 = {
+  question: 'How do you identify?',
+  sub: "We use this to load a more relevant demo resume. You can skip it — we'll never use it beyond that.",
+  options: [
+    { id: 'woman',     emoji: '👩', label: 'Woman' },
+    { id: 'man',       emoji: '👨', label: 'Man' },
+    { id: 'nonbinary', emoji: '🧑', label: 'Non-binary / Other' },
+    { id: 'skip',      emoji: '—',  label: 'Prefer not to say' },
+  ],
+}
+
+const Q2 = {
   question: 'Where are you right now?',
-  sub: 'This helps us show you the most relevant roles and resources.',
+  sub: "This helps us surface the right roles — wherever you're starting from, or coming back to.",
   options: [
     { id: 'college',   emoji: '🎓', label: 'Still in college' },
     { id: 'recent',    emoji: '📄', label: 'Recent grad (last 2 years)' },
     { id: 'working',   emoji: '💼', label: 'Already working, looking for something better' },
     { id: 'changing',  emoji: '🔄', label: 'Changing careers or industries' },
-    { id: 'returning', emoji: '⏸️', label: 'Returning to work after a break' },
+    { id: 'returning', emoji: '🌿', label: 'Returning after a career break or time away' },
   ],
 }
 
-const Q2 = {
+const Q3 = {
   question: 'What field are you heading into?',
   sub: "We'll load a demo resume in this area so your feed looks relevant right away.",
   options: [
@@ -40,15 +52,16 @@ const Q2 = {
   ],
 }
 
-const Q3 = {
+const Q4 = {
   question: 'What matters most to you right now?',
-  sub: "We'll use this to sort your job feed and personalize your experience.",
+  sub: "We'll use this to personalize your feed and the way we talk about roles.",
   options: [
-    { id: 'pay',       emoji: '💸', label: 'Finding something that pays well' },
-    { id: 'remote',    emoji: '🏠', label: 'Working remotely or having flexibility' },
-    { id: 'growth',    emoji: '📈', label: 'Growing fast in my career' },
-    { id: 'change',    emoji: '🔀', label: 'Making a career change' },
-    { id: 'exploring', emoji: '🗺️', label: "Just figuring out what's out there" },
+    { id: 'pay',       emoji: '💸', label: 'Strong compensation and financial growth' },
+    { id: 'remote',    emoji: '🏠', label: 'Flexibility — remote, hybrid, or on my terms' },
+    { id: 'growth',    emoji: '📈', label: 'Building real momentum in my career' },
+    { id: 'change',    emoji: '🔀', label: 'Making a real pivot — field, industry, or direction' },
+    { id: 'values',    emoji: '🌱', label: 'Finding work that actually fits my life' },
+    { id: 'exploring', emoji: '🗺️', label: "Just seeing what's actually out there for me" },
   ],
 }
 
@@ -70,13 +83,13 @@ function optBtn(selected: boolean): React.CSSProperties {
     gap: 12,
     width: '100%',
     padding: '13px 16px',
-    border: `1.5px solid ${selected ? '#2d5be3' : 'rgba(0,0,0,.1)'}`,
+    border: `1.5px solid ${selected ? '#2f3e5c' : 'rgba(0,0,0,.1)'}`,
     borderRadius: 10,
-    background: selected ? '#eaeffe' : '#fff',
+    background: selected ? '#e8edf5' : '#fff',
     cursor: 'pointer',
     fontFamily: 'sans-serif',
     fontSize: 14,
-    color: selected ? '#2d5be3' : '#1a1a1f',
+    color: selected ? '#2f3e5c' : '#1a1a1f',
     textAlign: 'left' as const,
     fontWeight: selected ? 500 : 400,
   }
@@ -85,7 +98,7 @@ function optBtn(selected: boolean): React.CSSProperties {
 const nextBtnStyle: React.CSSProperties = {
   width: '100%',
   padding: '13px',
-  background: '#2d5be3',
+  background: '#2f3e5c',
   color: '#fff',
   border: 'none',
   borderRadius: 10,
@@ -112,24 +125,24 @@ const skipStyle: React.CSSProperties = {
 
 export default function QuizPage() {
   const router = useRouter()
-  const [step,      setStep]      = useState<1|2|3>(1)
-  const [q1,        setQ1]        = useState('')
-  const [q2,        setQ2]        = useState('')
-  const [q3,        setQ3]        = useState('')
-  const [loading,   setLoading]   = useState(false)
+  const [step,       setStep]       = useState<1|2|3|4>(1)
+  const [q1,         setQ1]         = useState('')   // gender
+  const [q2,         setQ2]         = useState('')   // career stage
+  const [q3,         setQ3]         = useState('')   // field
+  const [loading,    setLoading]    = useState(false)
   const [loadingMsg, setLoadingMsg] = useState('')
-  const [error,     setError]     = useState('')
+  const [error,      setError]      = useState('')
 
-  const progress = step === 1 ? 33 : step === 2 ? 66 : 100
+  const progress = step === 1 ? 25 : step === 2 ? 50 : step === 3 ? 75 : 100
 
   // ── FINISH — save profile + load demo resume + redirect ───────────────────
-  async function finish(finalQ3: string) {
-    setQ3(finalQ3)
+  async function finish(finalQ4: string) {
     setLoading(true)
     setError('')
 
-    const field = q2 || 'marketing'
-    const demo  = getDemoResume(field)
+    const gender = q1 || 'skip'
+    const field  = q3 || 'marketing'
+    const demo   = getDemoResume(field, gender)
 
     try {
       setLoadingMsg('Saving your preferences…')
@@ -139,9 +152,10 @@ export default function QuizPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          gender,
           career_field: field,
-          career_stage: q1 || 'recent',
-          priority:     finalQ3,
+          career_stage: q2 || 'recent',
+          priority:     finalQ4,
         }),
       })
       if (!profileRes.ok) throw new Error('Could not save your profile.')
@@ -164,7 +178,7 @@ export default function QuizPage() {
 
       // 3. Small pause so user sees the message, then redirect
       await new Promise(r => setTimeout(r, 600))
-      router.push('/?welcome=1')
+      router.push('/home?welcome=1')
 
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.')
@@ -174,27 +188,28 @@ export default function QuizPage() {
 
   // ── LOADING SCREEN ────────────────────────────────────────────────────────
   if (loading) {
-    const field = q2 || 'marketing'
-    const demo  = getDemoResume(field)
+    const gender = q1 || 'skip'
+    const field  = q3 || 'marketing'
+    const demo   = getDemoResume(field, gender)
     return (
       <div style={{ minHeight: '100vh', background: '#f4f2ed', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'sans-serif' }}>
         <div style={cardStyle}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: '#1a1a1f', marginBottom: 8 }}>
-              Setting up your dashboard<span style={{ color: '#2d5be3' }}>.</span>
+              Setting up your feed<span style={{ color: '#2f3e5c' }}>.</span>
             </div>
             <p style={{ fontSize: 13.5, color: '#7a7a85', lineHeight: 1.7, marginBottom: 24, maxWidth: 380, margin: '0 auto 24px' }}>
-              We're loading a demo resume so your feed looks alive from day one. You can replace it with your real resume at any time.
+              We're loading a demo resume so your feed looks real from day one. Swap it for yours any time — it takes about 30 seconds.
             </p>
             <div style={{ background: '#f4f2ed', borderRadius: 12, padding: '16px 20px', marginBottom: 24, textAlign: 'left' }}>
               <div style={{ fontSize: 10.5, color: '#b0b0b8', fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase' as const, marginBottom: 8 }}>Your demo resume</div>
-              <div style={{ fontSize: 15, fontWeight: 500, color: '#2d5be3', marginBottom: 2 }}>{demo.name}</div>
+              <div style={{ fontSize: 15, fontWeight: 500, color: '#2f3e5c', marginBottom: 2 }}>{demo.name}</div>
               <div style={{ fontSize: 13, color: '#7a7a85' }}>{demo.title} · {demo.school}, {demo.gradYear}</div>
             </div>
             <div style={{ fontSize: 13, color: '#b8a99a', marginBottom: 16 }}>{loadingMsg}</div>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
               {[0,1,2].map(i => (
-                <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#2d5be3', animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+                <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#2f3e5c', animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
               ))}
             </div>
           </div>
@@ -210,8 +225,8 @@ export default function QuizPage() {
   }
 
   // ── QUIZ LAYOUT ───────────────────────────────────────────────────────────
-  const currentQ = step === 1 ? Q1 : step === 2 ? Q2 : Q3
-  const currentVal = step === 1 ? q1 : step === 2 ? q2 : q3
+  const currentQ   = step === 1 ? Q1 : step === 2 ? Q2 : step === 3 ? Q3 : Q4
+  const currentVal = step === 1 ? q1 : step === 2 ? q2 : step === 3 ? q3 : ''
 
   return (
     <div style={{ minHeight: '100vh', background: '#f4f2ed', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 20px', fontFamily: 'sans-serif' }}>
@@ -219,10 +234,10 @@ export default function QuizPage() {
       {/* Logo */}
       <div style={{ marginBottom: 28, textAlign: 'center' }}>
         <div style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#1a1a1f', letterSpacing: '-.02em' }}>
-          fitted<span style={{ color: '#2d5be3' }}>.</span>
+          fitted<span style={{ color: '#5171bf' }}>.</span>
         </div>
         <div style={{ fontSize: 12.5, color: '#b8a99a', fontWeight: 300, marginTop: 4 }}>
-          get a career tailor-made for you
+          work that actually fits your life
         </div>
       </div>
 
@@ -231,11 +246,11 @@ export default function QuizPage() {
         {/* Progress bar */}
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, color: '#b0b0b8' }}>Question {step} of 3</span>
+            <span style={{ fontSize: 12, color: '#b0b0b8' }}>Question {step} of 4</span>
             <span style={{ fontSize: 12, color: '#b0b0b8' }}>{progress}%</span>
           </div>
           <div style={{ height: 4, background: '#e8e4db', borderRadius: 20, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${progress}%`, background: '#2d5be3', borderRadius: 20, transition: 'width .3s ease' }} />
+            <div style={{ height: '100%', width: `${progress}%`, background: '#2f3e5c', borderRadius: 20, transition: 'width .3s ease' }} />
           </div>
         </div>
 
@@ -248,18 +263,19 @@ export default function QuizPage() {
         </p>
 
         {/* Options */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20, maxHeight: step === 2 ? 380 : 'none', overflowY: step === 2 ? 'auto' : 'visible', paddingRight: step === 2 ? 4 : 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20, maxHeight: step === 3 ? 380 : 'none', overflowY: step === 3 ? 'auto' : 'visible', paddingRight: step === 3 ? 4 : 0 }}>
           {currentQ.options.map(opt => (
             <button key={opt.id}
               onClick={() => {
-                if (step === 1) { setQ1(opt.id) }
+                if (step === 1) { setQ1(opt.id); setStep(2) }
                 if (step === 2) { setQ2(opt.id) }
-                if (step === 3) { finish(opt.id) }
+                if (step === 3) { setQ3(opt.id) }
+                if (step === 4) { finish(opt.id) }
               }}
               style={optBtn(currentVal === opt.id)}>
-              <span style={{ fontSize: 20, flexShrink: 0 }}>{opt.emoji}</span>
+              <span style={{ fontSize: opt.id === 'skip' ? 14 : 20, flexShrink: 0, color: opt.id === 'skip' ? '#b0b0b8' : 'inherit' }}>{opt.emoji}</span>
               <span style={{ flex: 1 }}>{opt.label}</span>
-              {currentVal === opt.id && <span style={{ color: '#2d5be3', fontSize: 16, flexShrink: 0 }}>✓</span>}
+              {currentVal === opt.id && <span style={{ color: '#2f3e5c', fontSize: 16, flexShrink: 0 }}>✓</span>}
             </button>
           ))}
         </div>
@@ -267,10 +283,10 @@ export default function QuizPage() {
         {/* Error */}
         {error && <p style={{ fontSize: 13, color: '#e85d3a', marginBottom: 12 }}>{error}</p>}
 
-        {/* Next button — Q1 and Q2 only (Q3 auto-advances on selection) */}
-        {step < 3 && (
+        {/* Next button — Q2 and Q3 only (Q1 and Q4 auto-advance on selection) */}
+        {(step === 2 || step === 3) && (
           <button
-            onClick={() => setStep(prev => (prev + 1) as 1|2|3)}
+            onClick={() => setStep(prev => (prev + 1) as 1|2|3|4)}
             disabled={!currentVal}
             style={{ ...nextBtnStyle, opacity: currentVal ? 1 : .4, cursor: currentVal ? 'pointer' : 'not-allowed' }}>
             Next →
@@ -280,19 +296,19 @@ export default function QuizPage() {
         {/* Navigation row */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 12 }}>
           {step > 1 && (
-            <button onClick={() => setStep(prev => (prev - 1) as 1|2|3)} style={{ ...skipStyle, width: 'auto', color: '#7a7a85' }}>
+            <button onClick={() => setStep(prev => (prev - 1) as 1|2|3|4)} style={{ ...skipStyle, width: 'auto', color: '#7a7a85' }}>
               ← Back
             </button>
           )}
           <button
             onClick={() => {
-              // Skip with defaults
-              if (step === 1) { if (!q1) setQ1('recent'); setStep(2) }
-              else if (step === 2) { if (!q2) setQ2('marketing'); setStep(3) }
+              if (step === 1) { setQ1('skip'); setStep(2) }
+              else if (step === 2) { if (!q2) setQ2('recent'); setStep(3) }
+              else if (step === 3) { if (!q3) setQ3('marketing'); setStep(4) }
               else { finish('exploring') }
             }}
             style={{ ...skipStyle, width: 'auto' }}>
-            {step === 3 ? 'Skip — take me to my dashboard' : 'Skip'}
+            {step === 4 ? 'Skip — take me to my dashboard' : 'Skip'}
           </button>
         </div>
       </div>
@@ -300,7 +316,7 @@ export default function QuizPage() {
       {/* Already have a real resume? */}
       <p style={{ marginTop: 20, fontSize: 12.5, color: '#b0b0b8', textAlign: 'center' }}>
         Already have a real resume?{' '}
-        <a href="/" style={{ color: '#2d5be3', textDecoration: 'none' }}>
+        <a href="/home" style={{ color: '#2f3e5c', textDecoration: 'none' }}>
           Skip the quiz and go straight to your dashboard →
         </a>
       </p>

@@ -26,7 +26,7 @@ interface OptimizeResult {
 
 function mc(n: number) {
   if (n >= 74) return '#1a7a4a'
-  if (n >= 62) return '#2d5be3'
+  if (n >= 62) return '#5171bf'
   if (n >= 50) return '#b8750a'
   return '#7a7a85'
 }
@@ -111,22 +111,26 @@ function OptimizeInner() {
     setStep('loading')
     setError('')
     startLoadingMessages()
-
-    const res = await fetch('/api/optimize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ resumeId, jdText }),
-    })
-    stopLoadingMessages()
-
-    const data = await res.json()
-    if (!res.ok || data.error) {
-      setError(data.error || 'Something went wrong. Please try again.')
+    try {
+      const res = await fetch('/api/optimize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeId, jdText }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        setError(data.error || 'Something went wrong. Please try again.')
+        setStep('setup')
+        return
+      }
+      setResult(data)
+      setStep('results')
+    } catch {
+      setError('Could not connect. Please check your connection and try again.')
       setStep('setup')
-      return
+    } finally {
+      stopLoadingMessages()
     }
-    setResult(data)
-    setStep('results')
   }
 
   function copyText(text: string, idx: number) {
@@ -154,7 +158,7 @@ function OptimizeInner() {
           style={{ background: 'none', border: 'none', color: '#7a7a85', cursor: 'pointer', fontSize: 13, fontFamily: 'sans-serif', padding: 0 }}>← Back</button>
         <div style={{ width: 1, height: 28, background: 'rgba(0,0,0,.1)' }} />
         <span style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a1f', letterSpacing: '-.02em' }}>
-          fitted<span style={{ color: '#2d5be3' }}>.</span>
+          fitted<span style={{ color: '#5171bf' }}>.</span>
         </span>
         <span style={{ fontSize: 13, color: '#b0b0b8' }}>/ Resume Optimizer</span>
       </nav>
@@ -171,7 +175,7 @@ function OptimizeInner() {
               <p style={{ fontSize: 13.5, color: '#7a7a85', margin: 0, lineHeight: 1.6 }}>
                 {preJobTitle
                   ? `Tailoring for: ${preJobTitle}`
-                  : 'Paste a job description and fitted. will rewrite your resume to match it — specifically, not generically.'}
+                  : 'Paste a job description and fitted. will rewrite your resume around it — specific to the role, honest about the gaps. Your experience is real. The translation is what\'s missing.'}
               </p>
             </div>
 
@@ -181,12 +185,12 @@ function OptimizeInner() {
                 Select resume
               </label>
               {resumes.length === 0
-                ? <p style={{ fontSize: 13, color: '#b0b0b8', fontStyle: 'italic', margin: 0 }}>No resumes uploaded yet. <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: '#2d5be3', cursor: 'pointer', fontFamily: 'sans-serif', fontSize: 13, padding: 0, textDecoration: 'underline' }}>Upload one first →</button></p>
+                ? <p style={{ fontSize: 13, color: '#b0b0b8', fontStyle: 'italic', margin: 0 }}>No resumes uploaded yet. <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: '#2f3e5c', cursor: 'pointer', fontFamily: 'sans-serif', fontSize: 13, padding: 0, textDecoration: 'underline' }}>Upload one first →</button></p>
                 : <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 7 }}>
                     {resumes.map(r => (
-                      <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, border: `1px solid ${resumeId === r.id ? '#2d5be3' : 'rgba(0,0,0,.08)'}`, background: resumeId === r.id ? '#eaeffe' : '#f4f2ed', cursor: 'pointer' }}>
-                        <input type="radio" name="resume" value={r.id} checked={resumeId === r.id} onChange={() => setResumeId(r.id)} style={{ accentColor: '#2d5be3' }} />
-                        <span style={{ fontSize: 13.5, color: resumeId === r.id ? '#2d5be3' : '#3d3d45', fontWeight: resumeId === r.id ? 500 : 400 }}>{r.name}</span>
+                      <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, border: `1px solid ${resumeId === r.id ? '#2f3e5c' : 'rgba(0,0,0,.08)'}`, background: resumeId === r.id ? '#e8edf5' : '#f4f2ed', cursor: 'pointer' }}>
+                        <input type="radio" name="resume" value={r.id} checked={resumeId === r.id} onChange={() => setResumeId(r.id)} style={{ accentColor: '#2f3e5c' }} />
+                        <span style={{ fontSize: 13.5, color: resumeId === r.id ? '#2f3e5c' : '#3d3d45', fontWeight: resumeId === r.id ? 500 : 400 }}>{r.name}</span>
                         {r.is_active && <span style={{ marginLeft: 'auto', fontSize: 10, color: '#1a7a4a', background: '#e6f5ed', padding: '2px 7px', borderRadius: 20 }}>Active</span>}
                       </label>
                     ))}
@@ -227,7 +231,7 @@ function OptimizeInner() {
         {/* ── STEP 2: LOADING ──────────────────────────────────── */}
         {step === 'loading' && (
           <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', minHeight: 320, gap: 18, animation: 'fadeIn .3s ease' }}>
-            <div style={{ width: 40, height: 40, border: '3.5px solid #eaeffe', borderTop: '3.5px solid #2d5be3', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
+            <div style={{ width: 40, height: 40, border: '3.5px solid #e8edf5', borderTop: '3.5px solid #2f3e5c', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
             <div style={{ textAlign: 'center' as const }}>
               <div style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#1a1a1f', marginBottom: 6 }}>fitted. is reading your resume</div>
               <div style={{ fontSize: 13, color: '#7a7a85', minHeight: 20, transition: 'opacity .3s' }}>{loadMsg}</div>

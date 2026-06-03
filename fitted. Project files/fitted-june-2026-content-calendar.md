@@ -42,6 +42,7 @@ Assignment logic:
 1. "Built for every stage of your career journey."
 2. "Built for people who are intentional about their next chapter."
 3. "Built for anyone pursuing a better next step in their career."
+4. "Built for women who are done navigating the search without the full picture." *(use on women-specific posts)*
 
 ---
 
@@ -74,7 +75,7 @@ Assignment logic:
 "With that clarity, everything tightens. Your resume has a thesis. Your targeting gets specific. Your story becomes legible to a recruiter in 8 seconds — because you've already made it legible to yourself."
 
 *Scene 4:*
-"This is true at year 2 and year 25. For the grad figuring out their first search, the career changer, the executive in transition, the person returning after time away. The clarity step is not a luxury. It is the foundation."
+"This is true at 24 and at 34. For the woman figuring out her first search, the one returning after leave, the one pivoting out of a culture that was never going to fit, the one who's been doing director-level work on a manager title and finally knows it. The clarity step is not a luxury. It is the foundation."
 
 *Scene 5 — CTA:*
 "The full experience arrives June 14."
@@ -85,7 +86,7 @@ Assignment logic:
 
 **Music:** "Experience" — Ludovico Einaudi piano cover. Open, searching.
 
-**Instagram Caption:** The clarity step is not optional. It's the foundation everything else is built on — the resume, the targeting, the story. The full experience arrives June 14. ✦
+**Instagram Caption:** The clarity step is not optional. It's the foundation everything else is built on — the resume, the targeting, the story. Whether you're returning, pivoting, or finally asking for the role that matches what you've been doing. The full experience arrives June 14. ✦
 
 **Threads:** The one thing every successful job seeker eventually learns — it's not networking, it's not resume optimization. It's knowing, in one clear sentence, what you want to do next. Without that, every other move is guesswork.
 
@@ -169,9 +170,9 @@ Taupe (`#b8a99a`) bg, navy wave pattern. DM Serif Display navy, 52px, centered: 
 
 **Music:** "Coffee" — beabadoobee (instrumental version). Warm, slightly wistful.
 
-**Instagram Caption:** The gap wasn't the problem. The story she was telling about it was. The full experience arrives June 14. ✦
+**Instagram Caption:** The gap wasn't the problem. The story she was telling about it was. Three years of managing the unmanageable — and none of it was on her resume yet. The full experience arrives June 14. ✦
 
-**Hashtags:** #CareerReturner #JobSearch #CareerAdvice #fitted
+**Hashtags:** #CareerReturner #JobSearch #CareerAdvice #fitted #WomenReturning
 
 **Stories (June 2):** Story 1: Hook line only — "She thought the gap was the problem. It wasn't." Navy bg, Cormorant Garamond Italic off-white. No poll — let it sit.
 
@@ -422,24 +423,24 @@ Navy (`#2f3e5c`) bg, off-white wave pattern. DM Serif Display off-white, 52px: "
 #### REEL — "Senior leaders"
 **Content Type:** SI — Something Inspiring / Thoughtful | `#1a1a1f`
 
-**Hook:** "Senior leaders make a specific mistake in the job search. It's the opposite of what entry-level candidates do wrong — and just as costly."
+**Hook:** "Senior leaders make a specific mistake in the job search. For women, there's a second layer — and it's the one that costs the most."
 
 **Scenes:**
 
 *Scene 1 — Hook [fitted. thinks: label, ink bg]:*
-"Senior leaders make a specific mistake in the job search. It's the opposite of what entry-level candidates do wrong — and just as costly."
+"Senior leaders make a specific mistake in the job search. For women, there's a second layer — and it's the one that costs the most."
 
 *Scene 2:*
-"Entry-level candidates undersell — hedge every accomplishment, apply broadly, stay safe. Senior leaders do the inverse: assume the reputation precedes them. Send a resume that reads like a list of titles and let the reader fill in the impact."
+"The universal mistake: assuming the title carries the story. Sending a resume that reads like a list of positions and letting the reader fill in the impact. Impact doesn't travel on a title. A VP of Product at a 40-person company is a completely different job than the same title at 10,000 people. The reader has no context — you have to make it legible."
 
 *Scene 3:*
-"The problem: impact doesn't travel on a title. A VP of Product at a Series A is a completely different job than the same title at 10,000 people. The reader has no context — they need you to make it legible."
+"The second layer, specific to women in senior roles: the title often doesn't match the scope at all. She's been doing director-level work on a manager title. Running the function on a team lead salary. High potential for three years — which is recognition, not a promotion."
 
 *Scene 4:*
-"The senior leaders who move fastest resist the impulse to let the title do the work. They write resumes that show what they decided, what changed, what the business looks like because they were there."
+"The move: surface the scope in the bullet, not just the title. Not 'managed a team' — 'built and led a 12-person org through a 40% headcount expansion.' The level has to be visible before the title confirms it."
 
 *Scene 5 — CTA:*
-"Make your judgment visible. The full experience arrives June 14."
+"Make your judgment visible. Make your scope visible. The full experience arrives June 14."
 
 **VO:** 36–40 seconds
 
@@ -447,7 +448,7 @@ Navy (`#2f3e5c`) bg, off-white wave pattern. DM Serif Display off-white, 52px: "
 
 **Music:** "Clair de Lune" piano cover — spare, considered.
 
-**Instagram Caption:** Senior leaders and entry-level candidates make opposite mistakes in the job search. Both are equally costly. The full experience arrives June 14. ✦
+**Instagram Caption:** Senior leaders assume the title carries the story. For women, there's a second layer: the title often doesn't match the scope. She's been doing director-level work on a manager title — and her resume shows the title, not the scope. The full experience arrives June 14. ✦
 
 ---
 
@@ -924,7 +925,7 @@ Right column (taupe): "Hiring Manager" — what they see in 8 seconds, what pass
 Centered: "Both. Simultaneously."
 
 *Slide 4 — Who it's for:*
-"New graduates. Career changers. Mid-career professionals who've been applying and getting silence. Senior leaders whose resume isn't showing their judgment. People returning after time away. Everyone."
+"Women early in their careers and women returning after time away. Career changers whose pivot is failing on translation, not capability. Senior professionals whose resume shows the title but not the scope. Anyone who has been told the problem is their confidence, when it's actually their information."
 
 *Slide 5 — The offer:*
 "Founding Members (first 100): 50% off their first month.
@@ -1365,39 +1366,39 @@ Blue bg, off-white wave. DM Serif Display off-white: "Pro." Cormorant Garamond I
 
 ---
 
-#### REEL — "What do you wish you'd known"
+#### REEL — "Have you ever stayed too long?"
 **Content Type:** AQ | `#d9cfc7`
 
-**Hook:** "What's one thing you wish you'd known at the very start of your current job search?"
+**Hook:** "Have you ever stayed in a role longer than you knew you should — and what made it hard to leave, even when you already knew?"
 
 **Scenes:**
 
 *Scene 1 [fitted. thinks: label, pale taupe bg]:*
-"What's one thing you wish you'd known at the very start of your current job search — that you only figured out somewhere in the middle, or at the end?"
+"Have you ever stayed in a role longer than you knew you should? Not because it was bad enough to quit. Because leaving felt uncertain — and uncertain felt harder than staying in something that wasn't growing you anymore."
 
 *Scene 2:*
-"I ask this because the answers to that question are consistently more useful than 'what advice would you give to a job seeker?' Wisdom in retrospect has a specificity that forward-looking advice usually doesn't."
+"I ask because the hardest part of an intentional search often isn't the resume or the targeting. It's making the decision that the search needs to begin. That decision has a friction of its own — especially when you're good at your job, when you're valued, when leaving feels like giving something up even if staying feels like standing still."
 
 *Scene 3:*
-"In the conversations I've had while building fitted.: the most common answers aren't about resume formatting or networking scripts. They're about clarity — knowing sooner that the search needed a tighter thesis. About signal — understanding what was working versus what just felt productive."
+"What finally made it clear? Was it one conversation? A promotion that didn't come? A year that looked identical to the last one? The answers to that question are sharper than almost any advice I can offer."
 
 *Scene 4:*
-"Drop your answer below. I read them all. And they shape what we build next."
+"Drop your answer below. I read them all. And stay until the end — we feature real answers on our channel."
 
 *Scene 5 — CTA:*
-"getfittedcareers.com. Built for anyone pursuing a better next step in their career."
+"getfittedcareers.com. Built for women who are done navigating the search without the full picture."
 
 **VO:** 32–38 seconds
 
-**📸 Cover Image (Canva):** Pale taupe bg, navy wave. "fitted. thinks:" DM Sans tracked, navy. DM Serif Display navy, 50px: "What do you wish you'd known at the start?" Cormorant Garamond Italic navy, 28px: "Drop it below." fitted. wordmark.
+**📸 Cover Image (Canva):** Pale taupe bg, no pattern. DM Serif Display navy, 48px, centered, upper 60%: "Have you ever stayed too long?" Generous negative space above and below — the question is the entire design. fitted. wordmark: navy, bottom-center, small.
 
 **Music:** "Experience" — Einaudi. Open, listening.
 
-**Instagram Caption:** What's one thing you wish you'd known at the very start of your job search? Drop it below — retrospective answers are consistently sharper than forward-looking advice. getfittedcareers.com ✦
+**Instagram Caption:** Have you ever stayed in a role longer than you knew you should — not because it was bad enough to quit, but because leaving felt harder than staying? What finally made it clear? Drop it below. getfittedcareers.com ✦
 
-**Threads:** What's one thing you wish you'd known at the very start of your current job search — that you only figured out in the middle or at the end? Drop it below. Genuinely asking.
+**Threads:** Have you ever stayed in a job longer than you knew you should — not because it was terrible, because leaving felt uncertain? What finally made the decision clear? Genuinely asking.
 
-**Hashtags:** #JobSearch #CareerAdvice #fitted #LessonLearned
+**Hashtags:** #JobSearch #CareerAdvice #fitted #IntentionalMoves
 
 **CTA:** "Built for anyone pursuing a better next step in their career."
 
@@ -1444,24 +1445,24 @@ Navy bg, wave. DM Serif Display off-white: "What high-match applications have in
 #### REEL — "The language gap"
 **Content Type:** AC | `#f4f2ed`
 
-**Hook:** "He had the exact background the role required. fitted. gave him a 59% match score. Here's what was actually happening."
+**Hook:** "She had the exact background the role required. fitted. gave her a 59% match score. Here's what was actually happening."
 
 **Scenes:**
 
 *Scene 1:*
-"A finance professional pivoting to operations. 11 years of relevant experience: systems thinking, stakeholder management, complex resource allocation under constraints. fitted.'s match score: 59%. His first reaction was confusion. The experience was there. The problem wasn't experience."
+"A nonprofit program director pivoting to operations at a tech company. 11 years of relevant experience: systems design, coalition management, complex resource allocation under real constraints. fitted.'s match score: 59%. Her first reaction was confusion. The experience was there. The problem wasn't experience."
 
 *Scene 2:*
-"The hiring manager read identified it: his resume was written entirely in finance language. Words like 'portfolio optimization,' 'variance analysis,' and 'capital allocation' — technically accurate, operationally invisible. The role's job description used 'process efficiency,' 'cross-functional coordination,' and 'resource planning.'"
+"The hiring manager read identified it: her resume was written entirely in nonprofit language. Words like 'community partnerships,' 'program outcomes,' and 'grant management' — accurate, operationally invisible in a tech context. The role's job description used 'process efficiency,' 'cross-functional coordination,' and 'resource planning.'"
 
 *Scene 3:*
-"The career coach layer then mapped the translation: 'capital allocation' → 'resource planning across competing priorities'; 'variance analysis' → 'identified and closed operational gaps across 3 teams.' Same work. Different language. Now legible to the specific reader."
+"The career coach layer mapped the translation: 'grant management' → 'resource planning across competing priorities with hard budget constraints'; 'program outcomes' → 'drove measurable efficiency gains across 3 service delivery teams.' Same work. Different language. Now legible to the specific reader."
 
 *Scene 4:*
-"After the translation: 81%. Not because he gained experience. Because the experience he had finally showed up in the language the reader was looking for."
+"After the translation: 81%. Not because she gained experience. Because the experience she had finally showed up in the language the reader was looking for."
 
 *Scene 5 — CTA:*
-"Pivot or not, the translation has to be right. Try fitted. at getfittedcareers.com. Built for anyone pursuing a better next step in their career."
+"Pivot or not, the translation has to be right. Try fitted. at getfittedcareers.com. Built for women who are done navigating the search without the full picture."
 
 **VO:** 38–42 seconds
 
@@ -1469,9 +1470,9 @@ Navy bg, wave. DM Serif Display off-white: "What high-match applications have in
 
 **Music:** Lo-fi piano, precise.
 
-**Instagram Caption:** He had the exact background the role required. 59% match score. What fitted. found — and what changed when the translation was right. getfittedcareers.com ✦
+**Instagram Caption:** She had the exact background the role required. 59% match score. What fitted. found — and what changed when the translation was right. getfittedcareers.com ✦
 
-**Stories (June 23):** Story: Score before/after — "59%" muted vs. "81%" bold. Navy bg, DM Serif Display off-white. Below: "Same experience. Different language." Poll: "Have you ever struggled to translate your experience for a new field?" / "Yes." / "Working on it."
+**Stories (June 23):** Story: Score before/after — "59%" muted vs. "81%" bold. Navy bg, DM Serif Display off-white. Below: "Same experience. Different language." Poll: "Have you ever struggled to translate your experience for a new field?" / "Yes — this is exactly it." / "Working on it."
 
 **Hashtags:** #fitted #ResumeHelp #AICareerCoach #JobSearch
 
@@ -1532,32 +1533,32 @@ Navy bg, wave. DM Serif Display off-white: "What high-match applications have in
 #### REEL — "Information problem"
 **Content Type:** SI | `#1a1a1f`
 
-**Hook:** "The job search is not a confidence problem. It's an information problem. The distinction matters."
+**Hook:** "Women are told the job search is a confidence problem. It isn't. It's an information problem. And that distinction changes everything."
 
 **Scenes:**
 
 *Scene 1 [fitted. thinks: label, ink bg]:*
-"The job search is not a confidence problem. It's an information problem. These require different solutions — and conflating them makes the search harder."
+"Women are told the job search is a confidence problem. Believe in yourself more. Put yourself out there. Keep going. It's well-intentioned. It's also the wrong diagnosis."
 
 *Scene 2:*
-"The confidence-first approach: believe in yourself, put yourself out there, keep going. Well-intentioned. But if the reason you're not getting responses is a keyword gap, a title mismatch, or an ATS filter — more confidence isn't the fix. It's the wrong diagnosis."
+"If the reason you're not getting responses is a keyword gap, a title mismatch, an ATS filter, or a resume that shows your history instead of your thesis — more confidence isn't the fix. You can't confidence your way out of an information problem."
 
 *Scene 3:*
-"The information approach: here's your match score on this specific role, here are the three gaps, here's the exact language shift that moves you from 62% to 85%. That's a solvable problem. You can act on it immediately."
+"The information approach: here's your match score on this specific role, here are the three gaps, here's the exact language shift that moves you from 62% to 85%. That's a solvable problem. You can act on it today. You don't have to work on yourself — you have to work on the document."
 
 *Scene 4:*
-"This is not pessimism — it's accuracy. The candidates who move fastest treat the search like a data problem, where every response (or non-response) is signal, rather than a morale problem."
+"This is not pessimism. It's accuracy. The candidates who move fastest treat the search as a data problem — where every response is signal — not a morale problem where the answer is always 'try harder.'"
 
 *Scene 5 — CTA:*
-"fitted. is built on this premise. getfittedcareers.com. Built for every stage of your career journey."
+"fitted. is built on this premise. getfittedcareers.com. Built for women who are done navigating the search without the full picture."
 
 **VO:** 38–44 seconds
 
-**📸 Cover Image (Canva):** Ink bg, barely-there wave. "fitted. thinks:" DM Sans tracked, taupe. DM Serif Display off-white: "Not a confidence problem. An information one." Cormorant Garamond Italic taupe: "The distinction that changes the search." fitted. wordmark.
+**📸 Cover Image (Canva):** Ink bg, no pattern. "fitted. thinks:" DM Sans tracked, taupe. DM Serif Display off-white, 52px: "Not a confidence problem." Cormorant Garamond Italic taupe, 34px: "An information one." fitted. wordmark. Generous negative space — the contrast between the two lines is the whole point.
 
 **Music:** "Clair de Lune" — spare, considered.
 
-**Instagram Caption:** The job search isn't a confidence problem. It's an information one. Treating it as such is the shift that changes the search. getfittedcareers.com ✦
+**Instagram Caption:** Women are told the job search is a confidence problem. It isn't. If the reason you're not getting responses is a keyword gap or a title mismatch, more confidence isn't the fix — it's the wrong diagnosis. The information approach is faster. getfittedcareers.com ✦
 
 ---
 
@@ -1593,8 +1594,8 @@ Taupe bg, wave. DM Serif Display navy: "What a hiring manager reads in the subte
 **Hashtags:** #ResumeWriting #HiringManager #JobSearchTips #CareerAdvice #fitted
 
 **Stories (June 25):**
-- Story 1: SI quote — "Not a confidence problem. An information one." Ink bg, off-white.
-- Story 2: SE teaser — "The subtext your resume is sending. Carousel." Taupe bg, navy.
+- Story 1: SI quote — "You can't confidence your way out of an information problem." Ink bg, DM Serif Display off-white, centered. No poll — let it sit.
+- Story 2: SE teaser — "The subtext your resume is sending. Carousel." Taupe bg, navy text.
 
 **CTA:** "Built for every stage of your career journey."
 
@@ -1607,37 +1608,37 @@ Taupe bg, wave. DM Serif Display navy: "What a hiring manager reads in the subte
 
 ---
 
-#### REEL — "The translation problem"
+#### REEL — "High potential"
 **Content Type:** TS | `#2f3e5c`
 
-**Hook:** "He was in finance for 12 years. Then he decided to pivot to operations. His search didn't go the way he expected — but not for the reason he thought."
+**Hook:** "She was told she was high potential for three years. She didn't realize, until she started searching, that wasn't a promotion."
 
 **Scenes:**
 
-*Scene 1 [navy bg, Cormorant Garamond Italic off-white]:*
-"He was in finance for 12 years. Then he decided to pivot to operations. His search didn't go the way he expected — but not for the reason he thought."
+*Scene 1 [navy bg, Cormorant Garamond Italic off-white, 50px]:*
+"She was told she was high potential for three years. She didn't realize, until she started searching, that wasn't a promotion."
 
 *Scene 2:*
-"He assumed the barrier was the pivot itself — 12 years in one function, moving to another. What he discovered: the barrier wasn't his background. It was that his resume was written entirely in finance language. He was applying to operations roles with materials that made no case for why his experience was directly relevant."
+"She'd been given everything except the title. The cross-functional project. The team rebuild. The relationship with the senior stakeholder. Her manager told her every quarter that she was on a trajectory. She kept showing up, kept delivering. Her title and her compensation hadn't moved."
 
-*Scene 3:*
-"The insight: pivots fail on translation, not on capability. The skills were there — financial modeling, systems thinking, stakeholder management under constraints. But the translation into operational framing was entirely absent from the resume."
+*Scene 3 [Shift to taupe `#b8a99a` bg — warm]:*
+"When she started her search, she couldn't figure out why her materials weren't landing. Then she saw it: her resume showed the title. Not the scope. Not the two years of director-level work she'd been doing on a manager salary. The gap was right there — she just hadn't had a way to see it."
 
-*Scene 4:*
-"Once he rebuilt it to speak to the specific problems operations roles require — using the right language, the right scope, the right decision types — the response rate changed. Same 12 years. Different translation."
+*Scene 4 [Return to navy. Cormorant Garamond Italic taupe, 36px, centered]:*
+*"Being recognized isn't the same as being promoted. But your resume should still show what you actually did."*
 
 *Scene 5 — CTA:*
-"The pivot isn't the obstacle. The translation is. And it's solvable. getfittedcareers.com. Built for anyone pursuing a better next step in their career."
+"getfittedcareers.com. Built for women who are done navigating the search without the full picture."
 
 **VO:** 40–44 seconds
 
-**📸 Cover Image (Canva):** Navy bg, wave off-white subtle. "THE HONEST SEARCH" DM Sans tracked, taupe. Cormorant Garamond Italic off-white, 46px: "12 years in finance. A pivot to operations." DM Serif Display taupe: "What actually stopped him — and what didn't." fitted. wordmark.
+**📸 Cover Image (Canva):** Navy bg, optional faint off-white wave at 12% opacity. No label. Cormorant Garamond Italic off-white, 48px, centered: *"High potential for three years."* DM Serif Display taupe, 30px below: *"Not the same as promoted."* fitted. wordmark: off-white, bottom-center, small.
 
-**Music:** Lo-fi piano — warm, considered.
+**Music:** "Coffee" — beabadoobee (instrumental). Warm, slightly wistful.
 
-**Instagram Caption:** He had 12 years of strong experience. The pivot wasn't the obstacle — the translation was. Here's what changed. getfittedcareers.com ✦
+**Instagram Caption:** She was told she was high potential for three years. When she started searching, she realized her resume showed the title — not the scope, not two years of director-level work. That gap is fixable. But only once you can see it. getfittedcareers.com ✦
 
-**Hashtags:** #CareerChange #JobSearch #CareerPivot #fitted
+**Hashtags:** #CareerAdvice #JobSearch #fitted #WomenInCareer
 
 **CTA:** "Built for anyone pursuing a better next step in their career."
 

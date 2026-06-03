@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '../../../lib/rate-limit'
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY!
 const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -11,37 +12,12 @@ const ALLOWED_MIME  = new Set([
   'text/plain',
 ])
 
-// In-memory rate limiter — 10 uploads per IP per hour to limit Claude vision abuse.
-// Replace with Upstash Redis before horizontal scale-out.
-const WINDOW_MS = 60 * 60 * 1000
-const MAX_HITS  = 10
-
-interface RateEntry { count: number; windowStart: number }
-const ratemap = new Map<string, RateEntry>()
-
 function getIP(request: NextRequest): string {
   return (
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-real-ip') ||
     'unknown'
   )
-}
-
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
-  const now   = Date.now()
-  const entry = ratemap.get(ip)
-
-  if (!entry || now - entry.windowStart >= WINDOW_MS) {
-    ratemap.set(ip, { count: 1, windowStart: now })
-    return { allowed: true, remaining: MAX_HITS - 1 }
-  }
-
-  if (entry.count >= MAX_HITS) {
-    return { allowed: false, remaining: 0 }
-  }
-
-  entry.count++
-  return { allowed: true, remaining: MAX_HITS - entry.count }
 }
 
 async function getUserFromCookie(request: NextRequest) {
@@ -117,27 +93,29 @@ async function extractText(file: File): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
+    // IP gate — fast check before any DB call
     const ip = getIP(request)
-    const { allowed, remaining } = checkRateLimit(ip)
-
-    if (!allowed) {
-      console.warn(`[Resume] rate limit hit ip=${ip}`)
+    const ipCheck = rateLimit('resume-ip', ip, 10, 60 * 60 * 1000)
+    if (!ipCheck.allowed) {
+      console.warn(`[Resume] IP rate limit hit ip=${ip}`)
       return NextResponse.json(
         { error: 'Too many uploads. Please wait an hour and try again.' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': '3600',
-            'X-RateLimit-Limit': String(MAX_HITS),
-            'X-RateLimit-Remaining': '0',
-          },
-        }
+        { status: 429, headers: { 'Retry-After': String(ipCheck.retryAfterSecs) } }
       )
     }
 
     const user = await getUserFromCookie(request)
     if (!user?.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    // User gate — prevents VPN bypass, keyed by user ID
+    const userCheck = rateLimit('resume-user', user.id, 10, 60 * 60 * 1000)
+    if (!userCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Too many uploads. Please wait an hour and try again.' },
+        { status: 429, headers: { 'Retry-After': String(userCheck.retryAfterSecs) } }
+      )
     }
 
     const formData = await request.formData()

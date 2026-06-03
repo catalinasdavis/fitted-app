@@ -10,7 +10,7 @@ interface TrackerEntry { id: string; job_id: string; column_id: string; notes: s
 
 function mc(n: number) {
   if (n >= 74) return '#1a7a4a'
-  if (n >= 62) return '#2d5be3'
+  if (n >= 62) return '#5171bf'
   if (n >= 50) return '#b8750a'
   return '#7a7a85'
 }
@@ -50,7 +50,7 @@ export default function JobDetail() {
   const [notes,     setNotes]     = useState('')
   const [showMenu,  setShowMenu]  = useState(false)
 
-  const [matchAI,         setMatchAI]         = useState('')
+  const [matchAI,         setMatchAI]         = useState<string|null>(null)
   const [matchLoading,    setMatchLoading]    = useState(false)
   const matchDone = useRef(false)
 
@@ -73,6 +73,9 @@ export default function JobDetail() {
   const [prepAI,         setPrepAI]         = useState<Array<{category:string;question:string;hint:string;highlight:string}>>([])
   const [prepAILoading,  setPrepAILoading]  = useState(false)
   const prepAIDone = useRef(false)
+  const [careerAI,        setCareerAI]        = useState<{summary:string;nodes:{role:string;pay:string;insight:string}[]}|null>(null)
+  const [careerLoading,   setCareerLoading]   = useState(false)
+  const careerDone = useRef(false)
   const [negotiateResult,  setNegotiateResult]  = useState<{targetRange:{low:number;high:number;note:string};opening:string;talkingPoints:{point:string;script:string}[];pushbacks:{scenario:string;response:string}[];counterOffer?:{script:string;floorNote:string};emailTemplate?:string} | null>(null)
   const [negotiateLoading, setNegotiateLoading] = useState(false)
   const [negotiateCopied,  setNegotiatesCopied] = useState<Record<string,boolean>>({})
@@ -173,8 +176,10 @@ Write a professional analysis using exactly these four bold headings, each follo
 [Give the candidate 2-3 concrete things to lead with in their application and interviews.]
 
 Do not use asterisks inside paragraphs. Do not ask them to do anything. Be warm but honest.`
-    const text = await callAI(prompt, 'match')
-    setMatchAI(text)
+    try {
+      const text = await callAI(prompt, 'match')
+      setMatchAI(text || '')
+    } catch { setMatchAI('') }
     setMatchLoading(false)
   }
 
@@ -261,13 +266,15 @@ Write a 3-paragraph cover letter that:
 - Does NOT start with "I am writing to express my interest" or use clichés like "I would be a great fit"
 
 Return only the cover letter text. No subject line, no extra commentary.`
-    const text = await callAI(prompt)
-    setCoverLetter(text)
+    try {
+      const text = await callAI(prompt)
+      setCoverLetter(text)
+    } catch { setCoverLetter('') }
     setCoverLoading(false)
   }
 
   async function runInterviewPrep() {
-    if (!job) return
+    if (!job || prepAIDone.current) return
     prepAIDone.current = true
     setPrepAILoading(true)
     const br = bestResume(resumes)
@@ -361,9 +368,52 @@ Return ONLY valid JSON:
 
 Question: "${question}"
 Their answer: "${answer}"`
-    const text = await callAI(prompt)
-    setPrepFeedback(p => ({ ...p, [idx]: text }))
+    try {
+      const text = await callAI(prompt)
+      setPrepFeedback(p => ({ ...p, [idx]: text }))
+    } catch { setPrepFeedback(p => ({ ...p, [idx]: 'Could not generate feedback. Please try again.' })) }
     setPrepLoading(p => ({ ...p, [idx]: false }))
+  }
+
+  async function runCareerPath() {
+    if (careerDone.current || careerLoading || !job || !isPro) return
+    careerDone.current = true
+    setCareerLoading(true)
+    const br = bestResume(resumes)
+    const stage = profile?.career_stage || 'working'
+    const field = profile?.career_field || 'general'
+    const fieldLabel = field === 'marketing' ? 'Marketing & Communications' : field === 'business' ? 'Business, Sales & Partnerships' : field === 'tech' ? 'Tech & Operations' : field === 'creative' ? 'Creative & Design' : field === 'healthcare' ? 'Healthcare & Science' : field === 'legal' ? 'Legal, Policy & Government' : field === 'engineering' ? 'Engineering & Architecture' : field === 'finance' ? 'Finance & Accounting' : field === 'hr' ? 'Human Resources & People Ops' : field === 'nonprofit' ? 'Nonprofit, Education & Social Impact' : field
+    const stageLabel = stage === 'student' ? 'student/new grad' : stage === 'entry' ? 'entry-level (0–2 yrs)' : stage === 'mid' ? 'mid-level (3–5 yrs)' : stage === 'senior' ? 'senior (6–10 yrs)' : stage === 'lead' ? 'lead/principal (10+ yrs)' : stage === 'manager' ? 'people manager' : stage === 'director' ? 'director/VP' : 'professional'
+    const prompt = `You are a career strategist with deep knowledge of real hiring markets. Build a personalized 5-step career path for this specific person.
+
+Target role: ${job.title} at ${job.company}
+Career field: ${fieldLabel}
+Career stage: ${stageLabel}
+${profile?.about_me?.trim() ? `About them: ${profile.about_me.trim().substring(0, 400)}` : ''}
+${br ? `Resume excerpt: ${br.resume_text.substring(0, 700)}` : ''}
+
+The 5 nodes must be:
+1. Where they are NOW — infer their current role/level from the resume and stage above
+2. This specific target role: ${job.title} at ${job.company}${job.pay ? ` (listed at ${job.pay})` : ''}
+3. A realistic next title 2–3 years after landing this role
+4. A senior/lead title 5 years out
+5. An aspirational "North Star" top-of-field title
+
+Rules:
+- Use specific, real job titles (not generic "Senior Manager" — say "Senior Product Manager, Growth" or "VP of Marketing")
+- Pay ranges in "$XX–YYk/yr" format for salary or "$XXX/hr" for contracting; use real market data for ${fieldLabel}
+- Each insight is ONE concrete sentence on what to do/build at that stage
+- summary: 2 sentences referencing their actual background and why this path is right for them specifically
+
+Return ONLY valid JSON — no markdown, no explanation, no extra text:
+{"summary":"...","nodes":[{"role":"...","pay":"...","insight":"..."},{"role":"...","pay":"...","insight":"..."},{"role":"...","pay":"...","insight":"..."},{"role":"...","pay":"...","insight":"..."},{"role":"...","pay":"...","insight":"..."}]}`
+    try {
+      const raw = await callAI(prompt, 'career')
+      const clean = raw.replace(/```json|```/g, '').trim()
+      const s = clean.indexOf('{'); const e = clean.lastIndexOf('}')
+      if (s !== -1 && e !== -1) setCareerAI(JSON.parse(clean.substring(s, e + 1)))
+    } catch { /* static fallback renders */ }
+    setCareerLoading(false)
   }
 
   function handleTab(t: typeof tab) {
@@ -371,6 +421,7 @@ Their answer: "${answer}"`
     if (t === 'tailor'   && !tailorDone.current   && !tailorLoading   && profile?.ai_prefs?.autoTailor   !== false) runTailor()
     if (t === 'standout' && !standoutDone.current && !standoutLoading && profile?.ai_prefs?.autoStandout !== false) runStandout()
     if (t === 'prep'     && !prepAIDone.current   && !prepAILoading   && profile?.ai_prefs?.autoInterviewPrep === true) runInterviewPrep()
+    if (t === 'career'   && isPro && !careerDone.current && !careerLoading) runCareerPath()
   }
 
   async function signOut() {
@@ -464,13 +515,23 @@ Their answer: "${answer}"`
   }
 
   if (!dataReady || !job) return (
-    <div style={{ minHeight: '100vh', background: '#f4f2ed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#b8a99a' }}>
+    <div style={{ minHeight: '100vh', background: '#f4f2ed', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', gap: 20 }}>
       {job === null && dataReady
         ? <div style={{ textAlign: 'center' }}>
-            <p style={{ marginBottom: 16, color: '#7a7a85' }}>Job not found.</p>
-            <button onClick={() => router.push('/')} style={{ background: '#2d5be3', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontFamily: 'sans-serif' }}>Back to dashboard</button>
+            <p style={{ marginBottom: 16, color: '#7a7a85', fontSize: 14 }}>Job not found.</p>
+            <button onClick={() => router.push('/')} style={{ background: '#2f3e5c', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontFamily: 'sans-serif' }}>Back to dashboard</button>
           </div>
-        : 'Loading…'
+        : <>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: 32, color: '#1a1a1f', letterSpacing: '-1px' }}>
+              fitted<span style={{ color: '#5171bf' }}>.</span>
+            </div>
+            <div style={{ display: 'flex', gap: 7 }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: '#b8a99a', animation: `fld-pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+              ))}
+            </div>
+            <style>{`@keyframes fld-pulse{0%,100%{opacity:.25;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}`}</style>
+          </>
       }
     </div>
   )
@@ -487,7 +548,7 @@ Their answer: "${answer}"`
   const trackerEntry = trackerEntries.find(e => e.job_id === jobId && !e.deleted_at)
   const COL_META: Record<string, [string, string, string]> = {
     saved:     ['Saved',         '#fdf3e3', '#b8750a'],
-    applied:   ['Applied',       '#eaeffe', '#185fa5'],
+    applied:   ['Applied',       '#e8edf5', '#185fa5'],
     phone:     ['Phone Screen',  '#f0e8fe', '#6d28d9'],
     interview: ['Interview',     '#e6f5ed', '#1a7a4a'],
     offer:     ['Offer',         '#e6f5ed', '#0d5c34'],
@@ -543,7 +604,7 @@ Their answer: "${answer}"`
 
   const Spinner = ({ label = 'Analyzing…' }: { label?: string }) => (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '40px 0', color: '#7a7a85', fontSize: 13 }}>
-      <div style={{ width: 28, height: 28, border: '3px solid #eaeffe', borderTop: '3px solid #2d5be3', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      <div style={{ width: 28, height: 28, border: '3px solid #e8edf5', borderTop: '3px solid #2f3e5c', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
       {label}
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
@@ -554,13 +615,13 @@ Their answer: "${answer}"`
       onClick={() => setShowMenu(false)}>
 
       <nav className="jd-nav" style={{ height: 60, background: '#fff', borderBottom: '1px solid rgba(0,0,0,.07)', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
-        <button onClick={() => router.push('/')}
+        <button onClick={() => router.back()}
           style={{ background: 'none', border: 'none', color: '#7a7a85', cursor: 'pointer', fontSize: 13, fontFamily: 'sans-serif', flexShrink: 0 }}>
           ← Back
         </button>
         <div className="jd-nav-logo" style={{ width: 1, height: 32, background: 'rgba(0,0,0,.1)' }} />
         <div className="jd-nav-logo" style={{ lineHeight: 1 }}>
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a1f', letterSpacing: '-.02em' }}>fitted<span style={{ color: '#2d5be3' }}>.</span></div>
+          <div style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a1f', letterSpacing: '-.02em' }}>fitted<span style={{ color: '#5171bf' }}>.</span></div>
           <div style={{ fontSize: 11, color: '#b8a99a', fontWeight: 300, marginTop: 2 }}>get a career tailor-made for you</div>
         </div>
         <div style={{ flex: 1 }} />
@@ -568,12 +629,6 @@ Their answer: "${answer}"`
           style={{ background: isSaved ? '#fdf3e3' : 'none', color: isSaved ? '#b8750a' : '#7a7a85', border: `1px solid ${isSaved ? 'rgba(184,117,10,.3)' : 'rgba(0,0,0,.12)'}`, borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer', fontFamily: 'sans-serif', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
           {isSaved ? '★ Saved' : '☆ Save'}
         </button>
-        {job.url && (
-          <button onClick={applyToJob}
-            style={{ background: applyDone ? '#1a7a4a' : '#2d5be3', color: '#fff', padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'sans-serif', transition: 'background .2s', flexShrink: 0 }}>
-            {applyDone ? 'Applied ✓' : 'Apply →'}
-          </button>
-        )}
         <div className="jd-nav-account" style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
           <button onClick={() => setShowMenu(m => !m)}
             style={{ background: 'none', border: '1px solid rgba(0,0,0,.12)', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: '#7a7a85', cursor: 'pointer', fontFamily: 'sans-serif' }}>
@@ -603,7 +658,7 @@ Their answer: "${answer}"`
           </div>
           <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 14 }}>
             <span style={{ background: job.type === 'Remote' ? '#e6f5ed' : '#fdf3e3', color: job.type === 'Remote' ? '#1a7a4a' : '#b8750a', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>{job.type}</span>
-            <span style={{ background: '#eaeffe', color: '#185fa5', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>{score}% Resume Match</span>
+            <span style={{ background: '#e8edf5', color: '#185fa5', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>{score}% Resume Match</span>
             {br && <span style={{ background: '#e6f5ed', color: '#1a7a4a', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>Using: {br.name}</span>}
             {isPro && (isCancelled ? <span style={{ background: 'rgba(26, 122, 74, 0.45)', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>✦ Pro · ends soon</span> : <span style={{ background: '#1a7a4a', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>✦ Pro</span>)}
             {trackerEntry && COL_META[trackerEntry.column_id] && (
@@ -626,7 +681,7 @@ Their answer: "${answer}"`
         <div style={{ display: 'flex', overflowX: 'auto', padding: '0 8px', borderTop: '1px solid rgba(0,0,0,.07)' }}>
           {TABS.map(t => (
             <button key={t.id} onClick={() => handleTab(t.id as any)}
-              style={{ padding: '10px 14px', fontSize: 12.5, background: 'none', border: 'none', borderBottom: tab === t.id ? '2px solid #2d5be3' : '2px solid transparent', color: tab === t.id ? '#2d5be3' : t.pro ? '#b8750a' : '#7a7a85', fontWeight: tab === t.id ? 500 : 400, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'sans-serif', marginBottom: -1 }}>
+              style={{ padding: '10px 14px', fontSize: 12.5, background: 'none', border: 'none', borderBottom: tab === t.id ? '2px solid #2f3e5c' : '2px solid transparent', color: tab === t.id ? '#2f3e5c' : t.pro ? '#b8750a' : '#7a7a85', fontWeight: tab === t.id ? 500 : 400, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'sans-serif', marginBottom: -1 }}>
               {t.label}
             </button>
           ))}
@@ -662,20 +717,20 @@ Their answer: "${answer}"`
                   )
                 })}
               </div>
-              <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderLeft: '3px solid #2d5be3', borderRadius: '0 10px 10px 0', padding: '18px 20px', marginBottom: 16 }}>
+              <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderLeft: '3px solid #2f3e5c', borderRadius: '0 10px 10px 0', padding: '18px 20px', marginBottom: 16 }}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.1em', textTransform: 'uppercase' as const, marginBottom: 4 }}>✦ fitted. coach analysis</div>
                 <div style={{ fontSize: 10, color: '#b0b0b8', marginBottom: 14 }}>{isPro ? "Powered by fitted.'s advanced AI" : "Powered by fitted.'s fast AI"}</div>
-                {matchLoading
+                {matchLoading || matchAI === null
                   ? <Spinner label="Reading your resume and About Me…" />
                   : matchAI
                     ? renderAI(matchAI)
-                    : <p style={{ fontSize: 13, color: '#b0b0b8', fontStyle: 'italic', margin: 0 }}>Analysis loading…</p>
+                    : <p style={{ fontSize: 13, color: '#b0b0b8', fontStyle: 'italic', margin: 0 }}>Could not load analysis. Try refreshing the page.</p>
                 }
               </div>
               <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 12 }}>Match breakdown</div>
                 {[
-                  { label: 'Skills match',    pct: Math.min(99, score + 3), color: '#2d5be3' },
+                  { label: 'Skills match',    pct: Math.min(99, score + 3), color: '#2f3e5c' },
                   { label: 'Experience',      pct: Math.max(55, score - 8), color: '#1a7a4a' },
                   { label: 'Keywords found',  pct: Math.min(99, score + 1), color: '#b8750a' },
                   { label: 'Culture signals', pct: Math.max(60, score - 4), color: '#6d28d9' },
@@ -693,7 +748,7 @@ Their answer: "${answer}"`
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 10 }}>Keywords</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {job.tags.map((t: string) => (
-                    <span key={t} style={{ padding: '3px 10px', borderRadius: 20, fontSize: 12, background: '#eaeffe', color: '#2d5be3' }}>{t}</span>
+                    <span key={t} style={{ padding: '3px 10px', borderRadius: 20, fontSize: 12, background: '#e8edf5', color: '#2f3e5c' }}>{t}</span>
                   ))}
                 </div>
               </div>
@@ -712,7 +767,7 @@ Their answer: "${answer}"`
                 ? <Spinner label="Analyzing your resume against this role…" />
                 : tailorAI.length > 0
                   ? <>
-                      <div style={{ background: '#eaeffe', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#185fa5' }}>
+                      <div style={{ background: '#e8edf5', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#185fa5' }}>
                         <strong>{tailorAI.length} suggested edits</strong> — applying all could raise your match from {score}% → {Math.min(99, score + tailorAI.length * 5)}%. Your voice stays intact.
                       </div>
                       {tailorAI.map((item: any, i: number) => {
@@ -733,13 +788,13 @@ Their answer: "${answer}"`
                                 <div style={{ fontSize: 12, color: '#27500a', lineHeight: 1.5 }}>{item.tailored}</div>
                               </div>
                             </div>
-                            <div style={{ marginTop: 8, fontSize: 12, color: '#2d5be3', lineHeight: 1.5 }}><strong>Why →</strong> {item.why}</div>
+                            <div style={{ marginTop: 8, fontSize: 12, color: '#2f3e5c', lineHeight: 1.5 }}><strong>Why →</strong> {item.why}</div>
                             {item.talkAboutIt && <div style={{ marginTop: 4, fontSize: 11.5, color: '#7a7a85', lineHeight: 1.5 }}><strong style={{ color: '#3d3d45' }}>Talk about it:</strong> {item.talkAboutIt}</div>}
                           </div>
                         )
                       })}
                       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                        <button style={{ flex: 1, background: '#2d5be3', color: '#fff', border: 'none', borderRadius: 8, padding: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>↓ Download tailored resume</button>
+                        <button disabled style={{ flex: 1, background: '#b0b0b8', color: '#fff', border: 'none', borderRadius: 8, padding: 10, fontSize: 13, fontWeight: 600, cursor: 'not-allowed', fontFamily: 'sans-serif', opacity: 0.6 }} title="Resume download coming soon">↓ Download (coming soon)</button>
                         <button onClick={generateCoverLetter} style={{ flex: 1, background: '#f4f2ed', color: '#3d3d45', border: '1px solid rgba(0,0,0,.1)', borderRadius: 8, padding: 10, fontSize: 13, cursor: 'pointer', fontFamily: 'sans-serif' }}>✦ Generate cover letter</button>
                       </div>
                       <div style={{ marginTop: 12, background: '#faf8ff', border: '1px solid rgba(109,40,217,.15)', borderRadius: 8, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
@@ -753,7 +808,7 @@ Their answer: "${answer}"`
                   : tailorDone.current
                     ? <div style={{ textAlign: 'center', padding: '48px 0', color: '#7a7a85' }}>
                         <p style={{ marginBottom: 12 }}>Could not generate suggestions. Try refreshing.</p>
-                        <button onClick={() => { tailorDone.current = false; runTailor() }} style={{ background: '#2d5be3', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontFamily: 'sans-serif' }}>Retry</button>
+                        <button onClick={() => { tailorDone.current = false; runTailor() }} style={{ background: '#2f3e5c', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontFamily: 'sans-serif' }}>Retry</button>
                       </div>
                     : null
               }
@@ -770,13 +825,13 @@ Their answer: "${answer}"`
                         <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1f', marginBottom: 12 }}>Before you apply</div>
                         {(standoutAI.tips || []).map((tip: string, i: number) => (
                           <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'flex-start' }}>
-                            <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#eaeffe', color: '#2d5be3', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</div>
+                            <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#e8edf5', color: '#2f3e5c', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</div>
                             <p style={{ fontSize: 13, color: '#3d3d45', lineHeight: 1.6, margin: 0 }}>{tip}</p>
                           </div>
                         ))}
                       </div>
                       {standoutAI.whyYou && (
-                        <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderLeft: '3px solid #2d5be3', borderRadius: '0 8px 8px 0', padding: '14px 16px', marginBottom: 16 }}>
+                        <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderLeft: '3px solid #2f3e5c', borderRadius: '0 8px 8px 0', padding: '14px 16px', marginBottom: 16 }}>
                           <div style={{ fontSize: 10, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.08em', textTransform: 'uppercase' as const, marginBottom: 8 }}>Why you paragraph</div>
                           <p style={{ fontSize: 13, color: '#3d3d45', lineHeight: 1.7, margin: '0 0 10px', fontStyle: 'italic' }}>{standoutAI.whyYou}</p>
                           <button onClick={() => navigator.clipboard?.writeText(standoutAI.whyYou)}
@@ -797,7 +852,7 @@ Their answer: "${answer}"`
                   : standoutDone.current
                     ? <div style={{ textAlign: 'center', padding: '48px 0', color: '#7a7a85' }}>
                         <p style={{ marginBottom: 12 }}>Could not generate. Try again.</p>
-                        <button onClick={() => { standoutDone.current = false; runStandout() }} style={{ background: '#2d5be3', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontFamily: 'sans-serif' }}>Retry</button>
+                        <button onClick={() => { standoutDone.current = false; runStandout() }} style={{ background: '#2f3e5c', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontFamily: 'sans-serif' }}>Retry</button>
                       </div>
                     : null
               }
@@ -809,7 +864,7 @@ Their answer: "${answer}"`
               <div style={{ display: 'flex', gap: 7, marginBottom: 16, flexWrap: 'wrap' }}>
                 {([['apply','After applying'],['followup','Follow-up'],['thankyou','Thank-you note'],['checkin','Checking in']] as [string,string][]).map(([id, lbl]) => (
                   <button key={id} onClick={() => setEmailType(id as any)}
-                    style={{ padding: '6px 14px', borderRadius: 20, border: emailType === id ? '1px solid #2d5be3' : '1px solid rgba(0,0,0,.1)', background: emailType === id ? '#eaeffe' : '#fff', color: emailType === id ? '#2d5be3' : '#7a7a85', fontSize: 12.5, cursor: 'pointer', fontFamily: 'sans-serif', fontWeight: emailType === id ? 500 : 400 }}>
+                    style={{ padding: '6px 14px', borderRadius: 20, border: emailType === id ? '1px solid #2f3e5c' : '1px solid rgba(0,0,0,.1)', background: emailType === id ? '#e8edf5' : '#fff', color: emailType === id ? '#2f3e5c' : '#7a7a85', fontSize: 12.5, cursor: 'pointer', fontFamily: 'sans-serif', fontWeight: emailType === id ? 500 : 400 }}>
                     {lbl}
                   </button>
                 ))}
@@ -863,7 +918,7 @@ Their answer: "${answer}"`
                 <>
                   {prepAI.map((q, i) => {
                     const catColor: Record<string, [string,string]> = {
-                      'Role-Specific':       ['#eaeffe', '#185fa5'],
+                      'Role-Specific':       ['#e8edf5', '#185fa5'],
                       'Behavioral':          ['#e6f5ed', '#1a7a4a'],
                       'Situational':         ['#fdf3e3', '#854f0b'],
                       'Culture & Motivation':['#f4f0fb', '#6b3fa0'],
@@ -894,7 +949,7 @@ Their answer: "${answer}"`
                         {isPro
                           ? <div style={{ marginTop: 6 }}>
                               <button onClick={() => getPrepFeedback(i, q.question)} disabled={prepLoading[i]}
-                                style={{ background: 'none', border: '1px solid #2d5be3', borderRadius: 6, padding: '5px 12px', fontSize: 12, color: '#2d5be3', cursor: 'pointer', fontFamily: 'sans-serif', opacity: prepLoading[i] ? .6 : 1 }}>
+                                style={{ background: 'none', border: '1px solid #2f3e5c', borderRadius: 6, padding: '5px 12px', fontSize: 12, color: '#2f3e5c', cursor: 'pointer', fontFamily: 'sans-serif', opacity: prepLoading[i] ? .6 : 1 }}>
                                 {prepLoading[i] ? 'Reviewing…' : 'Get feedback on my answer →'}
                               </button>
                               {prepFeedback[i] && <div style={{ marginTop: 8, background: '#f4f2ed', borderRadius: 6, padding: '8px 10px', fontSize: 12.5, color: '#3d3d45', lineHeight: 1.6 }}>{prepFeedback[i]}</div>}
@@ -921,7 +976,7 @@ Their answer: "${answer}"`
                   {isPro
                     ? <div style={{ marginTop: 6 }}>
                         <button onClick={() => getPrepFeedback(i, q.q)} disabled={prepLoading[i]}
-                          style={{ background: 'none', border: '1px solid #2d5be3', borderRadius: 6, padding: '5px 12px', fontSize: 12, color: '#2d5be3', cursor: 'pointer', fontFamily: 'sans-serif', opacity: prepLoading[i] ? .6 : 1 }}>
+                          style={{ background: 'none', border: '1px solid #2f3e5c', borderRadius: 6, padding: '5px 12px', fontSize: 12, color: '#2f3e5c', cursor: 'pointer', fontFamily: 'sans-serif', opacity: prepLoading[i] ? .6 : 1 }}>
                           {prepLoading[i] ? 'Reviewing…' : 'Get feedback on my answer →'}
                         </button>
                         {prepFeedback[i] && <div style={{ marginTop: 8, background: '#f4f2ed', borderRadius: 6, padding: '8px 10px', fontSize: 12.5, color: '#3d3d45', lineHeight: 1.6 }}>{prepFeedback[i]}</div>}
@@ -964,7 +1019,7 @@ Their answer: "${answer}"`
                       {/* Opening script */}
                       <div style={{ marginBottom: 12 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 8 }}>Opening script</div>
-                        <div style={{ background: '#eaeffe', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#1a1a5a', lineHeight: 1.65, fontStyle: 'italic', marginBottom: 6 }}>"{nr.opening}"</div>
+                        <div style={{ background: '#e8edf5', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#1a1a5a', lineHeight: 1.65, fontStyle: 'italic', marginBottom: 6 }}>"{nr.opening}"</div>
                         <button onClick={() => copyNeg('opening', nr.opening)} style={{ background: 'none', border: '1px solid rgba(0,0,0,.1)', borderRadius: 6, padding: '4px 12px', fontSize: 11.5, color: '#7a7a85', cursor: 'pointer', fontFamily: 'sans-serif' }}>
                           {negotiateCopied['opening'] ? '✓ Copied' : 'Copy'}
                         </button>
@@ -1047,26 +1102,49 @@ Their answer: "${answer}"`
                   <button onClick={() => startCheckout('monthly')} style={{ background: '#b8750a', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>Unlock with Pro</button>
                 </div>
               : <div>
-                  <p style={{ fontSize: 13, color: '#7a7a85', marginBottom: 20, lineHeight: 1.6 }}>How <strong style={{ color: '#3d3d45' }}>{job.title}</strong> fits a realistic career path.</p>
-                  {[
-                    { stage: 'Where you are', role: 'Current role',                                          pay: 'Varies',       dot: '#2d5be3' },
-                    { stage: 'This role',     role: job.title,                                                pay: job.pay,        dot: '#1a7a4a' },
-                    { stage: '2 years out',   role: 'Senior Coordinator / Manager',                           pay: '$55–75k/yr',   dot: '#1a7a4a' },
-                    { stage: '5 years out',   role: 'Senior Manager / Director',                              pay: '$80–120k/yr',  dot: '#6d28d9' },
-                    { stage: 'North Star',    role: `Head of ${profile?.career_field || 'your field'} — dream company`, pay: '$100–150k/yr', dot: '#6d28d9' },
-                  ].map((node, i, arr) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 4 }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: node.dot, flexShrink: 0, marginTop: 4 }} />
-                        {i < arr.length - 1 && <div style={{ width: 2, height: 32, background: 'rgba(0,0,0,.1)', margin: '3px 0' }} />}
+                  <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,.07)', borderLeft: '3px solid #6d28d9', borderRadius: '0 10px 10px 0', padding: '14px 18px', marginBottom: 20 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: '#b0b0b8', letterSpacing: '.1em', textTransform: 'uppercase' as const, marginBottom: 4 }}>✦ fitted. career analysis</div>
+                    {careerLoading
+                      ? <Spinner label="Building your personal career roadmap…" />
+                      : careerAI?.summary
+                        ? <p style={{ fontSize: 13.5, color: '#3d3d45', lineHeight: 1.7, margin: 0 }}>{careerAI.summary}</p>
+                        : <p style={{ fontSize: 13.5, color: '#7a7a85', lineHeight: 1.7, margin: 0 }}>
+                            How <strong style={{ color: '#3d3d45' }}>{job.title}</strong> fits a realistic path from where you are to where you want to be.
+                          </p>
+                    }
+                  </div>
+                  {(() => {
+                    const STAGE_LABELS = ['Where you are', 'This role', '2–3 years out', '5 years out', 'North Star']
+                    const DOTS = ['#2f3e5c', '#1a7a4a', '#1a7a4a', '#6d28d9', '#6d28d9']
+                    const aiNodes = careerAI?.nodes
+                    const nodes = aiNodes && aiNodes.length === 5 ? aiNodes : [
+                      { role: 'Current role',       pay: 'Your current range', insight: 'Build transferable skills and document impact.' },
+                      { role: job.title,             pay: job.pay || 'Competitive', insight: 'Use this role to specialize and gain visibility.' },
+                      { role: 'Senior / Lead role', pay: '$65–90k/yr',          insight: 'Start managing projects or people at this stage.' },
+                      { role: 'Manager / Director', pay: '$90–130k/yr',         insight: 'Own a function or team by this point.' },
+                      { role: 'Head of your field', pay: '$130k+',              insight: 'Build your network and track record toward this.' },
+                    ]
+                    return nodes.map((node, i, arr) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 4 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                          <div style={{ width: 11, height: 11, borderRadius: '50%', background: DOTS[i], marginTop: 3, boxShadow: `0 0 0 3px ${DOTS[i]}22` }} />
+                          {i < arr.length - 1 && <div style={{ width: 2, height: 40, background: 'rgba(0,0,0,.08)', margin: '3px 0' }} />}
+                        </div>
+                        <div style={{ paddingBottom: 10, flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 10.5, color: '#b0b0b8', marginBottom: 2, letterSpacing: '.03em' }}>{STAGE_LABELS[i]}</div>
+                          <div style={{ fontSize: 13.5, fontWeight: 600, color: '#1a1a1f', marginBottom: 2 }}>{node.role}</div>
+                          <div style={{ fontSize: 12, color: '#1a7a4a', fontFamily: 'monospace', marginBottom: node.insight ? 4 : 0 }}>{node.pay}</div>
+                          {node.insight && <div style={{ fontSize: 12, color: '#7a7a85', lineHeight: 1.5 }}>{node.insight}</div>}
+                        </div>
                       </div>
-                      <div style={{ paddingBottom: 8 }}>
-                        <div style={{ fontSize: 11, color: '#b0b0b8', marginBottom: 2 }}>{node.stage}</div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1f' }}>{node.role}</div>
-                        <div style={{ fontSize: 12, color: '#1a7a4a', fontFamily: 'monospace' }}>{node.pay}</div>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  })()}
+                  {careerAI && (
+                    <button onClick={() => { careerDone.current = false; setCareerAI(null); runCareerPath() }}
+                      style={{ marginTop: 8, background: 'none', border: '1px solid rgba(0,0,0,.1)', borderRadius: 7, padding: '6px 14px', fontSize: 12, color: '#7a7a85', cursor: 'pointer', fontFamily: 'sans-serif' }}>
+                      ↺ Regenerate
+                    </button>
+                  )}
                 </div>
           )}
 
@@ -1141,13 +1219,6 @@ Their answer: "${answer}"`
                 <span style={{ fontSize: 12, fontWeight: 500, color: (row as any).color || ((row as any).green ? '#1a7a4a' : '#3d3d45') }}>{row.v}</span>
               </div>
             ))}
-            {job.url
-              ? <button onClick={applyToJob}
-                  style={{ display: 'block', width: '100%', marginTop: 10, background: applyDone ? '#1a7a4a' : '#2f3e5c', color: '#fff', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'sans-serif', textAlign: 'center' as const, transition: 'background .2s' }}>
-                  {applyDone ? 'Applied ✓' : 'Apply Now →'}
-                </button>
-              : <div style={{ marginTop: 10, fontSize: 11.5, color: '#b0b0b8', fontStyle: 'italic', textAlign: 'center' as const }}>No application link</div>
-            }
           </div>
           {allJobs.length === 0
             ? (
@@ -1215,7 +1286,7 @@ Their answer: "${answer}"`
             </div>
             {coverLoading
               ? <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '40px 0', color: '#7a7a85', fontSize: 13 }}>
-                  <div style={{ width: 28, height: 28, border: '3px solid #eaeffe', borderTop: '3px solid #2d5be3', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  <div style={{ width: 28, height: 28, border: '3px solid #e8edf5', borderTop: '3px solid #2f3e5c', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                   Writing your cover letter…
                   <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
                 </div>
@@ -1225,7 +1296,7 @@ Their answer: "${answer}"`
                     <button onClick={() => navigator.clipboard?.writeText(coverLetter)}
                       style={{ background: 'none', border: '1px solid rgba(0,0,0,.1)', borderRadius: 8, padding: '8px 16px', fontSize: 13, color: '#3d3d45', cursor: 'pointer', fontFamily: 'sans-serif' }}>Copy</button>
                     <button onClick={downloadCoverLetter}
-                      style={{ background: '#2d5be3', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>↓ Download</button>
+                      style={{ background: '#2f3e5c', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif' }}>↓ Download</button>
                     <button onClick={() => { setCoverLetter(''); setCoverLoading(false); generateCoverLetter() }}
                       style={{ background: 'none', border: '1px solid rgba(0,0,0,.1)', borderRadius: 8, padding: '8px 16px', fontSize: 13, color: '#7a7a85', cursor: 'pointer', fontFamily: 'sans-serif', marginLeft: 'auto' }}>Regenerate</button>
                   </div>

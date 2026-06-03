@@ -1,29 +1,40 @@
 # fitted Launch Plan
 
 **Founder**: Catalina Davis  
-**Target Launch Date**: Saturday, June 14, 2026  (exactly one year after I graduated from the University of Washington)
-**Buffer Launch Date**: Saturday, June 20, 2026 (Week 7 — only if quality demands it)  
-**Domain**: www.getfittedcareers.com (pending DNS)  
+**Target Launch Date**: Sunday, June 14, 2026  (exactly one year after I graduated from the University of Washington)
+**Buffer Launch Date**: Saturday, June 20, 2026 (only if quality demands it)  
+**Domain**: www.getfittedcareers.com  
 **Repo**: github.com/catalinasdavis/fitted-app  
 **Local Path**: /Users/catalinalittle/Documents/fitted  
 **Hosting**: Vercel (Production)  
 **Database**: Supabase (Postgres + Auth + RLS)  
 **Payments**: Stripe SDK v22 (API version 2026-03-25.dahlia)
 
-**Last updated**: May 2, 2026  
-**Current phase**: Week 2 — Real Job Data
+**Last updated**: June 1, 2026  
+**Current phase**: Final sprint — 13 days to launch. No work May 30–31. Functional core is solid; design system and visual polish are the primary gap.
+
+---
+
+## Positioning
+
+**fitted.** is for **women aged 22–35** — early career, career changers, and returners — who want work that actually fits their life and values.
+
+This is not a generic job board. It's a career companion built for the specific reality of women navigating an unequal job market: negotiating for what they're worth, pivoting after a break, finding roles that don't demand they sacrifice everything else.
+
+Every product decision filters through: *Would a 27-year-old woman re-entering the workforce after two years away feel genuinely helped — or just processed?*
+
+---
 
 ## Overview & Philosophy
 
-We are building **fitted.** — a sophisticated AI-powered career platform with a quiet-luxury, editorial aesthetic.
+We are building **fitted.** — a warm, intelligent career platform with a quiet-luxury, editorial aesthetic. Every decision is measured against four lenses:
 
-Every decision is measured against four lenses:
 1. **Product** — Would a user in the middle of a stressful job search actually feel helped?
 2. **Code quality** — Would a strong engineer reviewing this later cringe?
 3. **Investor-readiness** — Does this hold up to someone who might one day acquire, fund, or partner with us?
 4. **User experience** — Does this treat job seekers like intelligent adults who deserve real guidance?
 
-**Test for everything**: “Would I be proud to show this to someone I respect?”
+**Test for everything**: "Would I be proud to show this to someone I respect?"
 
 ---
 
@@ -36,13 +47,13 @@ Every decision is measured against four lenses:
   - All core Pro features
   - Ability to buy additional AI Action packs
 
-- **Premium** — $16–18/month or $160–180/year (2 months free)
+- **Premium** — $18/month or $180/year (2 months free)
   - Unlimited AI Actions
   - Priority access + all Pro features
 
 **AI Actions System**
 - We no longer show raw token counts to users
-- All AI features (search, resume optimization, health score, Ask Fitted., coach nudges, interview prep, etc.) consume from a unified “AI Actions” pool
+- All AI features (search, resume optimization, health score, Ask Fitted., coach nudges, interview prep, etc.) consume from a unified "AI Actions" pool
 - Pro users get 30 AI Actions per month
 - Users can buy extra Action packs if they run out
 - In Account settings, users can toggle on/off auto-generation for:
@@ -81,112 +92,201 @@ To balance cost and quality, we use two Claude models strategically:
 
 ---
 
-## Week-by-Week Roadmap
+## 22-Day Launch Sprint
 
-### Week 1 — Payment System (May 2 – May 8) ✅ COMPLETE
-**Theme**: The financial spine. Must be airtight before real users pay real money.
+> **⚠️ Claude Design Usage Block — May 23–29**
+> Claude Design usage is exhausted until **May 30**. The latest design files cannot be downloaded until then. **Do not start major visual redesign integration before May 30** — any work done now would need to be redone once the new design system is available. Use May 26–29 for functional stability, security hardening, and non-visual polish only.
 
-- [x] Build Account Settings modal (Profile + Subscription sections)
-- [x] Build Save Offer modal ("Before you go — here's 50% off your next month")
-- [x] Build Confirm Cancel modal — empathetic intent screen → save offer → confirm
-- [x] Wire all three modals to save-offer and cancel-subscription APIs
-- [x] Fix subscription_status spelling mismatch ('cancelled' → 'canceling')
-- [x] Phase 4: $1.99 24-hour Pro extension button + banner + modal
-- [x] Failed payment 3-day grace period UI + webhook (amber banner, "Update payment" → portal)
-- [x] Receipts/invoices in Account Settings (lazy-loaded, View + PDF links)
-- [x] Security audit completed — two vulnerabilities fixed (see May 2 log)
-- [ ] Stripe Tax enabled + annual renewal reminder *(deferred to pre-launch week)*
-- [ ] Production cutover (live keys, webhook deploy, key rotation, legal docs) *(Week 5/6)*
+### Friday, May 22 (Today) — 6+ hours ✅ Complete
+- Update Claude Code with new positioning + demographic focus ✅
+- Set up Fantastic.jobs API (self-serve, free tier) ✅
+- Create strong caching layer (24–48h cache) ✅
+- Final polish on coming-soon → full landing page transition logic ✅
 
-**Week 1 Checkpoint**: Friday, May 8 ✅ — pen test complete (see May 2–3 log)
+### Saturday, May 23 — Full day ✅ Complete
+- Mobile responsiveness pass on landing page ✅
+- Auth pages polish + sign-up → quiz → dashboard flow verified end-to-end ✅
+- Dashboard first-run experience: welcome modal, demo persona chip, empty states ✅
+- Full end-to-end new-user flow smoke test ✅
 
-### Week 2 — Real Job Data (May 9 – 15)
-**Theme**: Static jobs are fatal. Real people need real jobs.
+### Sunday, May 24 — Full day ✅ Complete
+- Production console.log cleanup across all API routes ✅
+- Stuck loading state fixes: `redeem()`, `savePr()`, `addTracker()` ✅
+- Match tab loading state (null vs '' discrimination) ✅
+- Job detail page: branded spinner loading state ✅
+- Disliked view: removed duplicate Delete button ✅
+- Welcome modal chip: shows real demo persona name ✅
 
-**Tasks**:
-- Adzuna API integration + caching layer
-- Quiz-based job search wired to Adzuna filters
-- Match scoring tuned for real job descriptions
-- Apply links working
-- Fallback strategy for API limits/downtime
+### Monday, May 25 — Full day ✅ Complete
+- AI Career Path tab: replaced hardcoded static nodes with AI-generated personalized roadmap ✅
+- Static fallback nodes for Pro users when AI is unavailable ✅
+- Critical Broken Code Audit: identified all stuck loading states and unhandled failures ✅
+- Full try/catch/finally pass: `runOptimize`, `runExplore`, `runAnalysis`, cancel flow ✅
+- Error boundaries: `app/error.tsx` and `app/global-error.tsx` (Next.js 16.2 `unstable_retry`) ✅
+- Career path prompt improvements: field/stage label expansion, simplified JSON schema ✅
 
-**Week 2 Checkpoint**: Friday, May 15 — run pen test before closing
+---
 
-### Week 3 — Mobile Design + Build (May 16 – 22)
-**Theme**: Most traffic is mobile. This is the heaviest week.
+> **May 23–29 — Functional Stability Sprint (Claude Design blocked until May 30)**
+> No major visual changes until May 30. Focus: backend stability, security hardening, reliability.
 
-**Tasks**:
-- Full mobile-responsive pass (single column + bottom nav)
-- Tracker kanban → vertical stack
-- Job detail page reflow
-- Touch targets, font sizes, safe-area handling
+### Tuesday, May 26 — ✅ Complete
+- `lib/rate-limit.ts`: dual IP + user-ID gates on all AI routes, Stripe endpoints, resume upload, and promo redeem ✅
+- Promo code TOCTOU: atomic Supabase RPC `redeem_promo_code` with `SELECT ... FOR UPDATE` row lock; migration applied ✅
+- Stripe webhook deduplication: `stripe_events` table with PK insert — replayed events return 200 without re-writing; migration applied ✅
+- Security audit — 4 confirmed findings fixed (tracker upsert, restore PATCH filter, `discount_offers_used` optimistic locks in save-offer + cancel-subscription) ✅
+- Stripe coupon IDs verified in dashboard; webhook edge case fixed (`cancel_at_period_end: false` on portal reactivation; `'cancelled'` → `'canceling'` status alignment) ✅
+- Internal job cache layer: `job_cache` table extended with `expires_at` (7-day TTL); quality threshold (≥ 8 jobs scoring ≥ 55 before cache accepted); `?refresh=1` force-bypass; ↻ Refresh button in job feed UI; migration applied ✅
 
-**Week 3 Checkpoint**: Friday, May 22 — run pen test before closing
+### Wednesday, May 27 — Partially complete
+- Email notification backend built: `/api/admin/send-launch-emails` route, `waitlist` `tier` + `notified_at` columns, migration written ✅
+- ⏳ **Blocked**: Resend DNS propagation delay (GoDaddy) — launch blast deferred to May 30
+- Security pass (CSRF headers, `Secure` flag, RLS audit on `profiles`/`resumes`/`tracker`) — not started, carrying to May 30
 
-### Week 4 — Onboarding + Polish (May 23 – 29)
-**Theme**: First impressions matter.
+### Thursday, May 28 — ✅ Complete (social media content focus)
+- Social media content creation in Canva (primary focus all day) ✅
+  - Created first Instagram Reel cover ("Your Story — fitted." format)
+  - Built quote carousels and definition carousels for multiple content types
+  - Refined SE (Something Educational) carousel format
+  - Developed Vibe Templates for aesthetic consistency across the content calendar
+  - Planned post-launch CTA adjustments for the June 7–13 window
+- Mobile testing pass — not done, carrying to May 30
+- Empty state audit — not done, carrying to May 30
+- Copy pass — not done, carrying to May 30
 
-**Tasks**:
-- Welcome modal → guided onboarding flow
-- Interactive tour (custom, not third-party)
-- Empty states for every screen
-- Smart defaults based on quiz
-- Onboarding email sequence (nice-to-have)
+### Friday, May 29 — ✅ Complete (technical + color system)
+- Full new-user flow smoke test ✅
+- Full Pro user flow smoke test ✅
+- Bug log review + 8 bugs fixed ✅ (see Known Issues log for full list)
+- Continued social media asset creation in Canva ✅
+- Full app color system cleanup ✅
+  - Replaced all 112 legacy blue (`#2d5be3`) tokens with navy (`#2f3e5c`) across Home, Quiz, Auth, Optimize, Resume Health, Explore, Job Detail, and email template
+  - Updated all `rgba(45,91,227,...)` opacity variants to `rgba(47,62,92,...)`
+  - Updated light tint `#eaeffe` → `#e8edf5` (natural navy tint)
+  - Applied `#5171bf` accent to score indicators, wordmark dots, and animated loading states
+  - Applied `#a86347` clay to the "You're in." welcome celebration dot
+  - Verified wordmark dot consistency across all pages (matches landing page `--blue`)
+- Updated launch plan tracking ✅
+- Mobile testing pass — not done, carrying to May 30
+- Empty state audit — not done, carrying to May 30
+- Copy pass — not done, carrying to May 30
 
-**Week 4 Checkpoint**: Friday, May 29
+> No work May 30–31. Resuming June 1. **Open items carried forward:** mobile testing pass, empty state audit, copy pass, design system (typography + spacing), security pass, email blast (DNS pending), resume upload bug, pricing page.
 
-### Week 5 — Beta + Domain + Demo Account (May 30 – June 5)
-**Theme**: Real users, real feedback, and partner-ready assets.
+---
 
-**Tasks**:
-- Distribute beta promo codes
-- Point custom domain at Vercel
-- Monitor logs and fix issues in real time
-- Gather structured feedback
-- **Create dedicated demo account** (clean, realistic sample data, fully locked down) for videos and partner presentations (SLED, colleges, military transition organizations)
+## Open Items — Must Close Before Launch
 
-**Week 5 Checkpoint**: Friday, June 5
+| Item | Priority | Notes |
+|---|---|---|
+| Design system integration (typography, spacing, components) | 🔴 Must | Claude Design files available — color tokens done, rest is not |
+| Resume upload bug (Claude API 401 — PDFs fail) | 🔴 Must | Core feature broken; needs investigation before launch |
+| Mobile testing pass + fix issues | 🔴 Must | Primary audience is mobile; not done yet |
+| Empty state audit + fixes | 🔴 Must | Users hit empty states immediately |
+| Copy pass (error messages, empty states, onboarding) | 🔴 Must | Tone matters for this demographic |
+| Pricing page (Free tier must look valuable) | 🔴 Must | Required for conversion |
+| Email blast to waitlist | 🔴 Must | Once Resend DNS resolves — check dashboard |
+| Security pass (CSRF headers, `Secure` cookie, RLS audit) | 🔴 Must | Legal/ethical requirement |
+| Full regression smoke test | 🔴 Must | Final pass before launch |
+| Social content finalization + scheduling | 🟡 Nice | Assets exist; need final review + scheduling for June 7 |
+| Animations / micro-interactions | 🟡 Nice | Only if time permits after must-haves |
+| Auth redirect for logged-in users hitting `/` or `/auth` | 🟡 Nice | Minor UX gap, not a blocker |
+| `runNegotiate` done-ref guard | 🟡 Nice | Edge case, low user impact |
 
-### Week 6 — Public Surface + Launch Prep (June 6 – 12)
-**Theme**: Everything a stranger sees before signing up.
+---
 
-**Tasks**:
-- Marketing landing page (sophisticated, matches in-app aesthetic)
-- SEO basics + OG images
-- Final end-to-end QA as a new user
-- Prepare launch-day social content
-- **Launch social media campaign 2 weeks early (starting May 30)**: Instagram primary (premium, thoughtful tone), TikTok/YouTube Shorts secondary. Use Notion content calendar.
-- **Finalize and announce Founding Members (First 100) & Early Access (Next 100) program**:
-  - **Founding Members (First 100)**: 50% off first month + Early Access perks
-  - **Early Access (Next 100)**: 25% off first month
-  - **Suggested Perks** (finalize these): priority job matching, exclusive career webinars, dedicated support, early feature access, invite-only community, personalized onboarding call
+## June 1–14 Sprint — 13 Days to Launch
 
-**Week 6 Checkpoint**: Thursday, June 11
+### Monday, June 1 — **Today**
+**Design system integration** *(Claude Design files available — this is the biggest visual gap)*
+- Download new Claude Design files
+- Apply typography updates across internal pages (font choices, weight, size refinements)
+- Apply spacing + layout updates (padding, card proportions, component structure)
+- Color tokens already done — focus on what requires the design files
 
-**🚀 Launch**: Saturday, June 13, 2026
+**Resume upload bug investigation**
+- Diagnose Claude API 401 on `/api/resume` — likely an `ANTHROPIC_API_KEY` env var issue
+- Fix and verify PDF text extraction works end-to-end
 
-**Week 7 — Buffer** (June 13 – 20, only if needed)
+### Tuesday, June 2 — Mobile testing + empty states
+- Mobile testing pass: Home, Quiz, Job Detail, Optimize, Resume Health at 375px + 430px
+- Fix every layout break, overflow, or unreadable element found
+- Empty state audit: every user-reachable path that shows blank/undefined content
+- Fix critical empty states (no resume, no jobs, no tracker items, no search results)
+
+### Wednesday, June 3 — Copy + email blast
+- Copy pass: error messages, empty states, onboarding flow, Pro upsell copy
+- Confirm Resend DNS status (check dashboard → Domains → MX/SPF/DKIM)
+- If DNS verified: `POST /api/admin/send-launch-emails?dry_run=1` to preview, then send
+- Requires `RESEND_API_KEY` and `ADMIN_SECRET` in `.env.local`
+
+### Thursday, June 4 — Security + pricing
+- Security pass: CSRF headers, `Secure` cookie flag, RLS audit on `profiles`, `resumes`, `tracker`
+- Pricing page: Free tier must look genuinely valuable; clear comparison with Pro/Premium
+- Final review of social content from Canva (May 28–29) — confirm all assets are ready for June 7
+
+### Friday, June 5 — Regression + bug bash
+- Full smoke test: new-user flow, Pro checkout, cancel/save flow, job feed, all AI features
+- Fix every issue found — this is the last "fix" day before soft launch week
+- Performance check: page load, API response times on mobile connection
+
+### Saturday, June 6 — Buffer + launch prep
+- Clear any remaining bugs from June 5
+- Schedule June 7–13 social posts in whatever scheduling tool you're using
+- Verify production env: all env vars set, Stripe webhook registered, Supabase RLS confirmed
+- Final read-through of landing page copy
+
+### Sunday, June 7 — **First social posts go live**
+- Post Day 1 content (Reel + carousel per content calendar)
+- Monitor for any production issues
+- Light bug fixes only — no major changes this week
+
+### Monday, June 8 — Soft launch (friends + beta)
+- Share with a small group of real users from the target demographic
+- Watch for friction points, broken flows, tone issues
+- Collect feedback — prioritize by severity
+
+### Tuesday, June 9 — Beta bug fixes
+- Fix anything critical surfaced from June 8 testing
+- Final QA pass on mobile (real device if possible)
+
+### Wednesday, June 10 — Launch announcement prep
+- Write and schedule launch announcement email (separate from waitlist blast)
+- Prepare any launch-day social content that's still needed
+- Final check on Stripe, Supabase, Vercel — all systems green
+
+### Thursday, June 11 — Buffer
+- Fix any last-minute issues
+- Rest
+
+### Friday, June 12 — Buffer
+- Final checks only — no new features
+
+### Saturday, June 13 — Rest day
+- Verify one more time: sign-up flow, checkout, job feed
+- Confirm social posts are scheduled
+
+### **Sunday, June 14 — 🚀 LAUNCH DAY**
+
+---
 
 ## Bonus Tasks (Extra Time / Usage)
-
-These are high-value features we can tackle when main weekly goals are complete and usage remains.
 
 **High Priority**
 - ✅ Intelligent Natural Language Search Bar (with role suggestions and negative prompts)
 - ✅ Per-Job Resume Optimization + Before/After comparison
 - ✅ Resume Health Score + Candid "fitted. thinks" Insights
-- Final polish and deployment of coming-soon.html landing page to getfittedcareers.com (with proper Vercel config)
+- Final polish and deployment of coming-soon.html landing page to getfittedcareers.com
 
 **Medium-High Priority**
-- Improved Career Transition Intelligence: Add smart tags ("Realistic Stretch", "Good Next Step", "Ambitious Move") and better suggestions for users changing fields. Make recommendations feel like a thoughtful career coach instead of purely algorithmic.
+- Career Transition Intelligence tuned for women returners and career changers: smart tags ("Realistic Stretch", "Good Next Step", "Ambitious Move"), transitions that account for life gaps, not just linear career paths
 
 **Medium Priority**
 - ✅ Personal Career Coach Mode (memory, proactive nudges, continuous learning across sessions)
 - ✅ Job-specific Interview Prep Generator
-- ✅ Salary Negotiation Scripts (personalized)
-- ✅ AI Preferences toggles in Account modal (users can control auto-generation per feature)
-- Better About Me Editor: Expand to a large modal/popup textarea when editing, with autosave or clear Save button. Fix small-box scrolling frustration.
-- Social media content templates + posting calendar (using fitted. design system)
+- ✅ Salary Negotiation Scripts (personalized — especially important for the gender pay gap context)
+- ✅ AI Preferences toggles in Account modal
+- Values-fit filtering: let users flag what matters (flexibility, mission, pay equity, parental leave policies)
 
 **Lower Priority (Nice-to-Haves)**
 - Role Explorer ("What Could I Do?" suggestions)
@@ -206,17 +306,53 @@ These are high-value features we can tackle when main weekly goals are complete 
 - **Prepare one-pager:** product vision, how heavily we use Claude (search, resume optimization, coach mode, health score, etc.), traction metrics
 - **Timing:** 4–8 weeks after public launch (June/July 2026)
 
+### Target Partnerships (women-focused)
+- Women's professional networks (Elpha, Chief, Lean In chapters)
+- University women in business / STEM clubs
+- Return-to-work programs (Path Forward, iRelaunch, Après)
+- Military spouse transition organizations
+
 ---
 
-## Cross-Cutting Concerns (tracked every week)
+## Cross-Cutting Concerns
 
-- **Airtight Security & Compliance** (highest priority): Protect user data, API keys, secret codes, promo codes, and demo accounts at all times. No one can hack in, steal info, or get free codes. Regular OWASP audits, key rotation, and security reviews in every phase.
-- **Friday penetration test (every week, no exceptions)**: At the end of each Friday checkpoint, run a full black-hat hacker audit on the current codebase. Cover: auth bypasses, IDOR, RLS gaps, payment manipulation, promo abuse, injection, rate-limit bypasses, key exposure, and any new attack surface introduced that week. Report findings with severity. Fix criticals before closing the week.
-- **Stripe integration**: Currently in Phase 3 of Week 1
-- **Design system enforcement**: Replace #2d5be3 blue with #2f3e5c navy everywhere
-- **Mobile responsiveness**: Heavy focus in Week 3
-- **Social launch readiness**: Content calendar in Notion
-- **Beta feedback loop**: Starts Week 5
+- **Airtight Security & Compliance** (highest priority): Protect user data, API keys, secret codes, promo codes, and demo accounts at all times. Regular OWASP audits, key rotation, and security reviews every sprint.
+- **Penetration test before any major deploy**: Auth bypasses, IDOR, RLS gaps, payment manipulation, promo abuse, injection, rate-limit bypasses, key exposure. Report findings with severity. Fix criticals before shipping.
+- **Design system enforcement**: Color tokens complete (May 29) — #2d5be3 → #2f3e5c navy, #5171bf accents, #a86347 clay. Typography + spacing integration pending (June 1)
+- **Mobile responsiveness**: Primary target is mobile — most of the 22–35 demographic lives on their phone
+- **Tone enforcement**: Warm, direct, never condescending. Does not assume the user is applying to be CEO. Does not assume she has no gaps.
+- **Social launch readiness**: Content calendar — Instagram primary, TikTok/Shorts secondary. Women-focused career content starting Week 1 of sprint.
+- **Beta feedback loop**: Friends + target demographic starting June 8
+
+---
+
+## Known Issues & Bugs (Running List)
+
+**Date** | **Issue** | **Status** | **Notes**
+--- | --- | --- | ---
+2026-05-29 | Landing page / auth page have no redirect for already-authenticated users | **Open** | Logged-in users who navigate to `/` or `/auth` see the marketing page instead of being sent to `/home`. Minor — most users arrive from bookmarks or direct links.
+2026-05-29 | Resume upload silently swallows all errors (401, 429, 500) | **Open** | `catch { /* silent */ }` in upload handler — user sees spinner disappear with no feedback on failure. Needs toast for 401/429.
+2026-05-29 | `parsePaste` (paste-a-job) can fire duplicate requests on rapid double-click | **Open** | No guard against concurrent calls — both set `parsing=true` within React batching window. Low frequency edge case; add `parsingRef` before beta.
+2026-05-29 | In-memory rate limiter resets on Vercel cold starts | **Open** | Each serverless instance gets a fresh map; brute force across cold starts bypasses the cap. Known limitation — Upstash Redis rate limiting needed before scale.
+2026-05-29 | `runNegotiate` (salary negotiation) has no done-ref guard | **Open** | Unlike all other AI functions, repeated clicks fire concurrent Anthropic requests. Button re-enables after loading clears.
+2026-05-29 | Webhook `invoice.payment_succeeded` hardcoded `plan: 'pro'` | **Fixed** | Silently downgraded Premium users on every renewal. Now reads existing plan and preserves `'premium'` tier.
+2026-05-29 | Cancel and save-offer routes blocked Premium users from cancelling | **Fixed** | `plan !== 'pro'` check returned 400 for Premium subscribers. Updated to allow `'pro' || 'premium'`.
+2026-05-29 | Career path `fieldLabel` used wrong 2-letter abbreviation codes | **Fixed** | Field values stored as full words (`'marketing'`, `'engineering'`, etc.) — abbreviation checks always fell through to raw field string, sending lowercase labels to AI prompt.
+2026-05-29 | Quiz "Skip" link sent users to landing page (`/`) instead of `/home` | **Fixed** | `href="/"` → `href="/home"` 
+2026-05-29 | `refreshJobs` missing try/finally — spinner stuck on malformed API response | **Fixed** | Added try/finally; `.json()` call now also has `.catch(() => ({}))` fallback.
+2026-05-29 | `runInterviewPrep` set `prepAIDone.current = true` before the guard check | **Fixed** | Added `if (prepAIDone.current) return` guard at top, consistent with all other AI functions.
+2026-05-29 | "Download tailored resume" button had no onClick — silent dead button | **Fixed** | Marked disabled with "coming soon" style and tooltip until feature is implemented.
+2026-05-29 | Auth route `error_description` checked twice in fallback chain | **Fixed** | Removed duplicate; also dropped raw `data.error` machine code from user-visible message.
+2026-05-22 | React hooks violation in TView (useState called conditionally inside Home) | **Fixed** | Extracted TView as standalone component before Home; trash/drag state is now unconditional
+2026-05-07 | PWA home screen icon doesn't match the elegant "f." shown on landing page | **Unfixed** | Current icon has sizing/positioning issues. Needs precise match to mockup.
+2026-05-05 | Match scoring too punitive for career changers | **Open** | Scores often 68% or lower even for realistic transitions. Need better directional intelligence — especially critical for returners and career changers in new demographic focus.
+2026-05-05 | Resume uploads failing (POST /api/resume returns 400) | **Unfixed** | Claude API returns 401 "invalid x-api-key". PDFs fail to extract text.
+2026-05-01 | Adzuna API replaced with Fantastic.jobs (Active Jobs DB) | **Fixed** | Migrated to RapidAPI active-jobs-db; 2-hour Supabase cache; US-prioritized filtering; title-level field relevance post-filter.
+2026-05-07 | `useSearchParams()` Suspense error on `/optimize` and `/resume-health` | **Fixed** | Wrapped in `<Suspense>` — pages now build as static.
+2026-05-01 | coming-soon.html landing page not live on getfittedcareers.com | **Fixed** | Moved rewrite to `next.config.ts` `beforeFiles`.
+<!-- Add new issues above this line, newest first -->
+
+---
 
 ## Daily Progress Log (append-only – do not rewrite)
 
@@ -239,184 +375,204 @@ These are high-value features we can tackle when main weekly goals are complete 
   - ✅ Webhook signature verified via `stripe.webhooks.constructEvent` before any DB writes  
   - ✅ All payment endpoints require cookie auth (`getUserFromCookie`) — no unauthenticated writes  
   - ✅ Checkout session ownership verified via `session.client_reference_id === uid` (403 on mismatch)  
-  - 🔧 **Fixed**: GET verification handler was reading `type` from the URL query string (user-controlled). Changed to read from `session.metadata.type` (server-set at session creation) — prevents a paid `resume_slot` session being replayed as `pro_extension`  
-  - 🔧 **Fixed**: `/api/redeem` was writing `plan: 'pro'` using the user's own JWT + anon key. Any user with knowledge of the PostgREST API could escalate their own plan without a code. Changed both the promo code lookup and the profile write to use the service role key  
-  - ⚠️ **Known gap — promo TOCTOU**: `used_count` check and increment are two separate REST calls with no atomic transaction. Low risk at current traffic, but a Supabase RPC (`redeem_promo_code`) with a `WHERE used_count < max_uses` guard would close it before heavy scale  
-  - ⚠️ **Known gap — no server-side rate limiting**: promo code endpoint, save-offer, and cancel can be called rapidly. Vercel's built-in DDoS protection covers abuse at the infra level; add Upstash Redis rate limiting before beta launch (Week 5)  
-  - ⚠️ **Known gap — `STRIPE_EXTENSION_PRICE_ID` is empty in `.env.local`**: extension checkout will return "not available yet" until price is created in Stripe dashboard and env var is populated  
+  - 🔧 **Fixed**: GET verification handler was reading `type` from the URL query string (user-controlled). Changed to read from `session.metadata.type` (server-set at session creation)  
+  - 🔧 **Fixed**: `/api/redeem` was writing `plan: 'pro'` using the user's own JWT + anon key. Changed both the promo code lookup and the profile write to use the service role key  
+  - ⚠️ **Known gap — promo TOCTOU**: `used_count` check and increment are two separate REST calls. Low risk at current traffic; Supabase RPC fix deferred.  
+  - ⚠️ **Known gap — no server-side rate limiting**: promo code endpoint, save-offer, and cancel can be called rapidly. Add Upstash Redis rate limiting before beta.  
+  - ⚠️ **Known gap — `STRIPE_EXTENSION_PRICE_ID` is empty in `.env.local`**: extension checkout will return "not available yet" until price is created in Stripe dashboard.  
 
-*(New entries added at end of each day via Claude Code ritual)*
+---
 
 **May 3, 2026** — Week 2 Day 1
 
 **Adzuna integration + caching layer**
 - `lib/adzuna.ts` — API client with field→category mapping, salary parsing, deterministic logo generation, job normalization to fitted. `Job` shape
-- `lib/score.ts` — Pure TS match scoring engine: field affinity (0–20) + keyword overlap (0–45) + pay fit (0–15) + seniority (0–10) + location (0–5) = 42–95 range; user-specific, computed fresh per request
-- `lib/static-jobs.ts` — 30-job server-safe fallback, no `'use client'`, all 10 fields × 3 jobs, LinkedIn fallback URLs
-- Supabase `job_cache` table — `(field, country)` primary key, 2-hour TTL, stores raw Adzuna jobs (scores excluded — user-specific)
-- `/api/jobs` — full pipeline: Supabase cache → Adzuna fetch → static fallback; parallel resume + cache fetch; scores injected at response time
-- `/api/jobs/[id]` — cache scan → static fallback → 404
-- ⏳ **Adzuna key activation**: Code complete — waiting on API key activation (retry tomorrow, May 4)
+- `lib/score.ts` — Pure TS match scoring engine: field affinity (0–20) + keyword overlap (0–45) + pay fit (0–15) + seniority (0–10) + location (0–5) = 42–95 range
+- `lib/static-jobs.ts` — 30-job server-safe fallback
+- Supabase `job_cache` table — `(field, country)` primary key, 2-hour TTL
+- `/api/jobs` — full pipeline: Supabase cache → Adzuna fetch → static fallback
+- ⏳ **Adzuna key activation**: Code complete — waiting on API key activation
 
 **Job feed UI improvements**
-- Skeleton loading cards (5 animated shimmer cards matching JC layout — replaces plain "Finding jobs…" text)
-- Differentiated empty states: "No jobs loaded yet" with profile CTA vs. "No jobs match this filter" with job count + clear button
-- Keyword search bar (free, all users) — live-filters title / company / location / tags with × clear
-- Seniority filter pills — Any level / Entry / Mid / Senior, title-based detection, purple accent
-- Match ring tooltip — native `title` attribute: "74% match — Strong fit / Good fit / Fair fit / Low fit"
+- Skeleton loading cards, differentiated empty states, keyword search bar, seniority filter pills, match ring tooltip
 
 **Job detail page**
-- Apply Now button in nav, header, and sidebar — opens `job.url` in new tab; graceful fallback text when URL absent
-- Save / Unsave toggle — ☆ Save → ★ Saved (amber) in nav; writes to Supabase `tracker` via `/api/tracker`; reflects saved state on page load; unsave soft-deletes entry
-- Feed star toggle — ★/☆ on feed cards now toggles (was add-only — clicking a saved job now removes it)
+- Apply Now button, Save/Unsave toggle, feed star toggle
 
-**Cancel / Save offer flow** (completed alongside Week 2 Day 1 work)
-- Cancel modal fully implemented: Intent → Checking → Offer (50% off) → Confirm → Cancelling
-- Animated dot spinner, × close button on all non-loading steps, calm non-desperate tone
-- "Manage subscription" and "Cancel subscription" removed from nav — consolidated into Account Settings modal only
-- Optimistic Pro badge update on cancel: `subscription_status: 'canceling'` reflected immediately
+**Cancel / Save offer flow**
+- Cancel modal fully implemented: Intent → Checking → Offer → Confirm → Cancelling
 
 ---
 
 **May 4, 2026** — Week 2 Day 2
 
 **Job detail page — live scoring + similar jobs**
-- `/api/jobs/[id]` now fetches user profile + active resume in parallel and runs `scoreJob()` before returning — job detail pages show real match % instead of 0%
-- Similar jobs sidebar wired: fetches `/api/jobs` in parallel on page load, shows top 3 matches excluding current job
-- Apply tracking: Apply Now buttons converted from `<a>` tags to buttons — clicking a saved job auto-moves tracker entry to "Applied" column via PATCH
+- `/api/jobs/[id]` now fetches user profile + active resume in parallel and runs `scoreJob()`
+- Similar jobs sidebar: fetches `/api/jobs` in parallel, shows top 3 matches
+- Apply tracking: Apply Now auto-moves tracker entry to "Applied"
 
 **Profile panel — career field + stage selectors**
-- New "Career" section at top of profile panel (above About me)
-- Career field dropdown: 10 options (Marketing, Sales, Tech, Creative, Healthcare, Legal, Engineering, Finance, HR, Nonprofit)
-- Career stage dropdown: 7 options (college, recent, working, senior, executive, changing, returning)
-- Field change triggers immediate job feed refresh; both fields update profile state optimistically for instant badge update
-- Feed header badge shows human-friendly field name ("Technology" not "tech")
+- Career field dropdown (10 options), career stage dropdown (7 options)
+- Field change triggers immediate job feed refresh
 
 **Scoring engine improvements**
-- Added `senior` and `executive` career stages → senior seniority bucket (fixes 10-year professionals scoring as mid-level)
-- Consistent `career_stage` default (`'working'`) across both job routes
+- `senior` and `executive` career stages now map to senior seniority bucket
 
 **Security (Day 2 audit pass)**
-- ✅ M-2 fixed: `job_id` in tracker POST now `encodeURIComponent`-encoded in PostgREST filter
-- ✅ Tracker PATCH, resumes PATCH/DELETE: `id` params encoded for defense-in-depth
-- ✅ M-3 fixed: `resume_text` bounded at 20,000 chars at upload; `name` validated ≤ 200 chars
-- ✅ Profile fields bounded at write time: `about_me` ≤ 2,000, `pay_target` ≤ 100, `locations` ≤ 10 × 100 chars
-- ⚠️ M-4 (JWT not revoked on sign-out) — deferred; requires Upstash Redis or Supabase token blacklist
-- ⚠️ TOCTOU promo race — still low risk at current traffic; Supabase RPC fix deferred to Week 5
-
-**Status**
-- ⏳ Adzuna key still at placeholder — retry with actual keys tomorrow (May 5)
-- Week 2 code tasks are functionally complete; pending live data validation with Adzuna
-
----
+- ✅ M-2, M-3 fixed: `job_id` encoded; `resume_text` bounded at 20,000 chars; profile fields bounded
 
 ---
 
 **May 5, 2026** — Week 2 Day 3
 
-**Data source transparency**
-- `/api/jobs` now returns `source: 'adzuna' | 'cache' | 'static'` (was always `'fresh'` on fallback — couldn't distinguish)
-- Feed header banner is source-aware: green "✦ Live jobs" for Adzuna/cache, muted grey "Sample jobs…" for static fallback
-
-**Pasted job scoring**
-- Pasted jobs now use real `scoreJob()` engine with user's active resume + profile context
-- `pasteText` passed as `description` (1200 chars) for meaningful keyword overlap — no more hardcoded 75%
-- Imported `scoreJob` from `lib/score` client-side (pure TS, no server env vars needed)
-
-**UX: setup nudge for new users**
-- Amber banner above feed when career_field or active resume is missing
-- Inline links: "Set your career field →" (opens Profile tab on mobile) and "upload a resume →" (triggers file input)
-- Hides automatically once both are set
-
-**Performance: lazy-load similar jobs on detail page**
-- Critical path (job + user/profile/resumes/tracker) stays at 5 parallel fetches — page renders immediately
-- `/api/jobs` fires as a 6th independent fetch and populates Similar roles sidebar when it resolves
-- Prevents Adzuna latency (up to ~2s) from blocking the entire detail page display
-
-**Adzuna error logging**
-- 401 response now logs activation hint + body snippet to server console
-- Successful fetch logs field + result count at the point of fetch
-
-**Status**
-- ⏳ Adzuna keys still at placeholder (`your_app_id_here`) — need real keys from developer.adzuna.com
-- All Week 2 code is complete and tested with static fallback
-- Ready for live validation once keys activate
+**Data source transparency**, **pasted job scoring**, **setup nudge for new users**, **lazy-load similar jobs on detail page**, **Adzuna error logging** — all shipped.
 
 ---
 
-**2026-05-06 — Week 2 Day 5 + Bonus Tasks sprint**
+**May 6, 2026** — Week 2 Day 5 + Bonus Tasks sprint
 
-**Main Work**
-- Enhanced job detail page: tracker status badges in header pill row, SVG arc match rings (replacing flat stat cards), similar jobs shimmer skeleton while loading
-- Improved tracker UX: meaningful empty state with "Browse jobs →" CTA, date added + 📝 notes dot on cards, logical smart move buttons (NEXT map: saved→[applied,phone], applied→[phone,interview], etc.)
-- Feed cards now show tracker column pills for jobs past "Saved" (applied, interview, offer, etc.)
+**Main Work**: Enhanced job detail page, improved tracker UX, feed card tracker pills.
 
 **Bonus Tasks Completed (7 total)**
-1. **Intelligent Natural Language Search Bar** — NLP query parsing via Claude Haiku; structured filters applied client-side; include/exclude pills; role suggestions; purple active state
-2. **Per-Job Resume Optimization** — `/optimize` page + `/api/optimize`; before/after suggestion cards; keyword analysis; Pro gate after 2 suggestions
-3. **Resume Health Score** — `/resume-health` page + `/api/resume-health`; 5-dimension scoring; A+–D− grade; "fitted. thinks" summary; blindspot cards with severity/fix; Pro gate
-4. **Personal Career Coach foundation** — `coach_memory` JSONB on profiles; `/api/coach` route; welcome-back nudge after 3-day absence (Haiku, 7-day dismiss cooldown); rolling summary updated every 5 actions; purple nudge banner in feed
-5. **Job-specific Interview Prep Generator** — "✦ Generate Interview Prep" on Prep tab; category-badged cards; "fitted. thinks" talking points (Pro); 8 questions Sonnet / 4 Haiku; per-answer feedback retained
-6. **Salary Negotiation Scripts** — "✦ Prepare My Negotiation" on Prep tab; target range callout; opening script + talking points + pushback responses; counter-offer + email template (Pro); blurred gate for Free
-7. **AI Preferences toggles** — 6 toggles in Account modal (Match Insights, Tailor, Stand Out, fitted. thinks, Interview Prep, Negotiate); saves to `ai_prefs` JSONB on profiles; job detail page respects all prefs; approximate AI activity counter for Pro
-
-**Bug fix**
-- Resume uploads (POST /api/resume): fixed PDF filename fallback (empty MIME + .pdf extension fell through extractText branches); added Claude API error logging
+1. Intelligent Natural Language Search Bar
+2. Per-Job Resume Optimization
+3. Resume Health Score
+4. Personal Career Coach foundation
+5. Job-specific Interview Prep Generator
+6. Salary Negotiation Scripts
+7. AI Preferences toggles
 
 ---
 
-**2026-05-07 — Week 3 Mobile Responsiveness (Day 1 + Day 2) + Coming Soon Deployment**
+**May 7, 2026** — Week 3 Mobile Responsiveness + Coming Soon Deployment
 
-**Week 3 Day 1 — Mobile Foundation**
-- Tracker board: vertical column stack on mobile (`flex-direction:column`), empty columns hidden (`tracker-col-empty` class + `display:none`)
-- Account modal: full bottom-sheet pattern on mobile (`align-items:flex-end`, `border-radius:20px 20px 0 0`, `max-height:92vh`, full-width)
-- Job detail page (`/jobs/[id]`): `jd-nav`, `jd-layout`, `jd-content`, `jd-sidebar` responsive classes; SVG arc rings grid → column on mobile; shimmer keyframe consolidated
-
-**Week 3 Day 2 — Polish + Remaining Pages**
-- Nav sidebar: `nav-subtitle`, `nav-divider`, `nav-search` hidden on mobile
-- Profile tab (RP): `rp-mob` class removes double-padding (main-feed already provides padding); `.rp-mob{padding:0!important}`
-- Resume upload zone redesigned: icon layout (`📄` + label + file type hint), `resume-upload-zone` class, cleaner tap target
-- Resume rows: clickable Health Score link integrated
-- Account button added to mobile Profile tab header (flex row with "My Resumes" heading)
-- Bottom nav: `minHeight:44` for proper touch targets
-- Upgrade modal: bottom-sheet on mobile (`up-overlay`/`up-card` classes)
-- Natural language search input: `nl-search-input` class
-- Job detail header polish: `jd-job-header`, `jd-job-title`, `jd-apply-btn` tighter sizing on mobile
-- Resume Health page: `rh-page`, `rh-score-card` classes; score card → column on mobile
-
-**Coming Soon Deployment**
-- `public/coming-soon.html` added — full landing page with countdown, marquee, features grid, PWA install guide
-- Root rewrite issue: `vercel.json` rewrites are overridden by Next.js routing manifest on Vercel framework deployments; fixed by moving rewrite to `next.config.ts` `beforeFiles` (runs inside Next.js router before app-directory lookup)
-
-**Vercel Build Fix**
-- Build error: `useSearchParams() should be wrapped in a suspense boundary at page "/optimize"` (same on `/resume-health`)
-- Fix: extracted component body into `OptimizeInner` / `ResumeHealthInner`; default export wraps in `<Suspense>` with loading fallback; both pages now build as `○ (Static)`
-
-**PWA Icons**
-- Created `public/icon.svg` — 512×512 dark bg (`#1a1a1f`), "f" in off-white Georgia serif (`#faf9f6`), "." in italic taupe (`#b8a99a`), rounded corners (`rx=114`)
-- Created `public/manifest.json` — name "fitted.", `theme_color`/`background_color` `#1a1a1f`, SVG icon reference
-- Added `<link rel="manifest">`, `<link rel="icon">`, `<link rel="apple-touch-icon">` to `coming-soon.html` head
-
-**Stripe Cancellation Save Flow (backend complete)**
-- `/api/stripe/cancel-subscription` — cancels at period end, marks `cancelled_at` in profiles
-- `/api/stripe/save-offer` — checks eligibility (monthly Pro, ≤2 prior offers), applies 50% coupon for 3 months
-- `/api/stripe/webhook` — handles `customer.subscription.updated` to sync cancel/reactivate state
-- Frontend modal (cancel → offer → confirm flow) not yet built — tracked in open plan
+- Tracker board: vertical stack on mobile, empty columns hidden
+- Account modal: full bottom-sheet pattern on mobile
+- Job detail page: responsive classes throughout
+- Nav sidebar, profile tab, resume upload zone, bottom nav — all mobile-polished
+- `public/coming-soon.html` deployed; rewrite moved to `next.config.ts` `beforeFiles`
+- Vercel build fix: `useSearchParams()` Suspense wrap on `/optimize` and `/resume-health`
+- PWA icons: `icon.svg` + `manifest.json` created
+- Stripe cancellation save flow backend complete
 
 ---
 
-## Known Issues & Bugs (Running List)
+**May 22, 2026** — Repositioning + Landing Page + Security Audit
 
-**Date** | **Issue** | **Status** | **Notes**
---- | --- | --- | ---
-2026-05-05 | Match scoring too punitive for career changers | **Open** | Scores often 68% or lower even for realistic transitions (e.g. retail/aerospace → marketing/partnerships/luxury brands/sponsorships). Need better "directional" intelligence with tags like "Realistic Stretch", "Good Transition Path".
-2026-05-05 | Resume uploads failing (POST /api/resume returns 400) | **Unfixed** | Claude API returns 401 "invalid x-api-key". PDFs fail to extract text.
-2026-05-01 | Adzuna API returns 400/401 errors | **Unfixed** | AUTH_FAIL or HTML error page. Still falling back to static jobs.
-2026-05-07 | `useSearchParams()` Suspense error on `/optimize` and `/resume-health` | **Fixed** | Wrapped in `<Suspense>` — pages now build as static. |
-2026-05-01 | coming-soon.html landing page not live on getfittedcareers.com | **Fixed** | Moved rewrite to `next.config.ts` `beforeFiles`; `vercel.json` insufficient for Next.js framework deployments on Vercel. |
-<!-- Add new issues above this line, newest first -->
+**Repositioning (morning)**: fitted. focused on **women aged 22–35** (early career, career changers, returners). Launch plan fully rewritten as a 22-day sprint to June 14.
+
+**Fantastic.jobs integration**:
+- Migrated job data from Adzuna → Fantastic.jobs (Active Jobs DB via RapidAPI)
+- Two-pass fetch system: strict (location-filtered, US-prioritized) + broader (7d window) fallback
+- Title-level field relevance post-filter: removes obvious off-field results before scoring
+- Match threshold raised 42 → 55; `allScoresLow` banner updated
+- Resume upload nudge suppressed when user has active resumes
+- Coach greeting replaced with static "Welcome back. Let's get you closer to the right next fit."
+- Textarea auto-grow fixed; React hooks violation fixed (TView extracted as standalone component)
+- Back button on /jobs/[id] changed to `router.back()` to preserve history stack
+
+**Landing page rebuild + polish**:
+- Hydration error fixed by extracting all inline `<style>` tags to `landing.css` (imported, not inline)
+- Hero vertically centered; top nav stripped to logo wordmark only; "Get Started" button no-wraps
+- Custom cursor implemented: clay-deep ring (`#a86347`) + dot on hover over interactive elements; `mix-blend-mode: difference`
+- Floating accessibility button (bottom-right FAB): Larger Text, High Contrast, Reduce Motion toggles; `localStorage` persistence; body class modifiers
+- Production transition confirmed: `vercel.json` is `{}` — unauthenticated users at `/` get full `app/page.tsx`
+
+**Onboarding quiz**:
+- Gender question (Q1) confirmed present: "How do you identify?" — Woman / Man / Non-binary / Prefer not to say
+- Female personas for woman/nonbinary/skip; male personas for man (`getDemoResume(field, gender)`)
+- `gender` confirmed on profile API allowlist
+
+**Tone consistency pass**:
+- Removed AI model names (Claude Sonnet/Haiku) from Pro upsell copy in explore page — users don't need infrastructure details
+- Quiz gender question copy neutralized: "We use this to load a more relevant demo resume — we'll never use it beyond that."
+
+**Security audit — 4 critical fixes**:
+- 🔧 `create-checkout` POST: removed `uid` from `success_url` — user ID was leaking into browser history, server logs, and referrer headers
+- 🔧 `create-checkout` GET: rewrote verification handler to authenticate from cookie instead of URL `uid` param; `session.client_reference_id` now verified against cookie user — closes trivial IDOR (any user could claim any payment)
+- 🔧 `webhook` catch block: changed from 200 to 500 — Stripe now retries on transient DB failures instead of silently swallowing the error
+- 🔧 `resumes` PATCH/DELETE: switched to `return=representation`, returns 404 if no rows matched — prevents silent no-ops on wrong/missing resume IDs
+
+**Known gaps (deferred post-launch)**:
+- ⚠️ Rate limiting on Stripe endpoints (no per-user cap on checkout/cancel/save-offer)
+- ⚠️ Webhook event deduplication (replayed events re-apply DB updates)
+- ⚠️ CSRF headers (currently relying on SameSite=lax only)
 
 ---
 
-**Last updated**: May 7, 2026  
-**Next checkpoint**: Friday, May 15 (Week 2 checkpoint)
+---
+
+**May 23, 2026** — Polish & Bug Sweep + End-to-End Verification
+
+- Mobile responsiveness verified on landing page (375px / 430px); cursor disabled on touch devices
+- Full sign-up → quiz → dashboard → job detail flow smoke-tested on fresh account
+- Welcome modal chip: now shows actual demo persona name (extracted from resumes state) instead of field abbreviation
+- Match tab: fixed flash of italic text by changing `matchAI` initial state from `''` to `null` (null = not-started, '' = failed)
+- Job detail loading state: upgraded from bare text to branded fitted. spinner
+- Disliked view: removed duplicate Delete button (was identical to Restore)
+- `runMatch()`, `generateCoverLetter()`, `getPrepFeedback()`: all now have try/catch with proper loading reset
+- End-to-end flow verification: all 5 checks passed (sign-up, quiz, dashboard, job detail, Pro gate)
+
+Critical Bug Sweep
+
+- Production console.log cleanup: removed 5 debug logs from `/api/jobs`
+- `redeem()`: added try/catch/finally — spinner no longer stuck on network failure
+- `savePr()`: added try/catch — "Saving…" indicator now always clears, shows "Save failed" on error
+- `addTracker()`: wrapped POST + re-fetch in try/catch — star state stays consistent on failure
+- `proceedToOffer()`: try/catch added — resets to `'intent'` step on failure
+- `applyOffer()`: try/catch added — resets to `'offer'` step on failure, profile re-fetch wrapped in `.catch()`
+- `confirmCancel()`: try/catch added — resets to `'confirm'` step on failure
+- `runOptimize()`, `runExplore()`, `runAnalysis()`: all wrapped in try/catch/finally — users no longer stuck on loading screen after network failure
+
+Career Path AI + Error Boundaries + Prompt Hardening
+
+- AI Career Path tab: replaced 5 hardcoded static nodes with AI-generated personalized roadmap
+  - Prompt sends career stage, field (with human-readable label), About Me, resume excerpt
+  - Returns JSON `{summary, nodes[{role, pay, insight}]}` — dots and stage labels assigned by position (not AI-generated)
+  - Static fallback renders if AI returns null — Pro users never see a blank screen
+  - Regenerate button resets `careerDone.current` and re-runs
+- Error boundaries added:
+  - `app/error.tsx`: catches crashes in any route, shows fitted.-branded "Try again / Go to dashboard" UI
+  - `app/global-error.tsx`: catches root layout crashes (per Next.js 16.2 `unstable_retry` convention)
+- Career path prompt hardened:
+  - Removed `dot` and `stage` from AI output schema (eliminates malformed-JSON failures)
+  - Added field/stage label expansion (AI gets "Marketing" not "MA")
+  - Explicit pay format rules, specific title guidance, 5-node structure enforcement
+- TypeScript: clean on all changes (0 errors, `--noEmit --skipLibCheck`)
+- Stripe flow assessment: all backend routes verified correct; two operational prerequisites flagged (coupon IDs must exist in Stripe; webhook endpoint must be registered)
+
+Security Audit + Backend Hardening (May 26 work pulled forward)
+
+- Comprehensive security audit: reviewed all API routes against OWASP top-10 patterns; dismissed several false positives (service-role key correctly gated by auth, GET returning empty for unauthenticated state is intentional)
+- `lib/rate-limit.ts` created: in-memory dual-gate rate limiter (IP + user-ID); applied to `/api/ai`, `/api/optimize`, `/api/resume-health`, `/api/explore`, `/api/resume`, `/api/redeem`, and all three Stripe endpoints
+- Promo TOCTOU: rewrote `/api/redeem` to call a single atomic Supabase RPC (`redeem_promo_code`) with `SELECT ... FOR UPDATE`; SQL migration written; Supabase applied ✅
+- Tracker upsert: replaced non-atomic check-then-PATCH+INSERT in `/api/tracker` POST with a single `resolution=merge-duplicates` upsert; unique constraint migration written and applied ✅
+- Optimistic locks: `discount_offers_used` increment in `save-offer` (apply action) and `cancel-subscription` now use conditional PATCH filtered on current counter value — concurrent requests get 409 / graceful fallback
+- Stripe webhook deduplication: `stripe_events` table with PK `event_id`; handler inserts before processing; duplicate delivery returns 200 immediately; transient DB error returns 500 (Stripe retries); 7-day lazy cleanup on each invocation; migration written and applied ✅
+- TypeScript: clean throughout (`tsc --noEmit` zero errors after each batch)
+
+*(New entries added at end of each day via Claude Code ritual)*
+
+---
+
+**May 29, 2026** — Smoke Test + Bug Log Review
+
+Full new-user and Pro-user flow smoke test completed (code review, not browser):
+
+**8 bugs fixed:**
+- 🔧 Webhook `invoice.payment_succeeded` hardcoded `plan: 'pro'` — silently downgraded Premium users on every renewal. Fixed to preserve existing plan tier.
+- 🔧 Cancel-subscription and save-offer routes returned 400 for Premium users — plan check updated to allow `'pro' || 'premium'`.
+- 🔧 Career path AI prompt received wrong field labels — stored values are full words (`'marketing'`) but ternary chain checked 2-letter codes (`'MA'`). Field label always fell through to the raw string.
+- 🔧 Quiz "Skip to dashboard" link pointed to `/` (landing page) instead of `/home`.
+- 🔧 `refreshJobs` missing `try/finally` — spinner got permanently stuck if `res.json()` threw.
+- 🔧 `runInterviewPrep` missing `if (prepAIDone.current) return` guard — inconsistent with all 4 other AI functions, allowing duplicate concurrent requests.
+- 🔧 "Download tailored resume" button had no `onClick` — silent dead button. Marked disabled with "coming soon" tooltip.
+- 🔧 Auth route `error_description` checked twice in fallback chain; raw machine error code `data.error` was the last fallback shown to users.
+
+**4 open issues logged (not blockers, defer to beta):**
+- Authenticated users hitting `/` or `/auth` see marketing page instead of being redirected to `/home`
+- Resume upload silently swallows 401/429/500 — no user feedback
+- `parsePaste` can fire duplicate AI requests on rapid double-click
+- `runNegotiate` missing done-ref guard (concurrent requests possible)
+
+TypeScript: 0 errors after all fixes.

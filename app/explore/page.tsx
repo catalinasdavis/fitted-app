@@ -27,13 +27,13 @@ interface Profile {
 
 function tagStyle(tag: Role['tag']): { bg: string; color: string } {
   if (tag === 'Natural Next Step')   return { bg: '#e6f5ed', color: '#1a7a4a' }
-  if (tag === 'Good Transition Path') return { bg: '#eaeffe', color: '#2d5be3' }
+  if (tag === 'Good Transition Path') return { bg: '#e8edf5', color: '#2f3e5c' }
   return { bg: '#fdf3e3', color: '#b8750a' }
 }
 
 function mc(n: number) {
   if (n >= 74) return '#1a7a4a'
-  if (n >= 62) return '#2d5be3'
+  if (n >= 62) return '#5171bf'
   return '#b8750a'
 }
 
@@ -110,15 +110,21 @@ function ExploreInner() {
   async function runExplore() {
     if (query.trim().length < 10) { setError('Add a bit more about your background or what you want to explore.'); return }
     setStep('loading'); setError(''); startMsgs()
-    const res = await fetch('/api/explore', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: query.trim() }),
-    })
-    stopMsgs()
-    const data = await res.json()
-    if (!res.ok || data.error) { setError(data.error || 'Something went wrong.'); setStep('setup'); return }
-    setResult(data); setStep('results')
+    try {
+      const res = await fetch('/api/explore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: query.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) { setError(data.error || 'Something went wrong.'); setStep('setup'); return }
+      setResult(data); setStep('results')
+    } catch {
+      setError('Could not connect. Please check your connection and try again.')
+      setStep('setup')
+    } finally {
+      stopMsgs()
+    }
   }
 
   function goSearch(searchQuery: string) {
@@ -150,7 +156,7 @@ function ExploreInner() {
       <nav style={{ height: 56, background: '#fff', borderBottom: '1px solid rgba(0,0,0,.07)', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 14 }}>
         <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#7a7a85', cursor: 'pointer', fontSize: 13, fontFamily: 'sans-serif', padding: 0 }}>← Back</button>
         <div style={{ width: 1, height: 28, background: 'rgba(0,0,0,.1)' }} />
-        <span style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a1f', letterSpacing: '-.02em' }}>fitted<span style={{ color: '#2d5be3' }}>.</span></span>
+        <span style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a1f', letterSpacing: '-.02em' }}>fitted<span style={{ color: '#5171bf' }}>.</span></span>
         <span style={{ fontSize: 13, color: '#b0b0b8' }}>/ Role Explorer</span>
       </nav>
 
@@ -164,8 +170,8 @@ function ExploreInner() {
                 What could you do?
               </h1>
               <p style={{ fontSize: 14, color: '#7a7a85', lineHeight: 1.6, maxWidth: 520 }}>
-                Describe your background, what you're good at, or what you want to do next.
-                fitted. will map realistic career paths with honest fit scores.
+                Tell fitted. where you've been and where you want to go.
+                It'll show you what's realistic, what's a stretch, and what's genuinely within reach.
               </p>
             </div>
 
@@ -176,7 +182,7 @@ function ExploreInner() {
               <textarea
                 value={query}
                 onChange={e => { setQuery(e.target.value); setError('') }}
-                placeholder="e.g. I've spent 4 years in retail management and I'm good with people and operations, but I want to move into a more analytical role or something in tech. Open to anything realistic."
+                placeholder="e.g. I spent 3 years in marketing before taking a year off. Now I want to pivot into product or UX. Strong writer, comfortable with data, no technical background. What's realistic?"
                 rows={5}
                 maxLength={1200}
                 style={{ width: '100%', border: '1.5px solid rgba(0,0,0,.12)', borderRadius: 8, padding: '12px 14px', fontSize: 14, color: '#1a1a1f', fontFamily: 'sans-serif', resize: 'vertical', lineHeight: 1.6, outline: 'none', background: '#fdfcfb', boxSizing: 'border-box' }}
@@ -202,7 +208,7 @@ function ExploreInner() {
             <button
               onClick={runExplore}
               disabled={query.trim().length < 10}
-              style={{ background: '#2d5be3', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 28px', fontSize: 14, fontWeight: 600, cursor: query.trim().length < 10 ? 'not-allowed' : 'pointer', fontFamily: 'sans-serif', opacity: query.trim().length < 10 ? .5 : 1, transition: 'opacity .15s' }}
+              style={{ background: '#2f3e5c', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 28px', fontSize: 14, fontWeight: 600, cursor: query.trim().length < 10 ? 'not-allowed' : 'pointer', fontFamily: 'sans-serif', opacity: query.trim().length < 10 ? .5 : 1, transition: 'opacity .15s' }}
             >
               ✦ Explore career paths
             </button>
@@ -212,7 +218,7 @@ function ExploreInner() {
         {/* Loading */}
         {step === 'loading' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 320, gap: 18 }}>
-            <div style={{ width: 32, height: 32, border: '3px solid rgba(45,91,227,.15)', borderTop: '3px solid #2d5be3', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+            <div style={{ width: 32, height: 32, border: '3px solid rgba(47,62,92,.15)', borderTop: '3px solid #2f3e5c', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
             <p style={{ fontSize: 14, color: '#7a7a85', animation: 'pulse 2s ease infinite' }}>{loadMsg}</p>
           </div>
         )}
@@ -296,7 +302,7 @@ function ExploreInner() {
                     {/* CTA */}
                     <button
                       onClick={() => goSearch(role.searchQuery)}
-                      style={{ marginTop: 'auto', background: '#f4f2ed', color: '#2d5be3', border: '1px solid rgba(45,91,227,.2)', borderRadius: 8, padding: '8px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}
+                      style={{ marginTop: 'auto', background: '#f4f2ed', color: '#2f3e5c', border: '1px solid rgba(47,62,92,.2)', borderRadius: 8, padding: '8px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}
                     >
                       <span>Search "{role.searchQuery}" jobs</span>
                       <span>→</span>
@@ -311,7 +317,7 @@ function ExploreInner() {
               <div style={{ marginTop: 20, background: 'rgba(124,92,191,0.06)', border: '1px solid rgba(124,92,191,0.2)', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                 <div style={{ flex: 1 }}>
                   <span style={{ fontSize: 13, color: '#5a3a7a', fontWeight: 600 }}>Get 2 more roles + richer insights</span>
-                  <span style={{ fontSize: 12.5, color: '#7c5cbf', display: 'block', marginTop: 2 }}>Pro runs 6 paths with deeper skill analysis and uses Claude Sonnet instead of Haiku.</span>
+                  <span style={{ fontSize: 12.5, color: '#7c5cbf', display: 'block', marginTop: 2 }}>Pro runs 6 paths with deeper skill analysis and more thorough role assessments.</span>
                 </div>
                 <button onClick={() => router.push('/')} style={{ background: '#7c5cbf', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'sans-serif', flexShrink: 0 }}>
                   Upgrade to Pro

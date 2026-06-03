@@ -75,16 +75,20 @@ export async function PATCH(request: NextRequest) {
   if (name !== undefined) payload.name = name
   if (is_active !== undefined) payload.is_active = is_active
 
-  await fetch(`${SUPABASE_URL}/rest/v1/resumes?id=eq.${encodeURIComponent(id)}&user_id=eq.${user.id}`, {
+  const patchRes = await fetch(`${SUPABASE_URL}/rest/v1/resumes?id=eq.${encodeURIComponent(id)}&user_id=eq.${user.id}`, {
     method: 'PATCH',
     headers: {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
-      'Prefer': 'return=minimal',
+      'Prefer': 'return=representation',
     },
     body: JSON.stringify(payload),
   })
+  const patchData = await patchRes.json()
+  if (!Array.isArray(patchData) || patchData.length === 0) {
+    return NextResponse.json({ error: 'Resume not found' }, { status: 404 })
+  }
   return NextResponse.json({ success: true })
 }
 
@@ -97,9 +101,13 @@ export async function DELETE(request: NextRequest) {
   const { id } = await request.json()
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
-  await fetch(`${SUPABASE_URL}/rest/v1/resumes?id=eq.${encodeURIComponent(id)}&user_id=eq.${user.id}`, {
+  const deleteRes = await fetch(`${SUPABASE_URL}/rest/v1/resumes?id=eq.${encodeURIComponent(id)}&user_id=eq.${user.id}`, {
     method: 'DELETE',
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` },
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Prefer': 'return=representation' },
   })
+  const deleteData = await deleteRes.json()
+  if (!Array.isArray(deleteData) || deleteData.length === 0) {
+    return NextResponse.json({ error: 'Resume not found' }, { status: 404 })
+  }
   return NextResponse.json({ success: true })
 }

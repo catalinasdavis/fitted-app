@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit } from '../../../../lib/rate-limit'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-03-25.dahlia',
@@ -43,6 +44,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
     }
 
+    const { allowed, retryAfterSecs } = rateLimit('checkout-user', user.id, 10, 60 * 60 * 1000)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many checkout requests. Please wait before trying again.' },
+        { status: 429, headers: { 'Retry-After': String(retryAfterSecs) } }
+      )
+    }
+
     if (type === 'portal') {
       const admin = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY)
       const { data: profile } = await admin
@@ -80,7 +89,7 @@ export async function POST(request: NextRequest) {
       customer_email: user.email,
       client_reference_id: user.id,
       metadata: { userId: user.id, type },
-      success_url: `${APP_URL}/?payment=success&type=${type}&session_id={CHECKOUT_SESSION_ID}&uid=${user.id}`,
+      success_url: `${APP_URL}/?payment=success&type=${type}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${APP_URL}/?payment=cancelled`,
       // Promo codes only on subscription plans — extension is already discounted
       allow_promotion_codes: isSubscription,
@@ -100,13 +109,15 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const sessionId = searchParams.get('session_id')
-    const uid       = searchParams.get('uid')
 
-    console.log('[Stripe GET] verification request:', { sessionId, uid })
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Missing session_id' }, { status: 400 })
+    }
 
-    if (!sessionId || !uid) {
-      console.log('[Stripe GET] missing params')
-      return NextResponse.json({ error: 'Missing params' }, { status: 400 })
+    // Authenticate from cookie — never trust URL params for identity
+    const user = await getUserFromCookie(request)
+    if (!user?.id) {
+      return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
     }
 
     const session = await stripe.checkout.sessions.retrieve(sessionId)
@@ -116,12 +127,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Payment not completed' }, { status: 400 })
     }
 
-    if (session.client_reference_id !== uid) {
+    // Verify the session belongs to the authenticated user
+    if (session.client_reference_id !== user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
     // Read type from server-set metadata — never trust the URL parameter
     const type = session.metadata?.type
+    const uid  = user.id
 
     const admin = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY)
 

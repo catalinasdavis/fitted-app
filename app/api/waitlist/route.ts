@@ -68,5 +68,12 @@ export async function POST(req: NextRequest) {
 
   const tier = total <= 100 ? 'founding' : total <= 200 ? 'early' : 'standard'
 
+  // Persist tier so the launch email blast can look it up later without re-deriving it.
+  await fetch(`${SUPABASE_URL}/rest/v1/waitlist?email=eq.${encodeURIComponent(email)}`, {
+    method: 'PATCH',
+    headers: { ...serviceHeaders, 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ tier }),
+  })
+
   return NextResponse.json({ success: true, position: total, tier })
 }

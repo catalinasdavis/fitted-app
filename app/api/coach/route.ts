@@ -42,30 +42,6 @@ async function saveMemory(token: string, userId: string, memory: CoachMemory) {
   })
 }
 
-async function generateNudge(memory: CoachMemory, daysSince: number, profile: { career_field?: string; career_stage?: string } | null): Promise<string> {
-  const counts = memory.actionCount ?? { saved: 0, applied: 0, tailored: 0, healthChecked: 0 }
-  const context = [
-    memory.summary ? `Coach notes: ${memory.summary}` : '',
-    profile?.career_field ? `Career field: ${profile.career_field}` : '',
-    profile?.career_stage ? `Career stage: ${profile.career_stage}` : '',
-    `Days since last visit: ${daysSince}`,
-    `Jobs saved: ${counts.saved}, applied: ${counts.applied}, tailored: ${counts.tailored}`,
-  ].filter(Boolean).join('\n')
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 100,
-      system: 'You are a calm, thoughtful career mentor. Write one short, warm sentence welcoming the user back and noting something specific about their job search — not generic encouragement. No exclamation marks. No emoji. Sound like a trusted colleague, not a motivational poster.',
-      messages: [{ role: 'user', content: `User context:\n${context}\n\nWrite the welcome-back nudge.` }],
-    }),
-  })
-  const data = await res.json()
-  return (data.content?.[0]?.text || '').trim()
-}
-
 async function synthesizeMemory(
   memory: CoachMemory,
   event: string,
@@ -96,37 +72,16 @@ async function synthesizeMemory(
   return (d.content?.[0]?.text || existing).trim()
 }
 
-// GET — return memory + nudge if applicable, update lastSeenAt
+// GET — update lastSeenAt; greeting is now a static string set client-side
 export async function GET(req: NextRequest) {
   const user = await getUserFromCookie(req)
-  if (!user?.id) return NextResponse.json({ memory: null, nudge: null })
+  if (!user?.id) return NextResponse.json({ memory: null })
 
-  const [memory, profileRes] = await Promise.all([
-    getMemory(user.token, user.id),
-    fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}&select=career_field,career_stage`, {
-      headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${user.token}` },
-    }).then(r => r.json()).then(rows => rows[0] ?? null).catch(() => null),
-  ])
+  const memory = await getMemory(user.token, user.id)
+  const updated: CoachMemory = { ...memory, lastSeenAt: new Date().toISOString() }
+  saveMemory(user.token, user.id, updated).catch(err => console.error('[coach] saveMemory failed:', err))
 
-  const now = new Date()
-  const lastSeen = memory.lastSeenAt ? new Date(memory.lastSeenAt) : null
-  const daysSince = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / 86400000) : 99
-  const dismissedAt = memory.nudgeDismissedAt ? new Date(memory.nudgeDismissedAt) : null
-  const daysSinceDismiss = dismissedAt ? Math.floor((now.getTime() - dismissedAt.getTime()) / 86400000) : 99
-
-  // Only nudge if away ≥ 3 days and not dismissed within 7 days
-  const shouldNudge = daysSince >= 3 && daysSinceDismiss >= 7
-
-  let nudge: string | null = null
-  if (shouldNudge) {
-    try { nudge = await generateNudge(memory, daysSince, profileRes) } catch { /* non-fatal */ }
-  }
-
-  // Update lastSeenAt in background (don't await in response)
-  const updated: CoachMemory = { ...memory, lastSeenAt: now.toISOString() }
-  saveMemory(user.token, user.id, updated).catch(() => {})
-
-  return NextResponse.json({ memory: updated, nudge })
+  return NextResponse.json({ memory: updated })
 }
 
 // PATCH — record a signal or dismiss nudge

@@ -1,25 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '../../../lib/rate-limit'
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY!
 const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-const WINDOW_MS = 60 * 60 * 1000 // 1 hour
-const MAX_HITS  = 5
-
-interface RateEntry { count: number; windowStart: number }
-const ratemap = new Map<string, RateEntry>()
-
 function getIP(req: NextRequest) {
   return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || req.headers.get('x-real-ip') || 'unknown'
-}
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now(); const e = ratemap.get(ip)
-  if (!e || now - e.windowStart >= WINDOW_MS) { ratemap.set(ip, { count: 1, windowStart: now }); return true }
-  if (e.count >= MAX_HITS) return false
-  e.count++; return true
 }
 
 async function getUserFromCookie(req: NextRequest) {
@@ -69,12 +57,24 @@ function gradeFromScore(n: number): string {
 }
 
 export async function POST(req: NextRequest) {
-  if (!checkRateLimit(getIP(req))) {
-    return NextResponse.json({ error: 'Rate limit reached. You can run 5 health checks per hour.' }, { status: 429 })
+  const ipCheck = rateLimit('health-ip', getIP(req), 5, 60 * 60 * 1000)
+  if (!ipCheck.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit reached. You can run 5 health checks per hour.' },
+      { status: 429, headers: { 'Retry-After': String(ipCheck.retryAfterSecs) } }
+    )
   }
 
   const user = await getUserFromCookie(req)
   if (!user?.id) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+
+  const userCheck = rateLimit('health-user', user.id, 10, 60 * 60 * 1000)
+  if (!userCheck.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit reached. You can run 10 health checks per hour.' },
+      { status: 429, headers: { 'Retry-After': String(userCheck.retryAfterSecs) } }
+    )
+  }
 
   const body = await req.json().catch(() => null)
   const { resumeId } = body ?? {}

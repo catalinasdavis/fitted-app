@@ -20,7 +20,7 @@ interface HealthResult {
 
 function mc(n: number) {
   if (n >= 75) return '#1a7a4a'
-  if (n >= 60) return '#2d5be3'
+  if (n >= 60) return '#5171bf'
   if (n >= 45) return '#b8750a'
   return '#a32d2d'
 }
@@ -87,16 +87,22 @@ function ResumeHealthInner() {
   async function runAnalysis() {
     if (!resumeId) return
     setStep('loading'); setError(''); startMsgs()
-    const res = await fetch('/api/resume-health', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ resumeId }),
-    })
-    stopMsgs()
-    const data = await res.json()
-    if (!res.ok || data.error) { setError(data.error || 'Something went wrong.'); setStep('setup'); return }
-    setResult(data); setStep('results')
-    fetch('/api/coach', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({event:'health_checked', data:{score: data.score, grade: data.grade, resumeName: data.resumeName}})}).catch(()=>{})
+    try {
+      const res = await fetch('/api/resume-health', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeId }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) { setError(data.error || 'Something went wrong.'); setStep('setup'); return }
+      setResult(data); setStep('results')
+      fetch('/api/coach', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({event:'health_checked', data:{score: data.score, grade: data.grade, resumeName: data.resumeName}})}).catch(()=>{})
+    } catch {
+      setError('Could not connect. Please check your connection and try again.')
+      setStep('setup')
+    } finally {
+      stopMsgs()
+    }
   }
 
   function copyWin(text: string, i: number) {
@@ -106,7 +112,7 @@ function ResumeHealthInner() {
 
   const gradeColor = (g: string) => {
     if (g.startsWith('A')) return '#1a7a4a'
-    if (g.startsWith('B')) return '#2d5be3'
+    if (g.startsWith('B')) return '#5171bf'
     if (g.startsWith('C')) return '#b8750a'
     return '#a32d2d'
   }
@@ -125,7 +131,7 @@ function ResumeHealthInner() {
       <nav style={{ height: 56, background: '#fff', borderBottom: '1px solid rgba(0,0,0,.07)', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 14 }}>
         <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#7a7a85', cursor: 'pointer', fontSize: 13, fontFamily: 'sans-serif', padding: 0 }}>← Back</button>
         <div style={{ width: 1, height: 28, background: 'rgba(0,0,0,.1)' }} />
-        <span style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a1f', letterSpacing: '-.02em' }}>fitted<span style={{ color: '#2d5be3' }}>.</span></span>
+        <span style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a1f', letterSpacing: '-.02em' }}>fitted<span style={{ color: '#5171bf' }}>.</span></span>
         <span style={{ fontSize: 13, color: '#b0b0b8' }}>/ Resume Health</span>
       </nav>
 
@@ -137,7 +143,7 @@ function ResumeHealthInner() {
             <div style={{ marginBottom: 28 }}>
               <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: '#1a1a1f', fontWeight: 400, margin: '0 0 6px' }}>Resume health check</h1>
               <p style={{ fontSize: 13.5, color: '#7a7a85', margin: 0, lineHeight: 1.6 }}>
-                An honest, mentor-style evaluation of your resume — no job description needed. fitted. reads it the way a hiring manager would.
+                An honest look at your resume — what's working, what isn't, and what a hiring manager would actually notice. No job description needed, and no generic feedback.
               </p>
             </div>
 
@@ -148,13 +154,13 @@ function ResumeHealthInner() {
               {resumes.length === 0
                 ? <p style={{ fontSize: 13, color: '#b0b0b8', fontStyle: 'italic', margin: 0 }}>
                     No resumes uploaded yet.{' '}
-                    <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: '#2d5be3', cursor: 'pointer', fontFamily: 'sans-serif', fontSize: 13, padding: 0, textDecoration: 'underline' }}>Upload one first →</button>
+                    <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: '#2f3e5c', cursor: 'pointer', fontFamily: 'sans-serif', fontSize: 13, padding: 0, textDecoration: 'underline' }}>Upload one first →</button>
                   </p>
                 : <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 7 }}>
                     {resumes.map(r => (
-                      <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, border: `1px solid ${resumeId === r.id ? '#2d5be3' : 'rgba(0,0,0,.08)'}`, background: resumeId === r.id ? '#eaeffe' : '#f4f2ed', cursor: 'pointer' }}>
-                        <input type="radio" name="resume" value={r.id} checked={resumeId === r.id} onChange={() => setResumeId(r.id)} style={{ accentColor: '#2d5be3' }} />
-                        <span style={{ fontSize: 13.5, color: resumeId === r.id ? '#2d5be3' : '#3d3d45', fontWeight: resumeId === r.id ? 500 : 400 }}>{r.name}</span>
+                      <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, border: `1px solid ${resumeId === r.id ? '#2f3e5c' : 'rgba(0,0,0,.08)'}`, background: resumeId === r.id ? '#e8edf5' : '#f4f2ed', cursor: 'pointer' }}>
+                        <input type="radio" name="resume" value={r.id} checked={resumeId === r.id} onChange={() => setResumeId(r.id)} style={{ accentColor: '#2f3e5c' }} />
+                        <span style={{ fontSize: 13.5, color: resumeId === r.id ? '#2f3e5c' : '#3d3d45', fontWeight: resumeId === r.id ? 500 : 400 }}>{r.name}</span>
                         {r.is_active && <span style={{ marginLeft: 'auto', fontSize: 10, color: '#1a7a4a', background: '#e6f5ed', padding: '2px 7px', borderRadius: 20 }}>Active</span>}
                       </label>
                     ))}
@@ -175,7 +181,7 @@ function ResumeHealthInner() {
         {/* ── STEP 2: LOADING ──────────────────────────── */}
         {step === 'loading' && (
           <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', minHeight: 320, gap: 18, animation: 'fadeIn .3s ease' }}>
-            <div style={{ width: 40, height: 40, border: '3.5px solid #eaeffe', borderTop: '3.5px solid #2d5be3', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
+            <div style={{ width: 40, height: 40, border: '3.5px solid #e8edf5', borderTop: '3.5px solid #2f3e5c', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
             <div style={{ textAlign: 'center' as const }}>
               <div style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#1a1a1f', marginBottom: 6 }}>Reading your resume</div>
               <div style={{ fontSize: 13, color: '#7a7a85', minHeight: 20 }}>{loadMsg}</div>
@@ -241,7 +247,7 @@ function ResumeHealthInner() {
                     </div>
                     <p style={{ fontSize: 13, color: '#3d3d45', lineHeight: 1.6, margin: '0 0 10px' }}>{b.issue}</p>
                     <div style={{ background: '#f4f2ed', borderRadius: 7, padding: '8px 12px', fontSize: 12.5, color: '#1a1a1f', lineHeight: 1.6 }}>
-                      <strong style={{ color: '#2d5be3' }}>Fix: </strong>{b.fix}
+                      <strong style={{ color: '#2f3e5c' }}>Fix: </strong>{b.fix}
                     </div>
                   </div>
                 ))}

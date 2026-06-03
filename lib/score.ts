@@ -3,7 +3,7 @@
 // Called once per job per request, with user context from profile + active resume.
 
 import type { Job } from './jobs'
-import { FIELD_TAGS } from './adzuna'
+import { FIELD_TAGS } from './active-jobs-db'
 
 export interface ScoringContext {
   resumeText:  string   // concatenated active resume text

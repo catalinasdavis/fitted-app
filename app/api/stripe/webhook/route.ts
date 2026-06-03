@@ -32,9 +32,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
-  console.log('[Webhook] received event:', event.type)
+  console.log('[Webhook] received event:', event.type, event.id)
 
   const admin = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY)
+
+  // Fire-and-forget: purge events older than 7 days (Stripe's max retry window is ~72 h)
+  admin.from('stripe_events').delete().lt(
+    'processed_at',
+    new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  )
+
+  // Claim the event atomically before processing.
+  // A replayed or retried delivery hits the primary key constraint (23505) here
+  // and is returned 200 without re-executing any profile writes.
+  const { error: claimError } = await admin
+    .from('stripe_events')
+    .insert({ event_id: event.id, event_type: event.type })
+
+  if (claimError) {
+    if (claimError.code === '23505') {
+      console.log('[Webhook] duplicate event skipped:', event.id, event.type)
+      return NextResponse.json({ received: true })
+    }
+    // Transient DB error — return 500 so Stripe retries; don't process without dedup guarantee
+    console.error('[Webhook] failed to claim event:', event.id, claimError)
+    return NextResponse.json({ error: 'DB error' }, { status: 500 })
+  }
 
   try {
     if (event.type === 'customer.subscription.updated') {
@@ -61,10 +84,14 @@ export async function POST(request: NextRequest) {
 
       const updates: any = {
         current_period_end: periodEnd,
-        subscription_status: cancelled ? 'cancelled' : 'active',
+        subscription_status: cancelled ? 'canceling' : 'active',
       }
-      if (cancelled) updates.cancelled_at = new Date().toISOString()
-      else updates.cancelled_at = null
+      if (cancelled) {
+        updates.cancelled_at = new Date().toISOString()
+      } else {
+        updates.cancelled_at = null
+        updates.cancel_at_period_end = false
+      }
 
       await admin.from('profiles').update(updates).eq('id', profile.id)
       console.log('[Webhook] subscription updated for profile:', profile.id, updates)
@@ -111,14 +138,17 @@ export async function POST(request: NextRequest) {
 
       const { data: profile } = await admin
         .from('profiles')
-        .select('id')
+        .select('id, plan')
         .eq('stripe_customer_id', customerId)
         .single()
 
       if (!profile) return NextResponse.json({ received: true })
 
+      // Preserve existing plan tier — a premium subscriber renewing should stay premium.
+      const renewedPlan = profile.plan === 'premium' ? 'premium' : 'pro'
+
       await admin.from('profiles').update({
-        plan: 'pro',
+        plan: renewedPlan,
         subscription_status: 'active',
         current_period_end: periodEnd,
         cancelled_at: null,
@@ -154,8 +184,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true })
   } catch (err: any) {
     console.error('[Webhook] handler error:', err)
-    // Return 200 to prevent Stripe from retrying on permanent failures.
-    // The error is logged above for alerting.
-    return NextResponse.json({ received: true, error: err.message })
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }

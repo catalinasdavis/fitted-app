@@ -40,25 +40,16 @@ export async function POST(request: NextRequest) {
   const body = await request.json()
   const { job_id, job_title, job_company, job_logo, job_logo_bg, job_logo_color, job_pay, job_url, column_id, resume_name } = body
 
-  // Check if entry already exists — restore if trashed
-  const existing = await fetch(
-    `${SUPABASE_URL}/rest/v1/tracker?user_id=eq.${user.id}&job_id=eq.${encodeURIComponent(job_id)}`,
-    { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` } }
-  )
-  const existingRows = await existing.json()
-
-  if (Array.isArray(existingRows) && existingRows.length > 0) {
-    await fetch(`${SUPABASE_URL}/rest/v1/tracker?id=eq.${existingRows[0].id}`, {
-      method: 'PATCH',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ column_id, deleted_at: null }),
-    })
-    return NextResponse.json({ success: true })
-  }
-
+  // Single atomic upsert — inserts if new, merges if already tracked (restoring from trash).
+  // Requires the tracker_user_job_unique constraint on (user_id, job_id).
   await fetch(`${SUPABASE_URL}/rest/v1/tracker`, {
     method: 'POST',
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates,return=minimal',
+    },
     body: JSON.stringify({
       user_id: user.id,
       job_id, job_title, job_company, job_logo, job_logo_bg, job_logo_color,

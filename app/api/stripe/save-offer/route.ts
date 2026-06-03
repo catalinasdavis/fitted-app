@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { rateLimit } from '../../../../lib/rate-limit'
 
 // STRIPE INTEGRATION — SAVE FLOW OFFER ENGINE
 //
@@ -91,6 +92,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
+  const { allowed, retryAfterSecs } = rateLimit('save-offer-user', user.id, 10, 60 * 60 * 1000)
+  if (!allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please wait before trying again.' },
+      { status: 429, headers: { 'Retry-After': String(retryAfterSecs) } }
+    )
+  }
+
   const body = await request.json()
   const action = body.action as 'check' | 'apply'
   if (action !== 'check' && action !== 'apply') {
@@ -102,8 +111,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
 
-  if (profile.plan !== 'pro') {
-    return NextResponse.json({ error: 'No active Pro subscription' }, { status: 400 })
+  if (profile.plan !== 'pro' && profile.plan !== 'premium') {
+    return NextResponse.json({ error: 'No active subscription' }, { status: 400 })
   }
 
   // Resolve subscription ID — look up by customer if not cached
@@ -181,11 +190,36 @@ export async function POST(request: NextRequest) {
       const expiresAt = new Date()
       expiresAt.setMonth(expiresAt.getMonth() + 1)
 
-      await updateProfile(user.id, {
-        discount_offers_used: nextTier,
-        active_discount_tier: TIER_INFO[nextTier].percent,
-        active_discount_expires_at: expiresAt.toISOString(),
-      })
+      // Conditional PATCH filtered on the current counter value — prevents a
+      // concurrent apply request from consuming the same tier a second time.
+      const lockRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}&discount_offers_used=eq.${offersUsed}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_SERVICE_KEY,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation',
+          },
+          body: JSON.stringify({
+            discount_offers_used: nextTier,
+            active_discount_tier: TIER_INFO[nextTier].percent,
+            active_discount_expires_at: expiresAt.toISOString(),
+          }),
+        }
+      )
+
+      if (!lockRes.ok) {
+        console.error('Save offer: profile update failed:', lockRes.status)
+        return NextResponse.json({ error: 'Failed to apply discount' }, { status: 500 })
+      }
+
+      const updated = await lockRes.json()
+      if (!Array.isArray(updated) || updated.length === 0) {
+        console.warn(`Save offer: optimistic lock lost userId=${user.id} offersUsed=${offersUsed}`)
+        return NextResponse.json({ error: 'Offer already applied' }, { status: 409 })
+      }
 
       return NextResponse.json({
         success: true,
