@@ -1115,7 +1115,7 @@ Return JSON only — no other text:
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M1.5 11.5c0-2.2 2.2-4 5-4s5 1.8 5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
             Account
           </button>
-          <button className="hide-mobile" onClick={async()=>{await fetch('/api/signout',{method:'POST'});window.location.href='/'}} style={{padding:'7px 13px',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,background:'none',fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Sign out</button>
+          <button className="hide-mobile" onClick={async()=>{await fetch('/api/signout',{method:'POST'});window.location.href='/auth'}} style={{padding:'7px 13px',border:'1px solid rgba(0,0,0,.12)',borderRadius:8,background:'none',fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Sign out</button>
         </div>
       </nav>
 
@@ -1637,7 +1637,7 @@ Return JSON only — no other text:
 
             {/* Footer */}
             <div style={{padding:'16px 28px',borderTop:'1px solid rgba(0,0,0,.07)',flexShrink:0}}>
-              <button onClick={async()=>{await fetch('/api/signout',{method:'POST'});window.location.href='/'}} style={{width:'100%',padding:'10px',background:'none',border:'1.5px solid #e8e4db',borderRadius:10,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Sign out</button>
+              <button onClick={async()=>{await fetch('/api/signout',{method:'POST'});window.location.href='/auth'}} style={{width:'100%',padding:'10px',background:'none',border:'1.5px solid #e8e4db',borderRadius:10,fontFamily:'sans-serif',fontSize:13,color:'#7a7a85',cursor:'pointer'}}>Sign out</button>
             </div>
 
           </div>

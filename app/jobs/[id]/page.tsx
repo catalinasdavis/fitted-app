@@ -426,7 +426,7 @@ Return ONLY valid JSON — no markdown, no explanation, no extra text:
 
   async function signOut() {
     await fetch('/api/signout', { method: 'POST' })
-    window.location.href = '/'
+    window.location.href = '/auth'
   }
 
   function downloadCoverLetter() {
