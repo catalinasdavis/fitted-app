@@ -25,7 +25,13 @@ export function proxy(request: NextRequest) {
     }
     if (new Date() < LAUNCH_DATE) {
       // Pre-launch gate: unauthenticated visitors see the coming-soon page.
-      return NextResponse.redirect(new URL('/coming-soon.html', request.url))
+      // No-cache headers prevent Vercel's edge and browsers from serving a
+      // stale cached response after the proxy logic or cookie state changes.
+      const res = NextResponse.redirect(new URL('/coming-soon.html', request.url))
+      res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+      res.headers.set('Pragma', 'no-cache')
+      res.headers.set('Expires', '0')
+      return res
     }
     // Post-launch: serve app/page.tsx (the landing page).
     return NextResponse.next()
